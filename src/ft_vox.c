@@ -61,6 +61,9 @@ int main(void) {
     ftLoadShaderGLSL(shader, GL_FRAGMENT_SHADER, fp_fragment_glsl);
     fclose(fp_fragment_glsl);
 
+    GLint u_proj_loc = glGetUniformLocation(shader, "u_proj");
+    GLint u_view_loc = glGetUniformLocation(shader, "u_view");
+
     /* create vertex array */
 
     GLuint vao;
@@ -100,13 +103,16 @@ int main(void) {
     glNamedBufferData(ibo, sizeof(indices), indices, GL_STATIC_DRAW);
     glVertexArrayElementBuffer(vao, ibo);
 
-    /* send projection matrices */
+    /* create 3D camera */
 
-    GLint u_proj_loc = glGetUniformLocation(shader, "u_proj");
-    GLint u_view_loc = glGetUniformLocation(shader, "u_view");
-    
-    mat4 u_proj = alg_mat4(1.0);
-    mat4 u_view = alg_mat4(1.0);
+    camera3D camera = {
+        .position = alg_vec3(0.0, 0.0, -10.0),
+        .rotation = alg_vec3(0.0, 0.0, 1.0),
+        .direction = alg_vec3(0.0, 0.0, -90.0),
+        .up = alg_vec3(0.0, 1.0, 0.0),
+        .fieldOfView = 60.0,
+        .sensitivity = 1.0
+    };
 
     int exit = 0;
     do {
@@ -114,11 +120,12 @@ int main(void) {
         /* update */
 
         /* get window size */
-        int window_width  = 0,
-            window_height = 0;
-        SDL_GetWindowSize(window, &window_width, &window_height);
-        u_proj = alg_mat4persp(alg_deg2rad(60.0), (float) window_width / window_height, 0.001, 1024.0);
-        u_view = alg_mat4translate(alg_vec3(0.0, 0.0, -512.0));
+        vec2 size = { 0 };
+        SDL_GetWindowSize(window, (int *) &size.x, (int *) &size.y);
+
+        mat4 u_proj = alg_mat4(1.0),
+             u_view = alg_mat4(1.0);
+        ftCamera3DMatrix(&camera, &u_proj, &u_view, size);
 
         /* ... */
 
