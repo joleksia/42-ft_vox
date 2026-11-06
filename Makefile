@@ -22,6 +22,7 @@ LDFLAGS = # ...
 IFLAGS = -I $(MK_ROOT)glld.h	\
 		 -I $(MK_ROOT)algebra.h	\
 		 -I $(MK_ROOT)noise.h	\
+		 -I $(MK_ROOT)/inc		\
 
 # preprocessor definitions
 DFLAGS =  # ...
@@ -29,8 +30,9 @@ DFLAGS =  # ...
 # ========
 
 OBJS = $(SRCS:.c=.o)
-SRCS = $(MK_ROOT)main.c \
-	   $(MK_ROOT)deps.c
+SRCS = $(MK_ROOT)src/deps.c				\
+	   $(MK_ROOT)src/ft_vox.c			\
+	   $(MK_ROOT)src/ft_vox-shader.c	\
 
 # ========
 

@@ -1,126 +1,4 @@
-#include "glld.h"
-#include "algebra.h"
-#include "perlin.h"
-#
-#include <stdio.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <stdint.h>
-#
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_video.h>
-#include <SDL2/SDL_events.h>
-
-/* shaders */
-
-static GLint __ftReadFile(FILE *, char **, size_t *);
-
-GLint ftLoadShader(GLuint, GLenum, FILE *);
-
-
-static GLint __ftReadFile(FILE *pFile, char **pCstr, size_t *pSize) {
-    /* null-check */
-    if (!pFile) { return (0); }
-
-    /* the the size of the 'pFile' */
-    fseek(pFile, 0, SEEK_END);
-    size_t fsize = ftell(pFile);
-    fseek(pFile, 0, SEEK_SET);
-
-    /* create null-terminated c-string pointer of size of 'pFile' */
-    char *fcstr = (char *) calloc(fsize + 1, sizeof(char));
-    if (!fcstr) { return (0); }
-
-    /* read 'pFile' to 'cstr' */
-    if (fread(fcstr, sizeof(*fcstr), fsize, pFile) != fsize) {
-        /* 'fread' didn't match the 'fsize'; something bad happened */
-        free(fcstr); fcstr = 0;
-        return (0);
-    }
-
-    /* return */
-    if (pSize) { *pSize = fsize; }
-    if (pCstr) { *pCstr = fcstr; }
-    else {
-        /* can't return 'pCstr'; release 'fcstr' */
-        free(fcstr); fcstr = 0;
-    }
-
-    /* success */
-    return (1);
-}
-
-
-GLint ftLoadShader(GLuint shader, GLenum type, FILE *pFile) {
-    /* null-check */
-    if (!shader) { return (0); }
-    if (!pFile)  { return (0); }
-
-    /* read 'pFile' to 'cstr' */
-    char *cstr = 0;
-    size_t siz = 0;
-    __ftReadFile(pFile, &cstr, &siz);
-    if (!cstr || !siz) { return (0); }
-
-    /* create empty shader object */
-    GLuint object = glCreateShader(type);
-    if (!object) {
-        free(cstr); cstr = 0;
-        return (0);
-    }
-
-    /* set 'object' data */
-    glShaderSource(object, 1, (const GLchar *const *) &cstr, 0);
-
-    /* compile 'object' */
-    glCompileShader(object);
-    {
-        GLint status = 0;
-        glGetShaderiv(object, GL_COMPILE_STATUS, &status);
-        if (status != GL_TRUE) {
-            /* log compilation error */
-            GLchar log[1024] = { 0 };
-            GLsizei length = 0;
-            glGetShaderInfoLog(object, sizeof(log), &length, log);
-            printf("%s", log);
-
-            /* release and return failure */
-            glDeleteShader(object);
-            free(cstr); cstr = 0;
-            return (0);
-        }
-    }
-
-    /* link 'object' to 'shader' program */
-    glAttachShader(shader, object);
-
-    /* link 'shader' */
-    glLinkProgram(shader);
-    {
-        GLint status = 0;
-        glGetProgramiv(shader, GL_LINK_STATUS, &status);
-        if (status != GL_TRUE) {
-            /* log compilation error */
-            GLchar log[1024] = { 0 };
-            GLsizei length = 0;
-            glGetProgramInfoLog(shader, sizeof(log), &length, log);
-            printf("%s", log);
-
-            /* release and return failure */
-            glDeleteShader(object);
-            free(cstr); cstr = 0;
-            return (0);
-        }
-    }
-
-    /* release resources */
-    glDeleteShader(object);
-    free(cstr); cstr = 0;
-
-    /* success */
-    return (1);
-}
-
+#include "ft_vox.h"
 
 typedef struct GLvertex GLvertex;
 
@@ -173,14 +51,14 @@ int main(void) {
     
     /* create shader program */
 
-    GLuint shader = glCreateProgram();
+    GLshader shader = glCreateProgram();
     
     FILE *fp_vertex_glsl = fopen("src/glsl/vertex.glsl", "rb");
-    ftLoadShader(shader, GL_VERTEX_SHADER, fp_vertex_glsl);
+    ftLoadShaderGLSL(shader, GL_VERTEX_SHADER, fp_vertex_glsl);
     fclose(fp_vertex_glsl);
     
     FILE *fp_fragment_glsl = fopen("src/glsl/fragment.glsl", "rb");
-    ftLoadShader(shader, GL_FRAGMENT_SHADER, fp_fragment_glsl);
+    ftLoadShaderGLSL(shader, GL_FRAGMENT_SHADER, fp_fragment_glsl);
     fclose(fp_fragment_glsl);
 
     /* create vertex array */
@@ -240,7 +118,7 @@ int main(void) {
             window_height = 0;
         SDL_GetWindowSize(window, &window_width, &window_height);
         u_proj = alg_mat4persp(alg_deg2rad(60.0), (float) window_width / window_height, 0.001, 1024.0);
-        u_view = alg_mat4(1.0);
+        u_view = alg_mat4translate(alg_vec3(0.0, 0.0, -512.0));
 
         /* ... */
 
