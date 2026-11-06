@@ -1,0 +1,12 @@
+[submodule "algebra.h"]
+	path = algebra.h
+	url = https://github.com/joleksia/algebra.h
+	branch = master
+[submodule "glld.h"]
+	path = glld.h
+	url = https://github.com/joleksia/glld.h
+	branch = master
+[submodule "noise.h"]
+	path = noise.h
+	url = https://github.com/joleksia/noise.h
+	branch = master
