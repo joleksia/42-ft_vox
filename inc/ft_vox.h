@@ -74,9 +74,6 @@ struct Camera3D {
 
     /* 'fieldOfView' : value in degrees of current field of view */
     float fieldOfView;
-
-    /* 'sensitivity' : rotation sensitivity */
-    float sensitivity;
 };
 
 extern int ftCamera3DMatrix(Camera3D *, mat4 *, mat4 *, vec2);

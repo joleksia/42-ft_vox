@@ -52,6 +52,9 @@ int main(void) {
     /* configure OpenGL */
     SDL_GL_SetSwapInterval(1);
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CW);
     
     /* create shader program */
 
@@ -111,11 +114,27 @@ int main(void) {
      * */
     GLuint indices[] = { /* face no. 1 */
                          0, 1, 2,
-                         1, 2, 3,
+                         3, 2, 1,
                          
                          /* face no. 2 */
+                         6, 5, 4,
                          5, 6, 7,
-                         4, 5, 6, };
+
+                         /* face no. 3 */
+                         7, 1, 5,
+                         1, 7, 3,
+                         
+                         /* face no. 4 */
+                         2, 4, 0,
+                         4 ,2, 6,
+                         
+                         /* face no. 5 */
+                         2, 7, 6,
+                         7, 2, 3,
+                         
+                         /* face no. 6 */
+                         1, 0, 5,
+                         4, 5, 0, };
 
     GLuint ibo;
     glCreateBuffers(1, &ibo);
@@ -130,14 +149,29 @@ int main(void) {
         .direction = alg_vec3(0.0, 0.0, -90.0),
         .up = alg_vec3(0.0, 1.0, 0.0),
         .fieldOfView = 60.0,
-        .sensitivity = 1.0
     };
 
-    /* create 'keymap' struct */
+    /* create 'keyboard' struct */
     struct {
         uint8_t current[SDL_NUM_SCANCODES];
         uint8_t previous[SDL_NUM_SCANCODES];
-    } keymap = { 0 };
+    } keyboard = { 0 };
+
+    /* create 'mouse' struct */
+    struct {
+        struct {
+            vec2 current;
+            vec2 previous;
+            vec2 delta;
+        } position;
+        struct {
+            uint8_t current[8];
+            uint8_t previous[8];
+            vec2 scroll;
+        } input;
+        uint8_t locked;
+    } mouse = { 0 };
+    mouse.locked = 0;
 
     /* create 'time' struct */
     struct {
@@ -151,32 +185,71 @@ int main(void) {
         
         /* update */
 
+        /* enable 'locked' mode */
+        if (mouse.input.current[1]) {
+            if (!mouse.input.previous[1]) {
+                mouse.locked = 1;
+            }
+        }
+
+        /* disable 'locked' mode */
+        if (keyboard.current[SDL_SCANCODE_ESCAPE]) {
+            if (!keyboard.previous[SDL_SCANCODE_ESCAPE]) {
+                mouse.locked = 0;
+            }
+        }
+
         /* update 'camera' position */
         float velocity = 64.0f * time.delta;
-        if (keymap.current[SDL_SCANCODE_D] ||
-            keymap.current[SDL_SCANCODE_A]
+        if (keyboard.current[SDL_SCANCODE_D] ||
+            keyboard.current[SDL_SCANCODE_A]
         ) {
-            int8_t input = keymap.current[SDL_SCANCODE_D] -
-                           keymap.current[SDL_SCANCODE_A];
+            int8_t input = keyboard.current[SDL_SCANCODE_D] -
+                           keyboard.current[SDL_SCANCODE_A];
             vec3 norm = alg_vec3norm(alg_vec3cross(camera.rotation, camera.up));
             camera.position = alg_vec3add(camera.position, alg_vec3mulf(norm, input * velocity));
         }
         
-        if (keymap.current[SDL_SCANCODE_SPACE] ||
-            keymap.current[SDL_SCANCODE_LSHIFT]
+        if (keyboard.current[SDL_SCANCODE_SPACE] ||
+            keyboard.current[SDL_SCANCODE_LSHIFT]
         ) {
-            int8_t input = keymap.current[SDL_SCANCODE_SPACE] -
-                           keymap.current[SDL_SCANCODE_LSHIFT];
+            int8_t input = keyboard.current[SDL_SCANCODE_SPACE] -
+                           keyboard.current[SDL_SCANCODE_LSHIFT];
             camera.position = alg_vec3add(camera.position, alg_vec3mulf(camera.up, input * velocity));
-
         }
         
-        if (keymap.current[SDL_SCANCODE_W] ||
-            keymap.current[SDL_SCANCODE_S]
+        if (keyboard.current[SDL_SCANCODE_W] ||
+            keyboard.current[SDL_SCANCODE_S]
         ) {
-            int8_t input = keymap.current[SDL_SCANCODE_W] -
-                           keymap.current[SDL_SCANCODE_S];
-            camera.position = alg_vec3add(camera.position, alg_vec3mulf(camera.rotation, input * velocity));
+            int8_t input = keyboard.current[SDL_SCANCODE_W] -
+                           keyboard.current[SDL_SCANCODE_S];
+
+            double sy = sin(alg_deg2rad(camera.direction.z)),
+                   cy = cos(alg_deg2rad(camera.direction.z));
+            vec3 forward = alg_vec3(cy, 0.0f, sy);
+            camera.position = alg_vec3add(camera.position, alg_vec3mulf(forward, input * velocity));
+        }
+
+        /* update 'camera' rotation */
+        float sensitivity = 0.1f;
+        SDL_SetRelativeMouseMode(mouse.locked);
+        if (mouse.locked) {
+            /* apply 'offset' to 'direction' */
+            camera.direction.z += mouse.position.delta.x * sensitivity; /* yaw */
+            camera.direction.y -= mouse.position.delta.y * sensitivity; /* pitch */
+            
+            /* clear 'mouse' 'delta' */
+            mouse.position.delta = alg_vec2(0.0, 0.0);
+
+            /* clamp 'pitch' in [-89.0, 89.0] */
+            camera.direction.y = alg_clamp(camera.direction.y, -89.0, 89.0);
+
+            /* apply 'direction' to 'rotation' */
+            double sp = sin(alg_deg2rad(camera.direction.y)),
+                   cp = cos(alg_deg2rad(camera.direction.y)),
+                   sy = sin(alg_deg2rad(camera.direction.z)),
+                   cy = cos(alg_deg2rad(camera.direction.z));
+            camera.rotation = alg_vec3norm(alg_vec3(cy * cp, sp, sy * cp));
         }
 
         /* ... */
@@ -201,9 +274,18 @@ int main(void) {
         /* render current vertex array */
         glUseProgram(shader);
         glBindVertexArray(vao);
-        glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
         glUseProgram(0);
+
+        /* copy 'current' inputs to 'previous' inputs */
+        memcpy(keyboard.previous,
+               keyboard.current,
+               sizeof(keyboard.current));
+
+        memcpy(mouse.input.previous,
+               mouse.input.current,
+               sizeof(mouse.input.current));
 
         /* poll events */
 
@@ -213,11 +295,28 @@ int main(void) {
             switch (event.type) {
                 case (SDL_QUIT): { exit = 1; } break;
 
+                case (SDL_MOUSEMOTION): {
+                    mouse.position.previous = mouse.position.current;
+                    mouse.position.current = alg_vec2(event.motion.x,
+                                                      event.motion.y);
+
+                    if (mouse.locked) {
+                        vec2 relative = alg_vec2(event.motion.xrel,
+                                                 event.motion.yrel);
+                        mouse.position.delta = alg_vec2add(mouse.position.delta, relative);
+                    }
+                } break;
+
+                case (SDL_MOUSEBUTTONUP):
+                case (SDL_MOUSEBUTTONDOWN): {
+                    uint8_t button = event.button.button;
+                    mouse.input.current[button] = event.button.state;
+                } break;
+
                 case (SDL_KEYUP):
                 case (SDL_KEYDOWN): {
                     SDL_Scancode code = event.key.keysym.scancode;
-                    keymap.previous[code] = keymap.current[code];
-                    keymap.current[code] = event.key.state;
+                    keyboard.current[code] = event.key.state;
                 } break;
 
                 case (SDL_WINDOWEVENT): {
