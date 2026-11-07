@@ -26,6 +26,7 @@ struct GLvertex {
     vec2 texcoord;
 };
 
+
 /* ft_vox-shader.c */
 
 typedef GLuint GLshader;
@@ -33,6 +34,7 @@ typedef GLuint GLshader;
 extern GLint ftLoadShaderGLSL(GLshader, GLenum, FILE *);
 
 extern GLint ftLoadShaderSPIRV(GLshader, GLenum, FILE *);
+
 
 /* ft_vox-mesh.c */
 
@@ -52,6 +54,7 @@ extern int ftMeshSetData(Mesh *, const GLvoid *, const GLsizei, const GLvoid *, 
 extern int ftMeshUpload(Mesh *, const GLuint);
 
 extern int ftMeshGetSize(Mesh *, GLsizei *, GLsizei *);
+
 
 /* ft_vox-camera.c */
 
@@ -75,7 +78,6 @@ struct Camera2D {
 };
 
 extern int ftCamera2DMatrix(Camera2D *, mat4 *, mat4 *, vec2);
-
 
 /* 'Camera3D' : perspective 3D projection structure.
  * */
@@ -105,6 +107,36 @@ struct Camera3D {
 
 extern int ftCamera3DMatrix(Camera3D *, mat4 *, mat4 *, vec2);
 
+
+/* ft_vox-chunk.c */
+
+# define FT_VOX_CHUNK_W 16 /* chunk width (size along X-axis)  */
+# define FT_VOX_CHUNK_H 16 /* chunk height (size along Y-axis) */
+# define FT_VOX_CHUNK_D 16 /* chunk depth (size along Z-axis)  */
+# define FT_VOX_CHUNK_S (FT_VOX_CHUNK_W * FT_VOX_CHUNK_H * FT_VOX_CHUNK_D)
+
+typedef struct Chunk Chunk;
+
+struct Chunk {
+    /* 'data' : CPU numeric representation of the chunk (width * height * depth) */
+    uint64_t *data;
+
+    /* 'mesh' : GPU representation of the chunk (baked once, based on 'data') */
+    Mesh mesh;
+
+    /* 'dirty' : dirty-flag representing if chunk was modified */
+    uint8_t dirty;
+};
+
+extern int ftChunkCreate(Chunk *);
+
+extern int ftChunkDelete(Chunk *);
+
+extern int ftChunkUpload(Chunk *, const GLuint);
+
+extern int ftChunkGetBlock(Chunk *, const vec3, uint64_t *);
+
+extern int ftChunkSetBlock(Chunk *, const vec3, const uint64_t);
 
 /* ... */
 

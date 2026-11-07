@@ -85,33 +85,12 @@ int main(void) {
     glVertexArrayAttribBinding(vao, 2, 0);
     glVertexArrayAttribFormat(vao, 2, 2, GL_FLOAT, GL_FALSE, offsetof(GLvertex, texcoord));
 
-    GLvertex vertices[] = { [0] = { .position = alg_vec3(0.0,  0.0,  0.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(0.0, 0.0) },
-                            [1] = { .position = alg_vec3(10.0, 0.0,  0.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(1.0, 0.0) },
-                            [2] = { .position = alg_vec3(10.0, 10.0, 0.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(1.0, 1.0) },
-                            [3] = { .position = alg_vec3(0.0,  10.0, 0.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(0.0, 1.0) },
-                            
-                            [4] = { .position = alg_vec3(0.0,  0.0,  10.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(0.0, 0.0) },
-                            [5] = { .position = alg_vec3(10.0, 0.0,  10.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(1.0, 0.0) },
-                            [6] = { .position = alg_vec3(10.0, 10.0, 10.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(1.0, 1.0) },
-                            [7] = { .position = alg_vec3(0.0,  10.0, 10.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(0.0, 1.0) }, };
-                
+    /* create 'chunk' */
+    Chunk chunk = { 0 };
+    ftChunkCreate(&chunk);
+    ftChunkUpload(&chunk, vao);
 
-    /* https://github.com/jdah/minecraft-weekend/blob/master/src/world/blockmesh.c#L8 */
-    GLuint indices[] = { 1, 0, 3, 1, 3, 2, /* north (-z) */
-                         4, 5, 6, 4, 6, 7, /* south (+z) */
-                         0, 4, 7, 0, 7, 3, /* west  (-z) */
-                         5, 1, 2, 5, 2, 6, /* east  (+x) */
-                         5, 4, 0, 5, 0, 1, /* down  (-y) */
-                         2, 3, 7, 2, 7, 6, /* top   (+y) */ };
-
-
-    /* create GPU 'mesh' */
-    Mesh mesh = { 0 };
-    ftMeshCreate(&mesh);
-    ftMeshSetData(&mesh, vertices, sizeof(vertices), indices, sizeof(indices));
-    ftMeshUpload(&mesh, vao);
-
-    /* create 3D camera */
+    /* create 3D 'camera' */
 
     Camera3D camera = {
         .position = alg_vec3(0.0, 0.0, 100.0),
@@ -246,7 +225,7 @@ int main(void) {
 
         GLsizei vsize = 0,
                 isize = 0;
-        ftMeshGetSize(&mesh, &vsize, &isize);
+        ftMeshGetSize(&chunk.mesh, &vsize, &isize);
         glDrawElements(GL_TRIANGLES, isize / sizeof(GLuint), GL_UNSIGNED_INT, 0);
         
         glBindVertexArray(0);
@@ -311,10 +290,12 @@ int main(void) {
         time.delta = (time.current - time.previous) / (double) SDL_GetPerformanceFrequency();
     
     } while (!exit);
-  
+ 
+    /* unload ft_vox */
+    ftChunkDelete(&chunk);
+
     /* unload OpenGL */
 
-    ftMeshDelete(&mesh);
     glDeleteVertexArrays(1, &vao);
     glDeleteProgram(shader);
 
