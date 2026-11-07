@@ -48,6 +48,10 @@ int main(void) {
         SDL_Quit();
         return (3);
     }
+
+    /* configure OpenGL */
+    SDL_GL_SetSwapInterval(1);
+    glEnable(GL_DEPTH_TEST);
     
     /* create shader program */
 
@@ -83,10 +87,17 @@ int main(void) {
 
     /* create GPU buffer */
 
-    GLvertex vertices[] = { [0] = { .position = alg_vec3(0.0,  0.0,  0.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(0.0, 0.0) },
+    GLvertex vertices[] = { /* front */
+                            [0] = { .position = alg_vec3(0.0,  0.0,  0.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(0.0, 0.0) },
                             [1] = { .position = alg_vec3(10.0, 0.0,  0.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(1.0, 0.0) },
                             [2] = { .position = alg_vec3(0.0,  10.0, 0.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(0.0, 1.0) },
-                            [3] = { .position = alg_vec3(10.0, 10.0, 0.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(1.0, 1.0) } };
+                            [3] = { .position = alg_vec3(10.0, 10.0, 0.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(1.0, 1.0) },
+
+                            /* back */
+                            [4] = { .position = alg_vec3(0.0,  0.0,  10.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(0.0, 0.0) },
+                            [5] = { .position = alg_vec3(10.0, 0.0,  10.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(1.0, 0.0) },
+                            [6] = { .position = alg_vec3(0.0,  10.0, 10.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(0.0, 1.0) },
+                            [7] = { .position = alg_vec3(10.0, 10.0, 10.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(1.0, 1.0) } };
                 
     GLuint vbo;
     glCreateBuffers(1, &vbo);
@@ -95,8 +106,16 @@ int main(void) {
 
     /* create GPU buffer */
 
-    GLuint indices[] = { 0, 1, 2,
-                         1, 2, 3 };
+    /*
+     *
+     * */
+    GLuint indices[] = { /* face no. 1 */
+                         0, 1, 2,
+                         1, 2, 3,
+                         
+                         /* face no. 2 */
+                         5, 6, 7,
+                         4, 5, 6, };
 
     GLuint ibo;
     glCreateBuffers(1, &ibo);
@@ -106,27 +125,59 @@ int main(void) {
     /* create 3D camera */
 
     Camera3D camera = {
-        .position = alg_vec3(0.0, 0.0, -100.0),
-        .rotation = alg_vec3(0.0, 0.0, 1.0),
+        .position = alg_vec3(0.0, 0.0, 100.0),
+        .rotation = alg_vec3(0.0, 0.0, -1.0),
         .direction = alg_vec3(0.0, 0.0, -90.0),
         .up = alg_vec3(0.0, 1.0, 0.0),
         .fieldOfView = 60.0,
         .sensitivity = 1.0
     };
 
+    /* create 'keymap' struct */
+    struct {
+        uint8_t current[SDL_NUM_SCANCODES];
+        uint8_t previous[SDL_NUM_SCANCODES];
+    } keymap = { 0 };
+
+    /* create 'time' struct */
+    struct {
+        double current;
+        double previous;
+        double delta;
+    } time = { 0 };
+
     int exit = 0;
     do {
         
         /* update */
 
-        /* get window size */
-        vec2 size = { 0 };
-        SDL_GL_GetDrawableSize(window, (int *) &size.x,
-                                       (int *) &size.y);
+        /* update 'camera' position */
+        float velocity = 64.0f * time.delta;
+        if (keymap.current[SDL_SCANCODE_D] ||
+            keymap.current[SDL_SCANCODE_A]
+        ) {
+            int8_t input = keymap.current[SDL_SCANCODE_D] -
+                           keymap.current[SDL_SCANCODE_A];
+            vec3 norm = alg_vec3norm(alg_vec3cross(camera.rotation, camera.up));
+            camera.position = alg_vec3add(camera.position, alg_vec3mulf(norm, input * velocity));
+        }
+        
+        if (keymap.current[SDL_SCANCODE_SPACE] ||
+            keymap.current[SDL_SCANCODE_LSHIFT]
+        ) {
+            int8_t input = keymap.current[SDL_SCANCODE_SPACE] -
+                           keymap.current[SDL_SCANCODE_LSHIFT];
+            camera.position = alg_vec3add(camera.position, alg_vec3mulf(camera.up, input * velocity));
 
-        mat4 u_proj = alg_mat4(1.0),
-             u_view = alg_mat4(1.0);
-        ftCamera3DMatrix(&camera, &u_proj, &u_view, size);
+        }
+        
+        if (keymap.current[SDL_SCANCODE_W] ||
+            keymap.current[SDL_SCANCODE_S]
+        ) {
+            int8_t input = keymap.current[SDL_SCANCODE_W] -
+                           keymap.current[SDL_SCANCODE_S];
+            camera.position = alg_vec3add(camera.position, alg_vec3mulf(camera.rotation, input * velocity));
+        }
 
         /* ... */
 
@@ -134,16 +185,23 @@ int main(void) {
 
         /* clear */
         glClearColor(0.1, 0.1, 0.1, 1.0);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         /* update uniforms */
+        vec2 size = { 0 };
+        SDL_GL_GetDrawableSize(window, (int *) &size.x,
+                                       (int *) &size.y);
+        mat4 u_proj = alg_mat4(1.0),
+             u_view = alg_mat4(1.0);
+        ftCamera3DMatrix(&camera, &u_proj, &u_view, size);
+        
         glProgramUniformMatrix4fv(shader, u_proj_loc, 1, GL_FALSE, (GLfloat *) &u_proj);
         glProgramUniformMatrix4fv(shader, u_view_loc, 1, GL_FALSE, (GLfloat *) &u_view);
 
         /* render current vertex array */
         glUseProgram(shader);
         glBindVertexArray(vao);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
         glUseProgram(0);
 
@@ -155,25 +213,11 @@ int main(void) {
             switch (event.type) {
                 case (SDL_QUIT): { exit = 1; } break;
 
+                case (SDL_KEYUP):
                 case (SDL_KEYDOWN): {
                     SDL_Scancode code = event.key.keysym.scancode;
-                    uint32_t keysym = event.key.keysym.sym; /* virtual key  */
-                    uint32_t keymod = event.key.keysym.mod; /* key modifier */
-
-                    (void) keysym;
-                    (void) keymod;
-                    
-                    /* right-left */
-                    if (code == SDL_SCANCODE_A) { camera.position.x += 1.0; }
-                    if (code == SDL_SCANCODE_D) { camera.position.x -= 1.0; }
-                    
-                    /* top-down */
-                    if (code == SDL_SCANCODE_SPACE)  { camera.position.y += 1.0; }
-                    if (code == SDL_SCANCODE_LSHIFT) { camera.position.y -= 1.0; }
-
-                    /* forward-backward */
-                    if (code == SDL_SCANCODE_W) { camera.position.z += 1.0; }
-                    if (code == SDL_SCANCODE_S) { camera.position.z -= 1.0; }
+                    keymap.previous[code] = keymap.current[code];
+                    keymap.current[code] = event.key.state;
                 } break;
 
                 case (SDL_WINDOWEVENT): {
@@ -187,6 +231,12 @@ int main(void) {
                 } break;
             }
         }
+
+        /* update 'time' */
+        time.previous = time.current;
+        time.current = SDL_GetPerformanceCounter();
+        time.delta = (time.current - time.previous) / (double) SDL_GetPerformanceFrequency();
+    
     } while (!exit);
   
     /* unload OpenGL */
