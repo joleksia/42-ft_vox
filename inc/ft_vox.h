@@ -18,6 +18,14 @@
 # include <SDL2/SDL_video.h>
 # include <SDL2/SDL_events.h>
 
+typedef struct GLvertex GLvertex;
+
+struct GLvertex {
+    vec3 position;
+    vec3 normal;
+    vec2 texcoord;
+};
+
 /* ft_vox-shader.c */
 
 typedef GLuint GLshader;
@@ -25,6 +33,25 @@ typedef GLuint GLshader;
 extern GLint ftLoadShaderGLSL(GLshader, GLenum, FILE *);
 
 extern GLint ftLoadShaderSPIRV(GLshader, GLenum, FILE *);
+
+/* ft_vox-mesh.c */
+
+typedef struct Mesh Mesh;
+
+struct Mesh {
+    GLuint vbo; /* 'vbo' - vertex data buffer */
+    GLuint ibo; /* 'ibo' - index data buffer  */
+};
+
+extern int ftMeshCreate(Mesh *);
+
+extern int ftMeshDelete(Mesh *);
+
+extern int ftMeshSetData(Mesh *, const GLvoid *, const GLsizei, const GLvoid *, const GLsizei);
+
+extern int ftMeshUpload(Mesh *, const GLuint);
+
+extern int ftMeshGetSize(Mesh *, GLsizei *, GLsizei *);
 
 /* ft_vox-camera.c */
 

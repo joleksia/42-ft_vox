@@ -1,14 +1,5 @@
 #include "ft_vox.h"
 
-typedef struct GLvertex GLvertex;
-
-struct GLvertex {
-    vec3 position;
-    vec3 normal;
-    vec2 texcoord;
-};
-
-
 int main(void) {
 
     /* create window */
@@ -51,8 +42,14 @@ int main(void) {
 
     /* configure OpenGL */
     SDL_GL_SetSwapInterval(1);
+    
+    glEnable(GL_MULTISAMPLE);
+    glEnable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
+    
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); 
+
     glCullFace(GL_BACK);
     glFrontFace(GL_CW);
     
@@ -88,58 +85,31 @@ int main(void) {
     glVertexArrayAttribBinding(vao, 2, 0);
     glVertexArrayAttribFormat(vao, 2, 2, GL_FLOAT, GL_FALSE, offsetof(GLvertex, texcoord));
 
-    /* create GPU buffer */
-
-    GLvertex vertices[] = { /* front */
-                            [0] = { .position = alg_vec3(0.0,  0.0,  0.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(0.0, 0.0) },
+    GLvertex vertices[] = { [0] = { .position = alg_vec3(0.0,  0.0,  0.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(0.0, 0.0) },
                             [1] = { .position = alg_vec3(10.0, 0.0,  0.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(1.0, 0.0) },
-                            [2] = { .position = alg_vec3(0.0,  10.0, 0.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(0.0, 1.0) },
-                            [3] = { .position = alg_vec3(10.0, 10.0, 0.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(1.0, 1.0) },
-
-                            /* back */
+                            [2] = { .position = alg_vec3(10.0, 10.0, 0.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(1.0, 1.0) },
+                            [3] = { .position = alg_vec3(0.0,  10.0, 0.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(0.0, 1.0) },
+                            
                             [4] = { .position = alg_vec3(0.0,  0.0,  10.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(0.0, 0.0) },
                             [5] = { .position = alg_vec3(10.0, 0.0,  10.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(1.0, 0.0) },
-                            [6] = { .position = alg_vec3(0.0,  10.0, 10.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(0.0, 1.0) },
-                            [7] = { .position = alg_vec3(10.0, 10.0, 10.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(1.0, 1.0) } };
+                            [6] = { .position = alg_vec3(10.0, 10.0, 10.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(1.0, 1.0) },
+                            [7] = { .position = alg_vec3(0.0,  10.0, 10.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(0.0, 1.0) }, };
                 
-    GLuint vbo;
-    glCreateBuffers(1, &vbo);
-    glNamedBufferData(vbo, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    glVertexArrayVertexBuffer(vao, 0, vbo, 0, sizeof(GLvertex));
 
-    /* create GPU buffer */
+    /* https://github.com/jdah/minecraft-weekend/blob/master/src/world/blockmesh.c#L8 */
+    GLuint indices[] = { 1, 0, 3, 1, 3, 2, /* north (-z) */
+                         4, 5, 6, 4, 6, 7, /* south (+z) */
+                         0, 4, 7, 0, 7, 3, /* west  (-z) */
+                         5, 1, 2, 5, 2, 6, /* east  (+x) */
+                         5, 4, 0, 5, 0, 1, /* down  (-y) */
+                         2, 3, 7, 2, 7, 6, /* top   (+y) */ };
 
-    /*
-     *
-     * */
-    GLuint indices[] = { /* face no. 1 */
-                         0, 1, 2,
-                         3, 2, 1,
-                         
-                         /* face no. 2 */
-                         6, 5, 4,
-                         5, 6, 7,
 
-                         /* face no. 3 */
-                         7, 1, 5,
-                         1, 7, 3,
-                         
-                         /* face no. 4 */
-                         2, 4, 0,
-                         4 ,2, 6,
-                         
-                         /* face no. 5 */
-                         2, 7, 6,
-                         7, 2, 3,
-                         
-                         /* face no. 6 */
-                         1, 0, 5,
-                         4, 5, 0, };
-
-    GLuint ibo;
-    glCreateBuffers(1, &ibo);
-    glNamedBufferData(ibo, sizeof(indices), indices, GL_STATIC_DRAW);
-    glVertexArrayElementBuffer(vao, ibo);
+    /* create GPU 'mesh' */
+    Mesh mesh = { 0 };
+    ftMeshCreate(&mesh);
+    ftMeshSetData(&mesh, vertices, sizeof(vertices), indices, sizeof(indices));
+    ftMeshUpload(&mesh, vao);
 
     /* create 3D camera */
 
@@ -167,7 +137,6 @@ int main(void) {
         struct {
             uint8_t current[8];
             uint8_t previous[8];
-            vec2 scroll;
         } input;
         uint8_t locked;
     } mouse = { 0 };
@@ -274,7 +243,12 @@ int main(void) {
         /* render current vertex array */
         glUseProgram(shader);
         glBindVertexArray(vao);
-        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+
+        GLsizei vsize = 0,
+                isize = 0;
+        ftMeshGetSize(&mesh, &vsize, &isize);
+        glDrawElements(GL_TRIANGLES, isize / sizeof(GLuint), GL_UNSIGNED_INT, 0);
+        
         glBindVertexArray(0);
         glUseProgram(0);
 
@@ -340,10 +314,9 @@ int main(void) {
   
     /* unload OpenGL */
 
-    glDeleteBuffers(1, &vbo), vbo = 0;
-    glDeleteBuffers(1, &ibo), ibo = 0;
-    glDeleteVertexArrays(1, &vao), vao = 0;
-    glDeleteProgram(shader), shader = 0;
+    ftMeshDelete(&mesh);
+    glDeleteVertexArrays(1, &vao);
+    glDeleteProgram(shader);
 
     /* quit */
 
