@@ -25,7 +25,7 @@ IFLAGS = -I $(MK_ROOT)glld.h	\
 		 -I $(MK_ROOT)/inc		\
 
 # preprocessor definitions
-DFLAGS =  # ...
+DFLAGS = -DMESA_DEBUG 
 
 # ========
 

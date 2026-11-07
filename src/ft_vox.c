@@ -83,10 +83,10 @@ int main(void) {
 
     /* create GPU buffer */
 
-    GLvertex vertices[] = { [0] = { .position = alg_vec3(0.0,   0.0,   0.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(0.0, 0.0) },
-                            [1] = { .position = alg_vec3(100.0, 0.0,   0.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(1.0, 0.0) },
-                            [2] = { .position = alg_vec3(0.0,   100.0, 0.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(0.0, 1.0) },
-                            [3] = { .position = alg_vec3(100.0, 100.0, 0.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(1.0, 1.0) } };
+    GLvertex vertices[] = { [0] = { .position = alg_vec3(0.0,  0.0,  0.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(0.0, 0.0) },
+                            [1] = { .position = alg_vec3(10.0, 0.0,  0.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(1.0, 0.0) },
+                            [2] = { .position = alg_vec3(0.0,  10.0, 0.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(0.0, 1.0) },
+                            [3] = { .position = alg_vec3(10.0, 10.0, 0.0), .normal = alg_vec3(0.0, 0.0, 0.0), .texcoord = alg_vec2(1.0, 1.0) } };
                 
     GLuint vbo;
     glCreateBuffers(1, &vbo);
@@ -105,8 +105,8 @@ int main(void) {
 
     /* create 3D camera */
 
-    camera3D camera = {
-        .position = alg_vec3(0.0, 0.0, -10.0),
+    Camera3D camera = {
+        .position = alg_vec3(0.0, 0.0, -100.0),
         .rotation = alg_vec3(0.0, 0.0, 1.0),
         .direction = alg_vec3(0.0, 0.0, -90.0),
         .up = alg_vec3(0.0, 1.0, 0.0),
@@ -121,7 +121,8 @@ int main(void) {
 
         /* get window size */
         vec2 size = { 0 };
-        SDL_GetWindowSize(window, (int *) &size.x, (int *) &size.y);
+        SDL_GL_GetDrawableSize(window, (int *) &size.x,
+                                       (int *) &size.y);
 
         mat4 u_proj = alg_mat4(1.0),
              u_view = alg_mat4(1.0);
@@ -154,10 +155,33 @@ int main(void) {
             switch (event.type) {
                 case (SDL_QUIT): { exit = 1; } break;
 
+                case (SDL_KEYDOWN): {
+                    SDL_Scancode code = event.key.keysym.scancode;
+                    uint32_t keysym = event.key.keysym.sym; /* virtual key  */
+                    uint32_t keymod = event.key.keysym.mod; /* key modifier */
+
+                    (void) keysym;
+                    (void) keymod;
+                    
+                    /* right-left */
+                    if (code == SDL_SCANCODE_A) { camera.position.x += 1.0; }
+                    if (code == SDL_SCANCODE_D) { camera.position.x -= 1.0; }
+                    
+                    /* top-down */
+                    if (code == SDL_SCANCODE_SPACE)  { camera.position.y += 1.0; }
+                    if (code == SDL_SCANCODE_LSHIFT) { camera.position.y -= 1.0; }
+
+                    /* forward-backward */
+                    if (code == SDL_SCANCODE_W) { camera.position.z += 1.0; }
+                    if (code == SDL_SCANCODE_S) { camera.position.z -= 1.0; }
+                } break;
+
                 case (SDL_WINDOWEVENT): {
-                    switch (event.window.type) {
-                        case (SDL_WINDOWEVENT_RESIZED): {
-                            glViewport(0, 0, event.window.data1, event.window.data2);
+                    switch (event.window.event) {
+                        case (SDL_WINDOWEVENT_RESIZED):
+                        case (SDL_WINDOWEVENT_SIZE_CHANGED): {
+                            glViewport(0, 0, event.window.data1,
+                                             event.window.data2);
                         } break;
                     }
                 } break;
