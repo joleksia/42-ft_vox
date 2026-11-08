@@ -119,7 +119,7 @@ typedef struct Chunk Chunk;
 
 struct Chunk {
     /* 'data' : CPU numeric representation of the chunk (width * height * depth) */
-    uint64_t *data;
+    uint32_t *data;
 
     /* 'mesh' : GPU representation of the chunk (baked once, based on 'data') */
     Mesh mesh;
@@ -134,9 +134,9 @@ extern int ftChunkDelete(Chunk *);
 
 extern int ftChunkUpload(Chunk *, const GLuint);
 
-extern int ftChunkGetBlock(Chunk *, const vec3, uint64_t *);
+extern int ftChunkGetBlock(Chunk *, const vec3, uint32_t *);
 
-extern int ftChunkSetBlock(Chunk *, const vec3, const uint64_t);
+extern int ftChunkSetBlock(Chunk *, const vec3, const uint32_t);
 
 /* ... */
 

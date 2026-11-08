@@ -14,7 +14,7 @@ static const GLvertex FT_VOX_VERTEX_DATA[] = { [0] = { .position = { 0.0, 0.0, 0
 /* 'FT_VOX_CUBE_INDEX_DATA' : index layout for building standard cube mesh */
 static const GLuint FT_VOX_CUBE_INDEX_DATA[] = { 1, 0, 3, 1, 3, 2, /* north (-z) */
                                                  4, 5, 6, 4, 6, 7, /* south (+z) */
-                                                 0, 4, 7, 0, 7, 3, /* west  (-z) */
+                                                 0, 4, 7, 0, 7, 3, /* west  (-x) */
                                                  5, 1, 2, 5, 2, 6, /* east  (+x) */
                                                  5, 4, 0, 5, 0, 1, /* down  (-y) */
                                                  2, 3, 7, 2, 7, 6, /* top   (+y) */ };
@@ -36,24 +36,28 @@ extern int ftChunkCreate(Chunk *pChunk) {
     if (!ftMeshCreate(&pChunk->mesh)) { return (0); }
 
     /* create CPU index 'data' array */
-    uint64_t *data = (uint64_t *) calloc(FT_VOX_CHUNK_S, sizeof(uint64_t));
+    uint32_t *data = (uint32_t *) calloc(FT_VOX_CHUNK_S, sizeof(uint32_t));
     if (!data) {
         ftMeshDelete(&pChunk->mesh);
         return (0);
     }
 
+    /* set 'pChunk's 'data' */
+    pChunk->data = data;
+
     /* fill 'data' with some procedural ID's */
     for (size_t y = 0; y < FT_VOX_CHUNK_H; y++) {
         for (size_t x = 0; x < FT_VOX_CHUNK_W; x++) {
             for (size_t z = 0; z < FT_VOX_CHUNK_D; z++) {
-                double noise = perlin3D(x * 0.001, y * 0.001, z * 0.001);
-                if (noise > 0.0) { ftChunkSetBlock(pChunk, alg_vec3(x, y, z), 1); }
+                double noise = perlin3D(x * 0.05,
+                                        y * 0.05,
+                                        z * 0.05);
+                if (noise > 0.1) {
+                    ftChunkSetBlock(pChunk, alg_vec3(x, y, z), 1);
+                }
             }
         }
     }
-
-    /* set 'pChunk's 'data' */
-    pChunk->data = data;
 
     /* set 'dirty' flag */
     pChunk->dirty = 1;
@@ -86,85 +90,107 @@ extern int ftChunkUpload(Chunk *pChunk, const GLuint vao) {
     if (!pChunk->dirty) { return (1); }
     
     /* create temporary buffers */
-    GLvertex *tmp0 = (GLvertex *) malloc(8 * sizeof(GLvertex) * FT_VOX_CHUNK_S);
-    if (!tmp0) { return (0); }
-
-    GLuint *tmp1 = (GLuint *) malloc(36 * sizeof(GLuint) * FT_VOX_CHUNK_S);
-    if (!tmp1) { free(tmp0); return (0); }
-
+    GLvertex *vertices = (GLvertex *) malloc(8 * sizeof(GLvertex) * FT_VOX_CHUNK_S);
+    size_t v_cnt = 0;
+    GLuint *indices = (GLuint *) malloc(36 * sizeof(GLuint) * FT_VOX_CHUNK_S);
+    size_t i_cnt = 0;
+    
     /* CPU-to-GPU */
-    size_t v_offset = 0,
-           i_offset = 0;
-    for (size_t y = 0; y < FT_VOX_CHUNK_H; y++) {
-        for (size_t x = 0; x < FT_VOX_CHUNK_W; x++) {
-            for (size_t z = 0; z < FT_VOX_CHUNK_D; z++) {
+    for (int y = 0; y < FT_VOX_CHUNK_H; y++) {
+        for (int x = 0; x < FT_VOX_CHUNK_W; x++) {
+            for (int z = 0; z < FT_VOX_CHUNK_D; z++) {
+                /* get the 'block' */
+                uint32_t block = 0;
+                ftChunkGetBlock(pChunk, alg_vec3(x, y, z), &block);
+                /* skip if 'air' ('block' == '0') */
+                if (!block) { continue; }
 
-                /* vertex data */
-                GLvertex vertices[8];
+                /* get the neightboring 'blocks' */
+                uint32_t blocks[6] = { 0 };
+                ftChunkGetBlock(pChunk, alg_vec3(x, y, z - 1), &blocks[0]); /* north (-z) */
+                ftChunkGetBlock(pChunk, alg_vec3(x, y, z + 1), &blocks[1]); /* south (+z) */
+                ftChunkGetBlock(pChunk, alg_vec3(x - 1, y, z), &blocks[2]); /* west  (-z) */
+                ftChunkGetBlock(pChunk, alg_vec3(x + 1, y, z), &blocks[3]); /* east  (+x) */
+                ftChunkGetBlock(pChunk, alg_vec3(x, y - 1, z), &blocks[4]); /* down  (-y) */
+                ftChunkGetBlock(pChunk, alg_vec3(x, y + 1, z), &blocks[5]); /* top   (+y) */
+
+                /* check each neighboring block */
+                for (size_t i = 0; i < 6; i++) {
+                    uint32_t block = blocks[i];
+                    /* check if neighbor is "transparent" (for now only 'air') */
+                    if (!block) {
+                        /* copy 'tmp' to 'indices' */
+                        const GLuint *tmp = &FT_VOX_CUBE_INDEX_DATA[6 * i];
+                        for (size_t j = 0; j < 6; j++) {
+                            indices[i_cnt++] = tmp[j] + v_cnt;
+                        }
+                    }
+                }
+
+                /* copy vertex to 'vertices' */
                 for (size_t i = 0; i < 8; i++) {
-                    vertices[i] = FT_VOX_VERTEX_DATA[i];
-                    vertices[i].position.x += x;
-                    vertices[i].position.y += y;
-                    vertices[i].position.z += z;
+                    GLvertex tmp = FT_VOX_VERTEX_DATA[i];
+                    tmp.position.x += x;
+                    tmp.position.y += y;
+                    tmp.position.z += z;
+                    vertices[v_cnt++] = tmp;
                 }
-
-                /* concat. 'vertices' to 'tmp0' */
-                memmove(&tmp0[v_offset], vertices, sizeof(vertices));
-
-                /* cube index data */
-                GLuint indices[36];
-                for (size_t i = 0; i < 36; i++) {
-                    indices[i] = FT_VOX_CUBE_INDEX_DATA[i] + v_offset;
-                }
-
-                /* concat. 'indices' to 'tmp1' */
-                memmove(&tmp1[i_offset], indices, sizeof(indices));
-
-                /* move offsets */
-                v_offset += 8;
-                i_offset += 36;
             }
         }
     }
 
-    /* upload 'tmp0' and 'tmp1' to GPU */
-    if (!ftMeshSetData(&pChunk->mesh, tmp0,  8 * sizeof(GLvertex) * FT_VOX_CHUNK_S,
-                                      tmp1, 36 * sizeof(GLuint)   * FT_VOX_CHUNK_S)) {
-        free(tmp0);
-        free(tmp1);
-        return (0);
+    /* upload 'vertices' and 'indices' to GPU */
+    int status = ftMeshSetData(&pChunk->mesh, vertices, v_cnt * sizeof(GLvertex),
+                                              indices,  i_cnt * sizeof(GLuint));
+
+    /* exec. only is 'status' is "no-error" */
+    if (status) {
+        /* upload GPU mesh to 'vao' */
+        if (!ftMeshUpload(&pChunk->mesh, vao)) { return (0); }
+
+        /* toggle 'dirty' flag */
+        pChunk->dirty = 0;
     }
 
-    /* release 'tmp0' and 'tmp1' */
-    free(tmp0);
-    free(tmp1);
+    /* release 'vertices' and 'indices' */
+    free(vertices);
+    free(indices);
 
-    /* upload GPU mesh to 'vao' */
-    if (!ftMeshUpload(&pChunk->mesh, vao)) { return (0); }
-
-    /* toggle 'dirty' flag */
-    pChunk->dirty = 0;
-
-    /* success */
-    return (1);
+    /* return status */
+    return (status);
 }
 
 
-extern int ftChunkGetBlock(Chunk *pChunk, const vec3 position, uint64_t *pID) {
+extern int ftChunkGetBlock(Chunk *pChunk, const vec3 position, uint32_t *pID) {
     /* null-check */
     if (!pChunk)       { return (0); }
     if (!pChunk->data) { return (0); }
 
     /* try to get 'ID' from CPU 'data' */
-    size_t x = (size_t) position.x,
-           y = (size_t) position.y,
-           z = (size_t) position.z;
-    x = alg_clamp(x, 0, FT_VOX_CHUNK_W - 1);
-    y = alg_clamp(y, 0, FT_VOX_CHUNK_H - 1);
-    z = alg_clamp(z, 0, FT_VOX_CHUNK_D - 1);
-    uint64_t ID = pChunk->data[x + y * FT_VOX_CHUNK_W + z * FT_VOX_CHUNK_W * FT_VOX_CHUNK_H];
+    ssize_t x = (ssize_t) position.x,
+            y = (ssize_t) position.y,
+            z = (ssize_t) position.z;
 
-    /* return */
+    /* TODO:
+     * When we get more chunks to render, we should probably ask for neighbor block
+     * from the neighboring chunk.
+     * Position of neighbor block from neighbor chunk can be obtained by using '%'
+     * on 'x', 'y', 'z' positions.
+     * */
+    if (x < 0 || x >= FT_VOX_CHUNK_W ||
+        y < 0 || y >= FT_VOX_CHUNK_H ||
+        z < 0 || z >= FT_VOX_CHUNK_D
+    ) {
+        x %= FT_VOX_CHUNK_W;
+        y %= FT_VOX_CHUNK_H;
+        z %= FT_VOX_CHUNK_D;
+        return (0);
+    }
+    
+    /* get the block's 'ID' */
+    uint32_t ID = pChunk->data[x + y * FT_VOX_CHUNK_W + z * FT_VOX_CHUNK_W * FT_VOX_CHUNK_H];
+
+    /* return 'ID' */
     if (pID) { *pID = ID; }
 
     /* success */
@@ -172,15 +198,19 @@ extern int ftChunkGetBlock(Chunk *pChunk, const vec3 position, uint64_t *pID) {
 }
 
 
-extern int ftChunkSetBlock(Chunk *pChunk, const vec3 position, const uint64_t ID) {
+extern int ftChunkSetBlock(Chunk *pChunk, const vec3 position, const uint32_t ID) {
     /* null-check */
     if (!pChunk)       { return (0); }
     if (!pChunk->data) { return (0); }
 
     /* try to set 'ID' into CPU 'data' */
-    size_t x = (size_t) position.x,
-           y = (size_t) position.y,
-           z = (size_t) position.z;
+    ssize_t x = (ssize_t) position.x,
+            y = (ssize_t) position.y,
+            z = (ssize_t) position.z;
+    /* NOTE:
+     * In the final game the case of clamping 'x', 'y' and 'z' probably shouldn't happen.
+     * But I'll keep it for now.
+     * */
     x = alg_clamp(x, 0, FT_VOX_CHUNK_W - 1);
     y = alg_clamp(y, 0, FT_VOX_CHUNK_H - 1);
     z = alg_clamp(z, 0, FT_VOX_CHUNK_D - 1);

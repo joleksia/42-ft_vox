@@ -51,7 +51,7 @@ int main(void) {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); 
 
     glCullFace(GL_BACK);
-    glFrontFace(GL_CW);
+    glFrontFace(GL_CCW);
     
     /* create shader program */
 
@@ -288,6 +288,9 @@ int main(void) {
         time.previous = time.current;
         time.current = SDL_GetPerformanceCounter();
         time.delta = (time.current - time.previous) / (double) SDL_GetPerformanceFrequency();
+
+        /* print 'fps' */
+        printf("FPS: %lf\n", 1.0 / time.delta);
     
     } while (!exit);
  
