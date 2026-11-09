@@ -18,6 +18,16 @@
 # include <SDL2/SDL_video.h>
 # include <SDL2/SDL_events.h>
 
+/* Forward-Declare */
+
+typedef struct GPUMesh GPUMesh;
+
+typedef struct Chunk Chunk;
+
+typedef struct World World;
+
+/* Misc. */
+
 typedef struct GLvertex GLvertex;
 
 struct GLvertex {
@@ -36,24 +46,6 @@ extern GLint ftLoadShaderGLSL(GLshader, GLenum, FILE *);
 extern GLint ftLoadShaderSPIRV(GLshader, GLenum, FILE *);
 
 
-/* ft_vox-mesh.c */
-
-typedef struct Mesh Mesh;
-
-struct Mesh {
-    GLuint vbo; /* 'vbo' - vertex data buffer */
-    GLuint ibo; /* 'ibo' - index data buffer  */
-};
-
-extern int ftMeshCreate(Mesh *);
-
-extern int ftMeshDelete(Mesh *);
-
-extern int ftMeshSetData(Mesh *, const GLvoid *, const GLsizei, const GLvoid *, const GLsizei);
-
-extern int ftMeshUpload(Mesh *, const GLuint);
-
-extern int ftMeshGetSize(Mesh *, GLsizei *, GLsizei *);
 
 
 /* ft_vox-camera.c */
@@ -108,35 +100,103 @@ struct Camera3D {
 extern int ftCamera3DMatrix(Camera3D *, mat4 *, mat4 *, vec2);
 
 
+/* ft_vox-mesh.c */
+
+struct GPUMesh {
+    struct {
+        GLuint  id;
+        GLsizei size;
+    } vbo, ibo;
+};
+
+extern int ftGPUMeshCreate(GPUMesh *);
+
+extern int ftGPUMeshDelete(GPUMesh *);
+
+extern int ftGPUMeshSetData(GPUMesh *, const GLvoid *, const GLsizei, const GLvoid *, const GLsizei);
+
+extern int ftGPUMeshUpload(GPUMesh *, const GLuint);
+
+
 /* ft_vox-chunk.c */
 
-# define FT_VOX_CHUNK_W 16 /* chunk width (size along X-axis)  */
-# define FT_VOX_CHUNK_H 16 /* chunk height (size along Y-axis) */
-# define FT_VOX_CHUNK_D 16 /* chunk depth (size along Z-axis)  */
-# define FT_VOX_CHUNK_S (FT_VOX_CHUNK_W * FT_VOX_CHUNK_H * FT_VOX_CHUNK_D)
-
-typedef struct Chunk Chunk;
+# if !defined (FT_VOX_CHUNK_BLOCKS_W)
+#  define FT_VOX_CHUNK_BLOCKS_W 16 /* chunk X-axis size in blocks */
+# endif
+# 
+# if !defined (FT_VOX_CHUNK_BLOCKS_H)
+#  define FT_VOX_CHUNK_BLOCKS_H 16 /* chunk Y-axis size in blocks */
+# endif
+# 
+# if !defined (FT_VOX_CHUNK_BLOCKS_D)
+#  define FT_VOX_CHUNK_BLOCKS_D 16 /* chunk Z-axis size in blocks */
+# endif
+#
+# define FT_VOX_CHUNK_BLOCKS_S (FT_VOX_CHUNK_BLOCKS_W * FT_VOX_CHUNK_BLOCKS_H * FT_VOX_CHUNK_BLOCKS_D)
 
 struct Chunk {
-    /* 'data' : CPU numeric representation of the chunk (width * height * depth) */
-    uint32_t *data;
+    /* 'world' : reference to the 'World' struct */
+    World *world;
 
-    /* 'mesh' : GPU representation of the chunk (baked once, based on 'data') */
-    Mesh mesh;
+    /* 'cpu' : CPU representation of the chunk */
+    uint32_t *cpu;
 
-    /* 'dirty' : dirty-flag representing if chunk was modified */
-    uint8_t dirty;
+    /* 'gpu' : GPU representation of the chunk */
+    GPUMesh gpu;
+
+    /* 'position' : world position of the chunk */
+    vec3 position;
+
+    /* 'flags' : 1-bit chunk flags */
+    struct {
+        uint8_t dirty : 1; /* 'dirty' : dirty-flag, if '1' then re-run CPU-to-GPU process */
+        uint8_t empty : 1; /* 'empty' : if '1' then chunk has no blocks */
+        uint8_t modified : 1; /* 'modified' : if '1' then chunk was modified by the player */
+    } flags;
 };
 
 extern int ftChunkCreate(Chunk *);
 
 extern int ftChunkDelete(Chunk *);
 
+extern int ftChunkRender(Chunk *);
+
+extern int ftChunkGenCPU(Chunk *, const vec3, const int);
+
+extern int ftChunkGenGPU(Chunk *);
+
 extern int ftChunkUpload(Chunk *, const GLuint);
 
 extern int ftChunkGetBlock(Chunk *, const vec3, uint32_t *);
 
 extern int ftChunkSetBlock(Chunk *, const vec3, const uint32_t);
+
+
+/* ft_vox-world.c */
+
+# if !defined (FT_VOX_WORLD_BLOCKS_W)
+#  define FT_VOX_WORLD_BLOCKS_W 16384 /* world X-axis size in blocks */
+# endif
+#
+# if !defined (FT_VOX_WORLD_BLOCKS_H)
+#  define FT_VOX_WORLD_BLOCKS_H 256   /* world Y-axis size in blocks */
+# endif
+#
+# if !defined (FT_VOX_WORLD_BLOCKS_D)
+#  define FT_VOX_WORLD_BLOCKS_D 16384 /* world Z-axis size in blocks */
+# endif
+#
+# define FT_VOX_WORLD_CHUNKS_W (FT_VOX_WORLD_BLOCKS_W / FT_VOX_CHUNK_BLOCKS_W) /* world X-axis size in chunks  */
+# define FT_VOX_WORLD_CHUNKS_H (FT_VOX_WORLD_BLOCKS_H / FT_VOX_CHUNK_BLOCKS_H) /* world Y-axis size in chunks  */
+# define FT_VOX_WORLD_CHUNKS_D (FT_VOX_WORLD_BLOCKS_D / FT_VOX_CHUNK_BLOCKS_D) /* world Z-axis size in chunks  */
+# define FT_VOX_WORLD_CHUNKS_S (FT_VOX_WORLD_CHUNKS_W * FT_VOX_WORLD_CHUNKS_H * FT_VOX_WORLD_CHUNKS_D)
+
+struct World {
+
+    /* 'chunks' : list of chunks */
+    Chunk *chunks;
+
+};
 
 /* ... */
 

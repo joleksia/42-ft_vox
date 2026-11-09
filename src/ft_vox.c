@@ -86,14 +86,27 @@ int main(void) {
     glVertexArrayAttribFormat(vao, 2, 2, GL_FLOAT, GL_FALSE, offsetof(GLvertex, texcoord));
 
     /* create 'chunk' */
-    Chunk chunk = { 0 };
-    ftChunkCreate(&chunk);
-    ftChunkUpload(&chunk, vao);
+    Chunk chunks[16 * 16 * 16] = { 0 };
+    for (int y = -8; y < 7; y++) {
+        for (int x = -8; x < 7; x++) {
+            for (int z = -8; z < 7; z++) {
+                int X = x + 8,
+                    Y = y + 8,
+                    Z = z + 8;
+                Chunk *chunk = &chunks[X + Y * 16 + Z * 16 * 16];
+                ftChunkCreate(chunk);
+                ftChunkGenCPU(chunk, alg_vec3(x * FT_VOX_CHUNK_BLOCKS_W,
+                                              y * FT_VOX_CHUNK_BLOCKS_H,
+                                              z * FT_VOX_CHUNK_BLOCKS_D), 0);
+                ftChunkGenGPU(chunk);
+            }
+        }
+    }
 
     /* create 3D 'camera' */
 
     Camera3D camera = {
-        .position = alg_vec3(0.0, 0.0, 100.0),
+        .position = alg_vec3(0.0, 0.0, 32.0),
         .rotation = alg_vec3(0.0, 0.0, -1.0),
         .direction = alg_vec3(0.0, 0.0, -90.0),
         .up = alg_vec3(0.0, 1.0, 0.0),
@@ -148,7 +161,7 @@ int main(void) {
         }
 
         /* update 'camera' position */
-        float velocity = 64.0f * time.delta;
+        float velocity = 8.0f * time.delta;
         if (keyboard.current[SDL_SCANCODE_D] ||
             keyboard.current[SDL_SCANCODE_A]
         ) {
@@ -223,11 +236,16 @@ int main(void) {
         glUseProgram(shader);
         glBindVertexArray(vao);
 
-        GLsizei vsize = 0,
-                isize = 0;
-        ftMeshGetSize(&chunk.mesh, &vsize, &isize);
-        glDrawElements(GL_TRIANGLES, isize / sizeof(GLuint), GL_UNSIGNED_INT, 0);
-        
+        for (int y = 0; y < 16; y++) {
+            for (int x = 0; x < 16; x++) {
+                for (int z = 0; z < 16; z++) {
+                    Chunk *chunk = &chunks[x + y * 16 + z * 16 * 16];
+                    ftChunkUpload(chunk, vao);
+                    ftChunkRender(chunk);
+                }
+            }
+        }
+
         glBindVertexArray(0);
         glUseProgram(0);
 
@@ -290,12 +308,14 @@ int main(void) {
         time.delta = (time.current - time.previous) / (double) SDL_GetPerformanceFrequency();
 
         /* print 'fps' */
-        printf("FPS: %lf\n", 1.0 / time.delta);
+        printf("FPS: %d\n", (int) (1.0 / time.delta));
     
     } while (!exit);
  
     /* unload ft_vox */
-    ftChunkDelete(&chunk);
+    for (int i = 0; i < 64; i++) {
+        ftChunkDelete(&chunks[i]);
+    }
 
     /* unload OpenGL */
 

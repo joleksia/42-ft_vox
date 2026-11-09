@@ -4,5 +4,5 @@
 #define ALGEBRA_IMPLEMENTATION
 #include "algebra.h" /* 'algebra.h' : Mathematical library for linear algebra operations */
 #
-#define PERLIN_IMPLEMENTATION
+#define NOISE_IMPLEMENTATION
 #include "perlin.h" /* 'perlin.h' : Perlin-noise generation library */
