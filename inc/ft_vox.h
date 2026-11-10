@@ -50,33 +50,12 @@ extern GLint ftLoadShaderSPIRV(GLshader, GLenum, FILE *);
 
 /* ft_vox-camera.c */
 
-/* 'Camera2D' : orthographic 2D projection structure.
+/* 'Camera' : perspective 3D projection structure.
  * */
 
-typedef struct Camera2D Camera2D;
+typedef struct Camera Camera;
 
-struct Camera2D {
-    /* 'target' : world-space target point */
-    vec2 target;
-
-    /* 'offset' : screen-space offset */
-    vec2 offset;
-
-    /* 'rotation' : degrees rotation around target pivot point */
-    float rotation;
-
-    /* 'scale' : camera scale/zoom, must be non-zero value */
-    float scale;
-};
-
-extern int ftCamera2DMatrix(Camera2D *, mat4 *, mat4 *, vec2);
-
-/* 'Camera3D' : perspective 3D projection structure.
- * */
-
-typedef struct Camera3D Camera3D;
-
-struct Camera3D {
+struct Camera {
     /* 'position' : current camera position */
     vec3 position;
 
@@ -97,7 +76,7 @@ struct Camera3D {
     float fieldOfView;
 };
 
-extern int ftCamera3DMatrix(Camera3D *, mat4 *, mat4 *, vec2);
+extern int ftCameraMatrix(Camera *, mat4 *, mat4 *, vec2);
 
 
 /* ft_vox-mesh.c */

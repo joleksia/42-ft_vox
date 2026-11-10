@@ -109,7 +109,7 @@ int main(void) {
     
     /* create 3D 'camera' */
 
-    Camera3D camera = {
+    Camera camera = {
         .position = alg_vec3(0.0, 0.0, 32.0),
         .rotation = alg_vec3(0.0, 0.0, -1.0),
         .direction = alg_vec3(0.0, 0.0, -90.0),
@@ -213,7 +213,7 @@ int main(void) {
                                        (int *) &size.y);
         mat4 u_proj = alg_mat4(1.0),
              u_view = alg_mat4(1.0);
-        ftCamera3DMatrix(&camera, &u_proj, &u_view, size);
+        ftCameraMatrix(&camera, &u_proj, &u_view, size);
         
         glProgramUniformMatrix4fv(shader, u_proj_loc, 1, GL_FALSE, (GLfloat *) &u_proj);
         glProgramUniformMatrix4fv(shader, u_view_loc, 1, GL_FALSE, (GLfloat *) &u_view);
