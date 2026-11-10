@@ -214,7 +214,6 @@ int main(void) {
         mat4 u_proj = alg_mat4(1.0),
              u_view = alg_mat4(1.0);
         ftCameraMatrix(&camera, &u_proj, &u_view, size);
-        
         glProgramUniformMatrix4fv(shader, u_proj_loc, 1, GL_FALSE, (GLfloat *) &u_proj);
         glProgramUniformMatrix4fv(shader, u_view_loc, 1, GL_FALSE, (GLfloat *) &u_view);
 
@@ -223,7 +222,7 @@ int main(void) {
         glBindVertexArray(vao);
 
         /* render 'world' */
-        ftWorldRender(&world, vao);
+        ftWorldRender(&world, vao, shader);
 
         glBindVertexArray(0);
         glUseProgram(0);

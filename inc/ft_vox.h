@@ -95,19 +95,21 @@ struct BlockMesh {
 
 /* ft_vox-chunk.c */
 
-# if !defined (FT_VOX_CHUNK_BLOCKS_W)
-#  define FT_VOX_CHUNK_BLOCKS_W 32 /* chunk X-axis size in blocks */
+# if !defined (FT_VOX_CHUNK_BLOCKS_X)
+#  define FT_VOX_CHUNK_BLOCKS_X 32 /* chunk X-axis size in blocks */
 # endif
 # 
-# if !defined (FT_VOX_CHUNK_BLOCKS_H)
-#  define FT_VOX_CHUNK_BLOCKS_H 32 /* chunk Y-axis size in blocks */
+# if !defined (FT_VOX_CHUNK_BLOCKS_Y)
+#  define FT_VOX_CHUNK_BLOCKS_Y 32 /* chunk Y-axis size in blocks */
 # endif
 # 
-# if !defined (FT_VOX_CHUNK_BLOCKS_D)
-#  define FT_VOX_CHUNK_BLOCKS_D 32 /* chunk Z-axis size in blocks */
+# if !defined (FT_VOX_CHUNK_BLOCKS_Z)
+#  define FT_VOX_CHUNK_BLOCKS_Z 32 /* chunk Z-axis size in blocks */
 # endif
 #
-# define FT_VOX_CHUNK_BLOCKS_S (FT_VOX_CHUNK_BLOCKS_W * FT_VOX_CHUNK_BLOCKS_H * FT_VOX_CHUNK_BLOCKS_D)
+# define FT_VOX_CHUNK_BLOCKS_S (FT_VOX_CHUNK_BLOCKS_X * FT_VOX_CHUNK_BLOCKS_Y * FT_VOX_CHUNK_BLOCKS_Z)
+#
+# define FT_VOX_CHUNK_3D_1D(x, y, z) (x + y * FT_VOX_CHUNK_BLOCKS_X + z * FT_VOX_CHUNK_BLOCKS_X * FT_VOX_CHUNK_BLOCKS_Y)
 
 struct Chunk {
     /* 'world' : reference to the 'World' struct */
@@ -119,11 +121,11 @@ struct Chunk {
     /* 'mesh' : GPU representation of solid/trans. blocks */
     BlockMesh *mesh;
 
-    /* 'offset' : numerical position offset in world-space */
-    vec3 offset;
+    /* 'position' : numerical position in world-space */
+    vec3 position;
 
-    /* 'seed' : pseudo-random number generation seed used for noise */
-    int32_t seed;
+    /* indices into 'pWorld->chunks' */
+    int cx, cy, cz;
 
     /* 'flags' : 1-bit chunk flags */
     struct {
@@ -133,11 +135,9 @@ struct Chunk {
     } flags;
 };
 
-extern int ftChunkCreate(Chunk *, World *, const vec3, const int);
-
 extern int ftChunkDelete(Chunk *);
 
-extern int ftChunkGenCPU(Chunk *);
+extern int ftChunkGenCPU(Chunk *, const int);
 
 extern int ftChunkGenGPU(Chunk *);
 
@@ -148,38 +148,43 @@ extern int ftChunkSetBlock(Chunk *, const vec3, const uint32_t);
 
 /* ft_vox-world.c */
 
-# if !defined (FT_VOX_WORLD_BLOCKS_W)
-#  define FT_VOX_WORLD_BLOCKS_W 16384 /* world X-axis size in blocks */
+# if !defined (FT_VOX_WORLD_BLOCKS_X)
+#  define FT_VOX_WORLD_BLOCKS_X 16384 /* world X-axis size in blocks */
 # endif
 #
-# if !defined (FT_VOX_WORLD_BLOCKS_H)
-#  define FT_VOX_WORLD_BLOCKS_H 256   /* world Y-axis size in blocks */
+# if !defined (FT_VOX_WORLD_BLOCKS_Y)
+#  define FT_VOX_WORLD_BLOCKS_Y 16384 /* world Y-axis size in blocks */
 # endif
 #
-# if !defined (FT_VOX_WORLD_BLOCKS_D)
-#  define FT_VOX_WORLD_BLOCKS_D 16384 /* world Z-axis size in blocks */
+# if !defined (FT_VOX_WORLD_BLOCKS_Z)
+#  define FT_VOX_WORLD_BLOCKS_Z 16384 /* world Z-axis size in blocks */
 # endif
 #
-# define FT_VOX_WORLD_CHUNKS_W (FT_VOX_WORLD_BLOCKS_W / FT_VOX_CHUNK_BLOCKS_W) /* world X-axis size in chunks  */
-# define FT_VOX_WORLD_CHUNKS_H (FT_VOX_WORLD_BLOCKS_H / FT_VOX_CHUNK_BLOCKS_H) /* world Y-axis size in chunks  */
-# define FT_VOX_WORLD_CHUNKS_D (FT_VOX_WORLD_BLOCKS_D / FT_VOX_CHUNK_BLOCKS_D) /* world Z-axis size in chunks  */
-# define FT_VOX_WORLD_CHUNKS_S (FT_VOX_WORLD_CHUNKS_W * FT_VOX_WORLD_CHUNKS_H * FT_VOX_WORLD_CHUNKS_D)
+# if !defined (FT_VOX_RENDER_DISTANCE_X)
+#  define FT_VOX_RENDER_DISTANCE_X 8 /* world X-axis render distance */
+#  define FT_VOX_RENDER_DIAMETER_X (FT_VOX_RENDER_DISTANCE_X * 2)
+# endif
+#
+# if !defined (FT_VOX_RENDER_DISTANCE_Y)
+#  define FT_VOX_RENDER_DISTANCE_Y 8 /* world Y-axis render distance */
+#  define FT_VOX_RENDER_DIAMETER_Y (FT_VOX_RENDER_DISTANCE_Y * 2)
+# endif
+#
+# if !defined (FT_VOX_RENDER_DISTANCE_Z)
+#  define FT_VOX_RENDER_DISTANCE_Z 8 /* world Z-axis render distance */
+#  define FT_VOX_RENDER_DIAMETER_Z (FT_VOX_RENDER_DISTANCE_Z * 2)
+# endif
+#
+# define FT_VOX_WORLD_3D_1D(x, y, z) (x + y * FT_VOX_RENDER_DIAMETER_X + z * FT_VOX_RENDER_DIAMETER_X * FT_VOX_RENDER_DIAMETER_Y)
 
 struct World {
 
-    /* 'chunks' : chunks manager */
-    struct {
-        Chunk **used;
-        size_t count;
-    } chunks;
+    /* 'chunks' : array of chunk pointers */
+    Chunk **chunks;
 
-    /* 'rndrad' : render radius */
-    struct {
-        size_t x;
-        size_t y;
-        size_t z;
-    } rndrad;
-        
+    /* 'seed' : 32-bit seed of the world */
+    int seed;
+
 };
 
 extern int ftWorldCreate(World *, const int);
@@ -188,7 +193,11 @@ extern int ftWorldDelete(World *);
 
 extern int ftWorldUpdate(World *);
 
-extern int ftWorldRender(World *, const GLuint);
+extern int ftWorldRender(World *, const GLuint, const GLshader);
+
+extern int ftWorldChunkTo3D(World *, Chunk *, int *, int *, int *);
+
+extern int ftWorldGetChunk(World *, Chunk **, int, int, int);
 
 /* ... */
 
