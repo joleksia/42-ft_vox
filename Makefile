@@ -33,8 +33,8 @@ OBJS = $(SRCS:.c=.o)
 SRCS = $(MK_ROOT)src/deps.c				\
 	   $(MK_ROOT)src/ft_vox.c			\
 	   $(MK_ROOT)src/ft_vox-shader.c	\
-	   $(MK_ROOT)src/ft_vox-mesh.c		\
 	   $(MK_ROOT)src/ft_vox-chunk.c		\
+	   $(MK_ROOT)src/ft_vox-world.c		\
 	   $(MK_ROOT)src/ft_vox-camera.c	\
 
 # ========

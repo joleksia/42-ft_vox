@@ -20,7 +20,7 @@
 
 /* Forward-Declare */
 
-typedef struct GPUMesh GPUMesh;
+typedef struct BlockMesh BlockMesh;
 
 typedef struct Chunk Chunk;
 
@@ -102,34 +102,30 @@ extern int ftCamera3DMatrix(Camera3D *, mat4 *, mat4 *, vec2);
 
 /* ft_vox-mesh.c */
 
-struct GPUMesh {
+/* TODO:
+ * Create an index-buffer layout of:
+ * [...solid indices...][...trans. indices...]
+ * */
+
+struct BlockMesh {
     struct {
         GLuint  id;
-        GLsizei size;
-    } vbo, ibo;
+        GLsizei sz;
+    } vbo, ibo[2];
 };
-
-extern int ftGPUMeshCreate(GPUMesh *);
-
-extern int ftGPUMeshDelete(GPUMesh *);
-
-extern int ftGPUMeshSetData(GPUMesh *, const GLvoid *, const GLsizei, const GLvoid *, const GLsizei);
-
-extern int ftGPUMeshUpload(GPUMesh *, const GLuint);
-
 
 /* ft_vox-chunk.c */
 
 # if !defined (FT_VOX_CHUNK_BLOCKS_W)
-#  define FT_VOX_CHUNK_BLOCKS_W 16 /* chunk X-axis size in blocks */
+#  define FT_VOX_CHUNK_BLOCKS_W 32 /* chunk X-axis size in blocks */
 # endif
 # 
 # if !defined (FT_VOX_CHUNK_BLOCKS_H)
-#  define FT_VOX_CHUNK_BLOCKS_H 16 /* chunk Y-axis size in blocks */
+#  define FT_VOX_CHUNK_BLOCKS_H 32 /* chunk Y-axis size in blocks */
 # endif
 # 
 # if !defined (FT_VOX_CHUNK_BLOCKS_D)
-#  define FT_VOX_CHUNK_BLOCKS_D 16 /* chunk Z-axis size in blocks */
+#  define FT_VOX_CHUNK_BLOCKS_D 32 /* chunk Z-axis size in blocks */
 # endif
 #
 # define FT_VOX_CHUNK_BLOCKS_S (FT_VOX_CHUNK_BLOCKS_W * FT_VOX_CHUNK_BLOCKS_H * FT_VOX_CHUNK_BLOCKS_D)
@@ -138,14 +134,17 @@ struct Chunk {
     /* 'world' : reference to the 'World' struct */
     World *world;
 
-    /* 'cpu' : CPU representation of the chunk */
-    uint32_t *cpu;
+    /* 'data' : CPU representation of the block in the chunk */
+    uint32_t *data;
 
-    /* 'gpu' : GPU representation of the chunk */
-    GPUMesh gpu;
+    /* 'mesh' : GPU representation of solid/trans. blocks */
+    BlockMesh *mesh;
 
-    /* 'position' : world position of the chunk */
-    vec3 position;
+    /* 'offset' : numerical position offset in world-space */
+    vec3 offset;
+
+    /* 'seed' : pseudo-random number generation seed used for noise */
+    int32_t seed;
 
     /* 'flags' : 1-bit chunk flags */
     struct {
@@ -155,17 +154,13 @@ struct Chunk {
     } flags;
 };
 
-extern int ftChunkCreate(Chunk *);
+extern int ftChunkCreate(Chunk *, World *, const vec3, const int);
 
 extern int ftChunkDelete(Chunk *);
 
-extern int ftChunkRender(Chunk *);
-
-extern int ftChunkGenCPU(Chunk *, const vec3, const int);
+extern int ftChunkGenCPU(Chunk *);
 
 extern int ftChunkGenGPU(Chunk *);
-
-extern int ftChunkUpload(Chunk *, const GLuint);
 
 extern int ftChunkGetBlock(Chunk *, const vec3, uint32_t *);
 
@@ -193,10 +188,28 @@ extern int ftChunkSetBlock(Chunk *, const vec3, const uint32_t);
 
 struct World {
 
-    /* 'chunks' : list of chunks */
-    Chunk *chunks;
+    /* 'chunks' : chunks manager */
+    struct {
+        Chunk **used;
+        size_t count;
+    } chunks;
 
+    /* 'rndrad' : render radius */
+    struct {
+        size_t x;
+        size_t y;
+        size_t z;
+    } rndrad;
+        
 };
+
+extern int ftWorldCreate(World *, const int);
+
+extern int ftWorldDelete(World *);
+
+extern int ftWorldUpdate(World *);
+
+extern int ftWorldRender(World *, const GLuint);
 
 /* ... */
 

@@ -15,6 +15,34 @@ int main(void) {
         return (1);
     }
 
+    /* create 'keyboard' struct */
+    struct {
+        uint8_t current[SDL_NUM_SCANCODES];
+        uint8_t previous[SDL_NUM_SCANCODES];
+    } keyboard = { 0 };
+
+    /* create 'mouse' struct */
+    struct {
+        struct {
+            vec2 current;
+            vec2 previous;
+            vec2 delta;
+        } position;
+        struct {
+            uint8_t current[8];
+            uint8_t previous[8];
+        } input;
+        uint8_t locked;
+    } mouse = { 0 };
+    mouse.locked = 0;
+
+    /* create 'time' struct */
+    struct {
+        double current;
+        double previous;
+        double delta;
+    } time = { 0 };
+
     /* create context */
 
     SDL_GLContext context = SDL_GL_CreateContext(window);
@@ -44,14 +72,8 @@ int main(void) {
     SDL_GL_SetSwapInterval(1);
     
     glEnable(GL_MULTISAMPLE);
-    glEnable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
-    
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); 
-
-    glCullFace(GL_BACK);
-    glFrontFace(GL_CCW);
     
     /* create shader program */
 
@@ -84,25 +106,7 @@ int main(void) {
     glEnableVertexArrayAttrib(vao, 2);
     glVertexArrayAttribBinding(vao, 2, 0);
     glVertexArrayAttribFormat(vao, 2, 2, GL_FLOAT, GL_FALSE, offsetof(GLvertex, texcoord));
-
-    /* create 'chunk' */
-    Chunk chunks[16 * 16 * 16] = { 0 };
-    for (int y = -8; y < 7; y++) {
-        for (int x = -8; x < 7; x++) {
-            for (int z = -8; z < 7; z++) {
-                int X = x + 8,
-                    Y = y + 8,
-                    Z = z + 8;
-                Chunk *chunk = &chunks[X + Y * 16 + Z * 16 * 16];
-                ftChunkCreate(chunk);
-                ftChunkGenCPU(chunk, alg_vec3(x * FT_VOX_CHUNK_BLOCKS_W,
-                                              y * FT_VOX_CHUNK_BLOCKS_H,
-                                              z * FT_VOX_CHUNK_BLOCKS_D), 0);
-                ftChunkGenGPU(chunk);
-            }
-        }
-    }
-
+    
     /* create 3D 'camera' */
 
     Camera3D camera = {
@@ -113,38 +117,20 @@ int main(void) {
         .fieldOfView = 60.0,
     };
 
-    /* create 'keyboard' struct */
-    struct {
-        uint8_t current[SDL_NUM_SCANCODES];
-        uint8_t previous[SDL_NUM_SCANCODES];
-    } keyboard = { 0 };
+    /* create 'world' */
+    World world = { 0 };
+    ftWorldCreate(&world, rand());
 
-    /* create 'mouse' struct */
-    struct {
-        struct {
-            vec2 current;
-            vec2 previous;
-            vec2 delta;
-        } position;
-        struct {
-            uint8_t current[8];
-            uint8_t previous[8];
-        } input;
-        uint8_t locked;
-    } mouse = { 0 };
-    mouse.locked = 0;
-
-    /* create 'time' struct */
-    struct {
-        double current;
-        double previous;
-        double delta;
-    } time = { 0 };
 
     int exit = 0;
     do {
         
         /* update */
+
+        /* set new 'window' title */
+        char title[128] = { 0 };
+        snprintf(title, 127, "42warsaw - ft_vox (FPS.: %d)", (int) (1.0 / time.delta));
+        SDL_SetWindowTitle(window, title);
 
         /* enable 'locked' mode */
         if (mouse.input.current[1]) {
@@ -236,15 +222,8 @@ int main(void) {
         glUseProgram(shader);
         glBindVertexArray(vao);
 
-        for (int y = 0; y < 16; y++) {
-            for (int x = 0; x < 16; x++) {
-                for (int z = 0; z < 16; z++) {
-                    Chunk *chunk = &chunks[x + y * 16 + z * 16 * 16];
-                    ftChunkUpload(chunk, vao);
-                    ftChunkRender(chunk);
-                }
-            }
-        }
+        /* render 'world' */
+        ftWorldRender(&world, vao);
 
         glBindVertexArray(0);
         glUseProgram(0);
@@ -306,16 +285,11 @@ int main(void) {
         time.previous = time.current;
         time.current = SDL_GetPerformanceCounter();
         time.delta = (time.current - time.previous) / (double) SDL_GetPerformanceFrequency();
-
-        /* print 'fps' */
-        printf("FPS: %d\n", (int) (1.0 / time.delta));
     
     } while (!exit);
- 
-    /* unload ft_vox */
-    for (int i = 0; i < 64; i++) {
-        ftChunkDelete(&chunks[i]);
-    }
+
+    /* unload 'world' */
+    ftWorldDelete(&world);
 
     /* unload OpenGL */
 
