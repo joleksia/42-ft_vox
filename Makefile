@@ -30,12 +30,13 @@ DFLAGS = -DMESA_DEBUG
 # ========
 
 OBJS = $(SRCS:.c=.o)
-SRCS = $(MK_ROOT)src/deps.c				\
-	   $(MK_ROOT)src/ft_vox.c			\
-	   $(MK_ROOT)src/ft_vox-shader.c	\
-	   $(MK_ROOT)src/ft_vox-chunk.c		\
-	   $(MK_ROOT)src/ft_vox-world.c		\
-	   $(MK_ROOT)src/ft_vox-camera.c	\
+SRCS = $(MK_ROOT)src/deps.c					\
+	   $(MK_ROOT)src/ft_vox.c				\
+	   $(MK_ROOT)src/ft_vox-shader.c		\
+	   $(MK_ROOT)src/ft_vox-vertex-array.c	\
+	   $(MK_ROOT)src/ft_vox-chunk.c			\
+	   $(MK_ROOT)src/ft_vox-world.c			\
+	   $(MK_ROOT)src/ft_vox-camera.c		\
 
 # ========
 

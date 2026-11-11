@@ -96,21 +96,12 @@ int main(void) {
 
     /* create vertex array */
 
-    GLuint vao;
-    glCreateVertexArrays(1, &vao);
+    VertexArray *vao = 0;
+    ftVertexArrayCreate(&vao);
+    ftVertexArrayLayout(vao, 0, 3, offsetof(GLvertex, position));
+    ftVertexArrayLayout(vao, 1, 3, offsetof(GLvertex, normal));
+    ftVertexArrayLayout(vao, 2, 2, offsetof(GLvertex, texcoord));
 
-    glEnableVertexArrayAttrib(vao, 0);
-    glVertexArrayAttribBinding(vao, 0, 0);
-    glVertexArrayAttribFormat(vao, 0, 3, GL_FLOAT, GL_FALSE, offsetof(GLvertex, position));
-   
-    glEnableVertexArrayAttrib(vao, 1);
-    glVertexArrayAttribBinding(vao, 1, 0);
-    glVertexArrayAttribFormat(vao, 1, 3, GL_FLOAT, GL_FALSE, offsetof(GLvertex, normal));
-    
-    glEnableVertexArrayAttrib(vao, 2);
-    glVertexArrayAttribBinding(vao, 2, 0);
-    glVertexArrayAttribFormat(vao, 2, 2, GL_FLOAT, GL_FALSE, offsetof(GLvertex, texcoord));
-    
     /* create 3D 'camera' */
 
     Camera camera = {
@@ -223,7 +214,7 @@ int main(void) {
 
         /* render current vertex array */
         glUseProgram(shader->program);
-        glBindVertexArray(vao);
+        glBindVertexArray(vao->ID);
 
         /* render 'world' */
         ftWorldRender(&world, vao, shader);
@@ -297,8 +288,7 @@ int main(void) {
     /* unload OpenGL */
 
     ftShaderDelete(shader);
-
-    glDeleteVertexArrays(1, &vao);
+    ftVertexArrayDelete(vao);
 
     /* quit */
 

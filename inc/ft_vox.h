@@ -101,6 +101,27 @@ extern int ftShaderLoadGLSL(Shader *, FILE *, ShaderType);
 extern int ftShaderUniformSet(Shader *, const char *, ShaderUniformType, const void *);
 
 
+/* ft_vox-vertex-array.c */
+
+typedef struct VertexArray VertexArray;
+
+struct VertexArray {
+    /* vao' 'ID' */
+    GLuint ID;
+};
+
+
+extern int ftVertexArrayCreate(VertexArray **);
+
+extern int ftVertexArrayDelete(VertexArray *);
+
+extern int ftVertexArrayLayout(VertexArray *, const size_t, const size_t, const size_t);
+
+extern int ftVertexArrayVertexBuffer(VertexArray *, const GLuint);
+
+extern int ftVertexArrayIndexBuffer(VertexArray *, const GLuint);
+
+
 /* ft_vox-camera.c */
 
 /* 'Camera' : perspective 3D projection structure.
@@ -241,7 +262,7 @@ extern int ftWorldDelete(World *);
 
 extern int ftWorldUpdate(World *);
 
-extern int ftWorldRender(World *, const GLuint, Shader *);
+extern int ftWorldRender(World *, VertexArray *, Shader *);
 
 extern int ftWorldChunkTo3D(World *, Chunk *, int *, int *, int *);
 

@@ -109,7 +109,7 @@ extern int ftWorldUpdate(World *pWorld) {
     return (1);
 }
 
-extern int ftWorldRender(World *pWorld, const GLuint vao, Shader *shader) {
+extern int ftWorldRender(World *pWorld, VertexArray *pVao, Shader *pShader) {
     /* null-check */
     if (!pWorld) { return (0); }
 
@@ -127,16 +127,16 @@ extern int ftWorldRender(World *pWorld, const GLuint vao, Shader *shader) {
         
         /* 'u_model' matrix */
         mat4 u_model = alg_mat4translate(chunk->position);
-        ftShaderUniformSet(shader, "u_model", FT_UNIFORM_MATRIX4X4, &u_model);
+        ftShaderUniformSet(pShader, "u_model", FT_UNIFORM_MATRIX4X4, &u_model);
         
         /* 'mesh' reference */
         BlockMesh *mesh = chunk->mesh;
-        glVertexArrayVertexBuffer(vao, 0, mesh->vbo.id, 0, sizeof(GLvertex));
+        ftVertexArrayVertexBuffer(pVao, mesh->vbo.id);
 
         /* render 'solid' */
         if (1) {
             if (mesh->ibo[0].sz > 0) {
-                glVertexArrayElementBuffer(vao, mesh->ibo[0].id);
+                ftVertexArrayIndexBuffer(pVao, mesh->ibo[0].id);
                 glDrawElements(GL_TRIANGLES, mesh->ibo[0].sz, GL_UNSIGNED_INT, (GLvoid *) (0));
             }
         }
@@ -144,7 +144,7 @@ extern int ftWorldRender(World *pWorld, const GLuint vao, Shader *shader) {
         /* render 'transparent' */
         if (0) {
             if (mesh->ibo[1].sz > 0) {
-                glVertexArrayElementBuffer(vao, chunk->mesh->ibo[1].id);
+                ftVertexArrayIndexBuffer(pVao, mesh->ibo[1].id);
                 glDrawElements(GL_TRIANGLES, mesh->ibo[1].sz, GL_UNSIGNED_INT, (GLvoid *) (0));
             }
         }
