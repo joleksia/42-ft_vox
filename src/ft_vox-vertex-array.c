@@ -1,71 +1,71 @@
 #include "ft_vox.h"
 
-extern int ftVertexArrayCreate(VertexArray **pVao) {
+extern int ftVertexArrayCreate(struct VertexArray **self) {
     /* null-check */
-    if (!pVao) { return (0); }
+    if (!self) { return (0); }
 
     /* alloc 'vao' */
-    VertexArray *vao = (VertexArray *) malloc(sizeof(VertexArray));
+    struct VertexArray *vao = (struct VertexArray *) malloc(sizeof(struct VertexArray));
     if (!vao) { return (0); }
 
     /* create 'vao's 'ID' */
     glCreateVertexArrays(1, &vao->ID);
    
-    /* return 'pVao' */
-    *pVao = vao;
+    /* return 'self' */
+    *self = vao;
 
     /* success */
     return (1);
 }
 
 
-extern int ftVertexArrayDelete(VertexArray *pVao) {
+extern int ftVertexArrayDelete(struct VertexArray *self) {
     /* null-check */
-    if (!pVao) { return (0); }
+    if (!self) { return (0); }
 
     /* release resources */
-    glDeleteVertexArrays(1, &pVao->ID);
+    glDeleteVertexArrays(1, &self->ID);
 
-    /* release 'pVao' */
-    free(pVao);
+    /* release 'self' */
+    free(self);
     
     /* success */
     return (1);
 }
 
 
-extern int ftVertexArrayLayout(VertexArray *pVao, const size_t attrib, const size_t count, const size_t offset) {
+extern int ftVertexArrayLayout(struct VertexArray *self, const size_t attrib, const size_t count, const size_t offset) {
     /* null-check */
-    if (!pVao) { return (0); }
+    if (!self) { return (0); }
 
     /* set new 'layout' */
-    glEnableVertexArrayAttrib(pVao->ID, attrib);
-    glVertexArrayAttribBinding(pVao->ID, attrib, 0);
-    glVertexArrayAttribFormat(pVao->ID, attrib, count, GL_FLOAT, GL_FALSE, offset);
+    glEnableVertexArrayAttrib(self->ID, attrib);
+    glVertexArrayAttribBinding(self->ID, attrib, 0);
+    glVertexArrayAttribFormat(self->ID, attrib, count, GL_FLOAT, GL_FALSE, offset);
     
     /* success */
     return (1);
 }
 
 
-extern int ftVertexArrayVertexBuffer(VertexArray *pVao, const GLuint vbo) {
+extern int ftVertexArrayVertexBuffer(struct VertexArray *self, const GLuint vbo) {
     /* null-check */
-    if (!pVao) { return (0); }
+    if (!self) { return (0); }
 
     /* set 'vbo' buffer */
-    glVertexArrayVertexBuffer(pVao->ID, 0, vbo, 0, sizeof(GLvertex));
+    glVertexArrayVertexBuffer(self->ID, 0, vbo, 0, sizeof(struct GLvertex));
     
     /* success */
     return (1);
 }
 
 
-extern int ftVertexArrayIndexBuffer(VertexArray *pVao, const GLuint ibo) {
+extern int ftVertexArrayIndexBuffer(struct VertexArray *self, const GLuint ibo) {
     /* null-check */
-    if (!pVao) { return (0); }
+    if (!self) { return (0); }
 
     /* set 'ibo' buffer */
-    glVertexArrayElementBuffer(pVao->ID, ibo);
+    glVertexArrayElementBuffer(self->ID, ibo);
     
     /* success */
     return (1);

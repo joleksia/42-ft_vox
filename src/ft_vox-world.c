@@ -1,69 +1,62 @@
 #include "ft_vox.h"
 
-extern int ftWorldCreate(World *pWorld, const int seed) {
+extern int ftWorldCreate(struct World *self, const int seed) {
     /* null-check */
-    if (!pWorld) { return (0); }
+    if (!self) { return (0); }
 
-    /* create 'chunks' array */
-    Chunk **chunks = (Chunk **) malloc(FT_VOX_RENDER_DIAMETER_X *
-                                       FT_VOX_RENDER_DIAMETER_Y *
-                                       FT_VOX_RENDER_DIAMETER_Z * sizeof(Chunk *)); 
+    /* alloc. 'chunks' */
+    struct
+    Chunk **chunks = (struct Chunk **) malloc(FT_VOX_RENDER_DIAMETER_X *
+                                              FT_VOX_RENDER_DIAMETER_Y *
+                                              FT_VOX_RENDER_DIAMETER_Z * sizeof(struct Chunk *)); 
+    if (!chunks) { return (0); }
+    self->chunks = chunks;
 
-    /* set-up 'chunks' array */
+    /* iterate on every 'chunk' */
     for (int y = 0; y < FT_VOX_RENDER_DIAMETER_X; y++) {
     for (int x = 0; x < FT_VOX_RENDER_DIAMETER_Y; x++) {
     for (int z = 0; z < FT_VOX_RENDER_DIAMETER_Z; z++) {
         /* alloc. 'chunk' */
-        Chunk *chunk = (Chunk *) malloc(sizeof(Chunk));
+        struct
+        Chunk *chunk = (struct Chunk *) calloc(1, sizeof(struct Chunk));
 
-        /* 'chunk' 'pWorld' reference */
-        chunk->world = pWorld;
+        /* 'chunk' 'self' reference */
+        chunk->world = self;
 
-        /* 'chunk' data members */
-        chunk->cx = x; chunk->cy = y; chunk->cz = z;
-        chunk->position = alg_vec3((x - FT_VOX_RENDER_DISTANCE_X) * FT_VOX_CHUNK_BLOCKS_X,
-                                   (y - FT_VOX_RENDER_DISTANCE_Y) * FT_VOX_CHUNK_BLOCKS_Y,
-                                   (z - FT_VOX_RENDER_DISTANCE_Z) * FT_VOX_CHUNK_BLOCKS_Z);
+        /* 'chunk' 3D-indices */
+        chunk->cx = x;
+        chunk->cy = y;
+        chunk->cz = z;
 
-        /* create 'data' */
-        uint32_t *data = (uint32_t *) malloc(FT_VOX_CHUNK_BLOCKS_S * sizeof(uint32_t));
-        if (data) {
-            chunk->data = data;
-        }
-
-        /* create 'mesh' */
-        BlockMesh *mesh = (BlockMesh *) malloc(sizeof(BlockMesh));
-        if (mesh) {
-            glCreateBuffers(1, &mesh->vbo.id);
-            glCreateBuffers(1, &mesh->ibo[0].id);
-            glCreateBuffers(1, &mesh->ibo[1].id);
-            chunk->mesh = mesh;
-        }
-
-        /* gen. 'chunk' */
-        ftChunkGenCPU(chunk, seed);
+        /* 'chunk' 3D-position */
+        chunk->position = alg_vec3((x - FT_VOX_RENDER_DISTANCE_X) * FT_VOX_CHUNK_SIZE_X,
+                                   (y - FT_VOX_RENDER_DISTANCE_Y) * FT_VOX_CHUNK_SIZE_Y,
+                                   (z - FT_VOX_RENDER_DISTANCE_Z) * FT_VOX_CHUNK_SIZE_Z);
 
         /* store 'chunk' into 'chunks' */
         chunks[FT_VOX_WORLD_3D_1D(x, y, z)] = chunk;
     }}}
 
-    /* return 'chunks' */
-    pWorld->chunks = chunks;
+    /* store 'seed' */
+    self->seed = seed;
+
+    /* re-center the world at [0, 0, 0] */
+    ftWorldSetCenter(self, alg_vec3(0.0, 0.0, 0.0));
 
     /* success */
     return (1);
 }
 
 
-extern int ftWorldDelete(World *pWorld) {
+extern int ftWorldDelete(struct World *self) {
     /* null-check */
-    if (!pWorld) { return (0); }
+    if (!self) { return (0); }
     
     /* iterate on every 'chunk' */
     for (int y = 0; y < FT_VOX_RENDER_DIAMETER_X; y++) {
     for (int x = 0; x < FT_VOX_RENDER_DIAMETER_Y; x++) {
     for (int z = 0; z < FT_VOX_RENDER_DIAMETER_Z; z++) {
-        Chunk *chunk = pWorld->chunks[FT_VOX_WORLD_3D_1D(x, y, z)];
+        struct Chunk *chunk = self->chunks[FT_VOX_WORLD_3D_1D(x, y, z)];
         
         /* release CPU resources */
         uint32_t *data = chunk->data;
@@ -72,7 +65,7 @@ extern int ftWorldDelete(World *pWorld) {
         }
 
         /* release GPU resources */
-        BlockMesh *mesh = chunk->mesh;
+        struct BlockMesh *mesh = chunk->mesh;
         if (mesh) {
             glDeleteBuffers(1, &mesh->vbo.id);
             glDeleteBuffers(1, &mesh->ibo[0].id);
@@ -85,58 +78,93 @@ extern int ftWorldDelete(World *pWorld) {
     }}}
 
     /* release 'chunks' */
-    free(pWorld->chunks);
+    free(self->chunks);
 
     /* success */
     return (1);
 }
 
 
-extern int ftWorldUpdate(World *pWorld) {
+/* TODO:
+ * Add multi-threading or something?
+ * */
+extern int ftWorldGenerate(struct World *self) {
     /* null-check */
-    if (!pWorld) { return (0); }
-    
-    /* iterate on every 'chunk' */
+    if (!self) { return (0); }
+
+    /* Pass 1.: CPU data */
     for (int y = 0; y < FT_VOX_RENDER_DIAMETER_X; y++) {
     for (int x = 0; x < FT_VOX_RENDER_DIAMETER_Y; x++) {
     for (int z = 0; z < FT_VOX_RENDER_DIAMETER_Z; z++) {
-        Chunk *chunk = pWorld->chunks[FT_VOX_WORLD_3D_1D(x, y, z)];
+        /* generate CPU-data of this 'chunk' */
+        if (!ftChunkGenerateData(self->chunks[FT_VOX_WORLD_3D_1D(x, y, z)], self->seed)) { return (0); }
+    }}}
 
-        /* ... */ (void) chunk;
+    /* Pass 2.: GPU data */
+    for (int y = 0; y < FT_VOX_RENDER_DIAMETER_X; y++) {
+    for (int x = 0; x < FT_VOX_RENDER_DIAMETER_Y; x++) {
+    for (int z = 0; z < FT_VOX_RENDER_DIAMETER_Z; z++) {
+        /* generate GPU-data of this 'chunk' */
+        if (!ftChunkGenerateMesh(self->chunks[FT_VOX_WORLD_3D_1D(x, y, z)])) { return (0); }
     }}}
 
     /* success */
     return (1);
 }
 
-extern int ftWorldRender(World *pWorld, VertexArray *pVao, Shader *pShader) {
+
+extern int ftWorldUpdate(struct World *self) {
     /* null-check */
-    if (!pWorld) { return (0); }
+    if (!self) { return (0); }
+    
+    /* iterate on every 'chunk' */
+    for (int y = 0; y < FT_VOX_RENDER_DIAMETER_X; y++) {
+    for (int x = 0; x < FT_VOX_RENDER_DIAMETER_Y; x++) {
+    for (int z = 0; z < FT_VOX_RENDER_DIAMETER_Z; z++) {
+        struct
+        Chunk *chunk = self->chunks[FT_VOX_WORLD_3D_1D(x, y, z)];
+
+        (void) chunk;
+    }}}
+
+    /* success */
+    return (1);
+}
+
+extern int ftWorldRender(struct World *self, struct VertexArray *pVao, struct Shader *pShader) {
+    /* null-check */
+    if (!self) { return (0); }
 
     /* iterate on every 'chunk' */
     for (int y = 0; y < FT_VOX_RENDER_DIAMETER_X; y++) {
     for (int x = 0; x < FT_VOX_RENDER_DIAMETER_Y; x++) {
     for (int z = 0; z < FT_VOX_RENDER_DIAMETER_Z; z++) {
-        Chunk *chunk = pWorld->chunks[FT_VOX_WORLD_3D_1D(x, y, z)];
+        struct
+        Chunk *chunk = self->chunks[FT_VOX_WORLD_3D_1D(x, y, z)];
 
-        /* check 'empty' flag */
-        if (chunk->flags.empty) { continue; }
-
-        /* check 'dirty' flag */
-        if (chunk->flags.dirty) { ftChunkGenGPU(chunk); }
+        /* skip 'chunk' if needed */
+        if (chunk->flags.empty ||
+            chunk->flags.dirty
+        ) { continue; }
         
         /* 'u_model' matrix */
         mat4 u_model = alg_mat4translate(chunk->position);
         ftShaderUniformSet(pShader, "u_model", FT_UNIFORM_MATRIX4X4, &u_model);
         
         /* 'mesh' reference */
+        struct
         BlockMesh *mesh = chunk->mesh;
+       
+        /* set 'vbo' */
         ftVertexArrayVertexBuffer(pVao, mesh->vbo.id);
 
         /* render 'solid' */
         if (1) {
             if (mesh->ibo[0].sz > 0) {
+                /* set 'ibo[0]' */
                 ftVertexArrayIndexBuffer(pVao, mesh->ibo[0].id);
+
+                /* draw-call */
                 glDrawElements(GL_TRIANGLES, mesh->ibo[0].sz, GL_UNSIGNED_INT, (GLvoid *) (0));
             }
         }
@@ -144,7 +172,10 @@ extern int ftWorldRender(World *pWorld, VertexArray *pVao, Shader *pShader) {
         /* render 'transparent' */
         if (0) {
             if (mesh->ibo[1].sz > 0) {
+                /* set 'ibo[1]' */
                 ftVertexArrayIndexBuffer(pVao, mesh->ibo[1].id);
+
+                /* draw-call */
                 glDrawElements(GL_TRIANGLES, mesh->ibo[1].sz, GL_UNSIGNED_INT, (GLvoid *) (0));
             }
         }
@@ -155,10 +186,22 @@ extern int ftWorldRender(World *pWorld, VertexArray *pVao, Shader *pShader) {
 }
 
 
-extern int ftWorldGetChunk(World *pWorld, Chunk **pChunk, int cx, int cy, int cz) {
+extern int ftWorldSetCenter(struct World *self, const vec3 center) {
     /* null-check */
-    if (!pWorld) { return (0); }
+    if (!self) { return (0); }
 
+    (void) center;
+
+    /* success */
+    return (1);
+}
+
+
+extern int ftWorldGetChunk(struct World *self, struct Chunk **pChunk, int cx, int cy, int cz) {
+    /* null-check */
+    if (!self) { return (0); }
+
+    struct
     Chunk *chunk = 0;
     if ((unsigned) cx >= FT_VOX_RENDER_DIAMETER_X ||
         (unsigned) cy >= FT_VOX_RENDER_DIAMETER_Y ||
@@ -169,7 +212,7 @@ extern int ftWorldGetChunk(World *pWorld, Chunk **pChunk, int cx, int cy, int cz
     }
 
     /* return 'chunk' */
-    chunk = pWorld->chunks[FT_VOX_WORLD_3D_1D(cx, cy, cz)];
+    chunk = self->chunks[FT_VOX_WORLD_3D_1D(cx, cy, cz)];
     if (pChunk) { *pChunk = chunk; }
 
     /* success */

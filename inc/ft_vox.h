@@ -22,15 +22,17 @@
 
 /* Forward-Declare */
 
-typedef struct BlockMesh BlockMesh;
+struct ECS;
 
-typedef struct Chunk Chunk;
+struct Entity;
 
-typedef struct World World;
+struct BlockMesh;
+
+struct Chunk;
+
+struct World;
 
 /* Misc. */
-
-typedef struct GLvertex GLvertex;
 
 struct GLvertex {
     vec3 position;
@@ -50,6 +52,7 @@ struct Window {
         uint8_t vsync : 1;
     } flags;
 };
+
 
 extern struct Window *Window;
 
@@ -72,6 +75,7 @@ struct Keyboard {
 };
 
 extern struct Keyboard *Keyboard;
+
 
 extern int ftKeyboardCreate(void);
 
@@ -96,6 +100,7 @@ struct Mouse {
 
 extern struct Mouse *Mouse;
 
+
 extern int ftMouseCreate(void);
 
 extern int ftMouseDelete(void);
@@ -112,6 +117,7 @@ struct Time {
 
 extern struct Time *Time;
 
+
 extern int ftTimeCreate(void);
 
 extern int ftTimeDelete(void);
@@ -119,9 +125,27 @@ extern int ftTimeDelete(void);
 extern int ftTimeSync(void);
 
 
-/* ft_vox-shader.c */
+/* ft_vox-entity.c */
 
-typedef enum ShaderType ShaderType;
+struct Entity {
+    /* 'ECS' : ECS reference */
+    struct
+    ECS *ECS;
+
+    /* 'data' : additional data used by the 'entity' */
+    void *data;
+
+    /* methods used by this entity */
+    int (*create) (struct Entity *, void *);
+    int (*delete) (struct Entity *, void *);
+    int (*update) (struct Entity *, void *);
+
+    /* 'ID' : ID of this entity, used for O(1) look-up into 'ECS' */
+    size_t ID;
+};
+
+
+/* ft_vox-shader.c */
 
 enum ShaderType {
     FT_SHADER_VERTEX = 0,
@@ -142,8 +166,6 @@ enum ShaderType {
 };
 
 
-typedef enum ShaderUniformType ShaderUniformType;
-
 enum ShaderUniformType {
     FT_UNIFORM_NONE = 0,
 
@@ -154,8 +176,6 @@ enum ShaderUniformType {
     FT_UNIFORM_TYPE_COUNT
 };
 
-
-typedef struct Shader Shader;
 
 struct Shader {
     /* Shader 'program' */
@@ -174,18 +194,16 @@ struct Shader {
 };
 
 
-extern int ftShaderCreate(Shader **);
+extern int ftShaderCreate(struct Shader **);
 
-extern int ftShaderDelete(Shader *);
+extern int ftShaderDelete(struct Shader *);
 
-extern int ftShaderLoadGLSL(Shader *, FILE *, ShaderType);
+extern int ftShaderLoadGLSL(struct Shader *, FILE *, enum ShaderType);
 
-extern int ftShaderUniformSet(Shader *, const char *, ShaderUniformType, const void *);
+extern int ftShaderUniformSet(struct Shader *, const char *, enum ShaderUniformType, const void *);
 
 
 /* ft_vox-vertex-array.c */
-
-typedef struct VertexArray VertexArray;
 
 struct VertexArray {
     /* vao' 'ID' */
@@ -193,23 +211,21 @@ struct VertexArray {
 };
 
 
-extern int ftVertexArrayCreate(VertexArray **);
+extern int ftVertexArrayCreate(struct VertexArray **);
 
-extern int ftVertexArrayDelete(VertexArray *);
+extern int ftVertexArrayDelete(struct VertexArray *);
 
-extern int ftVertexArrayLayout(VertexArray *, const size_t, const size_t, const size_t);
+extern int ftVertexArrayLayout(struct VertexArray *, const size_t, const size_t, const size_t);
 
-extern int ftVertexArrayVertexBuffer(VertexArray *, const GLuint);
+extern int ftVertexArrayVertexBuffer(struct VertexArray *, const GLuint);
 
-extern int ftVertexArrayIndexBuffer(VertexArray *, const GLuint);
+extern int ftVertexArrayIndexBuffer(struct VertexArray *, const GLuint);
 
 
 /* ft_vox-camera.c */
 
 /* 'Camera' : perspective 3D projection structure.
  * */
-
-typedef struct Camera Camera;
 
 struct Camera {
     /* 'position' : current camera position */
@@ -232,11 +248,11 @@ struct Camera {
     float fieldOfView;
 };
 
-extern int ftCameraMove(Camera *, float);
+extern int ftCameraMove(struct Camera *, float);
 
-extern int ftCameraRotate(Camera *, float);
+extern int ftCameraRotate(struct Camera *, float);
 
-extern int ftCameraMatrix(Camera *, mat4 *, mat4 *);
+extern int ftCameraMatrix(struct Camera *, mat4 *, mat4 *);
 
 
 /* ft_vox-mesh.c */
@@ -250,37 +266,39 @@ struct BlockMesh {
 
 /* ft_vox-chunk.c */
 
-# if !defined (FT_VOX_CHUNK_BLOCKS_X)
-#  define FT_VOX_CHUNK_BLOCKS_X 32 /* chunk X-axis size in blocks */
+# if !defined (FT_VOX_CHUNK_SIZE_X)
+#  define FT_VOX_CHUNK_SIZE_X 32 /* chunk X-axis size in blocks */
 # endif
 # 
-# if !defined (FT_VOX_CHUNK_BLOCKS_Y)
-#  define FT_VOX_CHUNK_BLOCKS_Y 32 /* chunk Y-axis size in blocks */
+# if !defined (FT_VOX_CHUNK_SIZE_Y)
+#  define FT_VOX_CHUNK_SIZE_Y 32 /* chunk Y-axis size in blocks */
 # endif
 # 
-# if !defined (FT_VOX_CHUNK_BLOCKS_Z)
-#  define FT_VOX_CHUNK_BLOCKS_Z 32 /* chunk Z-axis size in blocks */
+# if !defined (FT_VOX_CHUNK_SIZE_Z)
+#  define FT_VOX_CHUNK_SIZE_Z 32 /* chunk Z-axis size in blocks */
 # endif
 #
-# define FT_VOX_CHUNK_BLOCKS_S (FT_VOX_CHUNK_BLOCKS_X * FT_VOX_CHUNK_BLOCKS_Y * FT_VOX_CHUNK_BLOCKS_Z)
+# define FT_VOX_CHUNK_SIZE (FT_VOX_CHUNK_SIZE_X * FT_VOX_CHUNK_SIZE_Y * FT_VOX_CHUNK_SIZE_Z)
 #
-# define FT_VOX_CHUNK_3D_1D(x, y, z) (x + y * FT_VOX_CHUNK_BLOCKS_X + z * FT_VOX_CHUNK_BLOCKS_X * FT_VOX_CHUNK_BLOCKS_Y)
+# define FT_VOX_CHUNK_3D_1D(x, y, z) (x + y * FT_VOX_CHUNK_SIZE_X + z * FT_VOX_CHUNK_SIZE_X * FT_VOX_CHUNK_SIZE_Y)
 
 struct Chunk {
     /* 'world' : reference to the 'World' struct */
+    struct
     World *world;
 
     /* 'data' : CPU representation of the block in the chunk */
     uint32_t *data;
 
     /* 'mesh' : GPU representation of solid/trans. blocks */
+    struct
     BlockMesh *mesh;
 
-    /* 'position' : numerical position in world-space */
-    vec3 position;
-
-    /* indices into 'pWorld->chunks' */
+    /* 'cx', 'cy', 'cz' : chunk indices */
     int cx, cy, cz;
+
+    /* 'position' : chunk position */
+    vec3 position;
 
     /* 'flags' : 1-bit chunk flags */
     struct {
@@ -290,43 +308,31 @@ struct Chunk {
     } flags;
 };
 
-extern int ftChunkDelete(Chunk *);
+extern int ftChunkDelete(struct Chunk *);
 
-extern int ftChunkGenCPU(Chunk *, const int);
+extern int ftChunkGenerateData(struct Chunk *, const int);
 
-extern int ftChunkGenGPU(Chunk *);
+extern int ftChunkGenerateMesh(struct Chunk *);
 
-extern int ftChunkGetBlock(Chunk *, const vec3, uint32_t *);
+extern int ftChunkGetBlock(struct Chunk *, const vec3, uint32_t *);
 
-extern int ftChunkSetBlock(Chunk *, const vec3, const uint32_t);
+extern int ftChunkSetBlock(struct Chunk *, const vec3, const uint32_t);
 
 
 /* ft_vox-world.c */
 
-# if !defined (FT_VOX_WORLD_BLOCKS_X)
-#  define FT_VOX_WORLD_BLOCKS_X 16384 /* world X-axis size in blocks */
-# endif
-#
-# if !defined (FT_VOX_WORLD_BLOCKS_Y)
-#  define FT_VOX_WORLD_BLOCKS_Y 16384 /* world Y-axis size in blocks */
-# endif
-#
-# if !defined (FT_VOX_WORLD_BLOCKS_Z)
-#  define FT_VOX_WORLD_BLOCKS_Z 16384 /* world Z-axis size in blocks */
-# endif
-#
 # if !defined (FT_VOX_RENDER_DISTANCE_X)
-#  define FT_VOX_RENDER_DISTANCE_X 2 /* world X-axis render distance */
+#  define FT_VOX_RENDER_DISTANCE_X 8 /* world X-axis render distance */
 #  define FT_VOX_RENDER_DIAMETER_X (FT_VOX_RENDER_DISTANCE_X * 2)
 # endif
 #
 # if !defined (FT_VOX_RENDER_DISTANCE_Y)
-#  define FT_VOX_RENDER_DISTANCE_Y 2 /* world Y-axis render distance */
+#  define FT_VOX_RENDER_DISTANCE_Y 8 /* world Y-axis render distance */
 #  define FT_VOX_RENDER_DIAMETER_Y (FT_VOX_RENDER_DISTANCE_Y * 2)
 # endif
 #
 # if !defined (FT_VOX_RENDER_DISTANCE_Z)
-#  define FT_VOX_RENDER_DISTANCE_Z 2 /* world Z-axis render distance */
+#  define FT_VOX_RENDER_DISTANCE_Z 8 /* world Z-axis render distance */
 #  define FT_VOX_RENDER_DIAMETER_Z (FT_VOX_RENDER_DISTANCE_Z * 2)
 # endif
 #
@@ -335,24 +341,33 @@ extern int ftChunkSetBlock(Chunk *, const vec3, const uint32_t);
 struct World {
 
     /* 'chunks' : array of chunk pointers */
+    struct
     Chunk **chunks;
+
+    /* 'center' : current world's center position */
+    vec3 center;
+
+    /* 'offset' : current chunk's offset position */
+    vec3 offset;
 
     /* 'seed' : 32-bit seed of the world */
     int seed;
 
 };
 
-extern int ftWorldCreate(World *, const int);
+extern int ftWorldCreate(struct World *, const int);
 
-extern int ftWorldDelete(World *);
+extern int ftWorldDelete(struct World *);
 
-extern int ftWorldUpdate(World *);
+extern int ftWorldGenerate(struct World *);
 
-extern int ftWorldRender(World *, VertexArray *, Shader *);
+extern int ftWorldUpdate(struct World *);
 
-extern int ftWorldChunkTo3D(World *, Chunk *, int *, int *, int *);
+extern int ftWorldRender(struct World *, struct VertexArray *, struct Shader *);
 
-extern int ftWorldGetChunk(World *, Chunk **, int, int, int);
+extern int ftWorldSetCenter(struct World *, const vec3);
+
+extern int ftWorldGetChunk(struct World *, struct Chunk **, int, int, int);
 
 /* ... */
 

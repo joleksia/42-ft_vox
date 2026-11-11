@@ -75,7 +75,7 @@ extern int ftMouseDelete(void) {
     free(Mouse); Mouse = 0;
 
     /* success */
-    return (0);
+    return (1);
 }
 
 
@@ -102,14 +102,19 @@ extern int ftTimeCreate(void) {
     if (Time) { return (0); }
 
     /* alloc. 'mouse' object */
-    struct Time *mouse = (struct Time *) calloc(1, sizeof(struct Time));
-    if (!mouse) { return (0); }
+    struct Time *time = (struct Time *) calloc(1, sizeof(struct Time));
+    if (!time) { return (0); }
 
-    /* return 'mouse' */
-    Time = mouse;
+    /* return 'time' */
+    Time = time;
 
-    /* run 'sync' */
-    return (ftTimeSync());
+    /* read 'time' */
+    Time->previous = SDL_GetPerformanceCounter();
+    Time->current = SDL_GetPerformanceCounter();
+    Time->delta = (Time->current - Time->previous) / (double) SDL_GetPerformanceFrequency();
+
+    /* success */
+    return (1);
 }
 
 
@@ -121,7 +126,7 @@ extern int ftTimeDelete(void) {
     free(Time); Time = 0;
 
     /* success */
-    return (0);
+    return (1);
 }
 
 

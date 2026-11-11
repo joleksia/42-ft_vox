@@ -14,6 +14,7 @@ int main(void) {
 
     /* create 'shader' */
 
+    struct
     Shader *shader = 0;
     ftShaderCreate(&shader);
 
@@ -33,14 +34,16 @@ int main(void) {
 
     /* create vertex array */
 
+    struct
     VertexArray *vao = 0;
     ftVertexArrayCreate(&vao);
-    ftVertexArrayLayout(vao, 0, 3, offsetof(GLvertex, position));
-    ftVertexArrayLayout(vao, 1, 3, offsetof(GLvertex, normal));
-    ftVertexArrayLayout(vao, 2, 2, offsetof(GLvertex, texcoord));
+    ftVertexArrayLayout(vao, 0, 3, offsetof(struct GLvertex, position));
+    ftVertexArrayLayout(vao, 1, 3, offsetof(struct GLvertex, normal));
+    ftVertexArrayLayout(vao, 2, 2, offsetof(struct GLvertex, texcoord));
 
     /* create 3D 'camera' */
 
+    struct
     Camera camera = {
         .position = alg_vec3(0.0, 0.0, 0.0),
         .rotation = alg_vec3(0.0, 0.0, -1.0),
@@ -52,8 +55,11 @@ int main(void) {
     /* create 'world' */
 
     srand(time(0));
+    
+    struct
     World world = { 0 };
     ftWorldCreate(&world, rand());
+    ftWorldGenerate(&world);
 
     /* update-render loop */
 
@@ -80,7 +86,7 @@ int main(void) {
 
         /* update 'camera' */
         ftCameraMove(&camera, 8.0 * Time->delta);
-        ftCameraRotate(&camera, 256.0 * Time->delta);
+        ftCameraRotate(&camera, 0.1);
 
         /* render */
 
