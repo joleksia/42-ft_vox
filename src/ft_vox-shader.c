@@ -1,83 +1,113 @@
 #include "ft_vox.h"
 
-/* Static API */
+/* static API */
+
+static const GLenum FT_VOX_SHADER_MAPPING[8] = { GL_VERTEX_SHADER,
+                                                 GL_TESS_CONTROL_SHADER,
+                                                 GL_TESS_EVALUATION_SHADER,
+                                                 GL_GEOMETRY_SHADER,
+                                                 GL_FRAGMENT_SHADER,
+                                                 GL_COMPUTE_SHADER, };
 
 static GLint __ftReadFile(FILE *, char **, size_t *);
 
-static GLint __ftShaderCompileGLSL(GLshader, const GLchar * const *);
+/* public API */
 
-static GLint __ftShaderCompileSPIRV(GLshader, const GLchar * const *);
-
-static GLint __ftShaderLink(GLshader, GLshader);
-
-/* Public API */
-
-extern GLint ftLoadShaderGLSL(GLshader shader, GLenum type, FILE *pGlsl) {
+extern int ftShaderCreate(Shader **pShader) {
     /* null-check */
-    if (!shader) { return (GL_INVALID_VALUE); }
-    if (!pGlsl)  { return (GL_INVALID_VALUE); }
+    if (!pShader) { return (0); }
+
+    /* alloc. 'shader' */
+    Shader *shader = (Shader *) malloc(sizeof(Shader));
+    if (!shader) { return (0); }
+
+    /* create 'shader's 'program' */
+    shader->program = glCreateProgram();
+
+    /* create 'shader's 'pipeline' */
+    for (size_t i = FT_SHADER_VERTEX; i < FT_SHADER_TYPE_COUNT; i++) {
+        shader->pipeline[i] = glCreateShader(FT_VOX_SHADER_MAPPING[i]);
+    }
+
+    /* return 'pShader' */
+    *pShader = shader;
+
+    /* success */
+    return (1);
+}
+
+extern int ftShaderDelete(Shader *pShader) {
+    /* null-check */
+    if (!pShader) { return (0); }
+
+    /* clear 'pipeline' */
+    for (size_t i = FT_SHADER_VERTEX; i < FT_SHADER_TYPE_COUNT; i++) {
+        glDeleteShader(pShader->pipeline[i]), pShader->pipeline[i] = 0;
+    }
+
+    /* clear 'program' */
+    glDeleteProgram(pShader->program), pShader->program = 0;
+
+    /* release 'pShader' */
+    free(pShader);
+
+    /* success */
+    return (1);
+}
+
+extern int ftShaderLoadGLSL(Shader *pShader, FILE *pFile, ShaderType type) {
+    /* null-check */
+    if (!pShader) { return (0); }
+    if (!pFile)   { return (0); }
 
     /* read 'pFile' */
     GLchar *code = 0;
-    __ftReadFile(pGlsl, &code, 0);
-    if (!code) { return (GL_INVALID_OPERATION); }
+    __ftReadFile(pFile, &code, 0);
+    if (!code) { return (0); }
 
-    /* try to compile shader 'object' */
-    GLshader object = glCreateShader(type);
-    if (__ftShaderCompileGLSL(object, (const GLchar * const *) &code) != GL_NO_ERROR) {
-        free(code);
-        return (0);
-    }
+    /* compile */
+    glShaderSource(pShader->pipeline[type], 1, (const GLchar * const *) &code, 0);
+    glCompileShader(pShader->pipeline[type]);
 
-    /* try to link 'shader' */
-    if (__ftShaderLink(shader, object) != GL_NO_ERROR) {
-        glDeleteShader(object);
-        free(code);
-        return (glGetError());
-    }
+    /* link */
+    glAttachShader(pShader->program, pShader->pipeline[type]);
+    glLinkProgram(pShader->program);
 
-    /* release resources */
-    glDeleteShader(object);
+    /* release 'code' */
     free(code);
 
     /* success */
-    return (GL_NO_ERROR);
+    return (1);
 }
 
-
-extern GLint ftLoadShaderSPIRV(GLshader shader, GLenum type, FILE *pSpirv) {
+extern int ftShaderUniformSet(Shader *pShader, const char *pName, ShaderUniformType type, const void *pData) {
     /* null-check */
-    if (!shader) { return (GL_INVALID_VALUE); }
-    if (!pSpirv) { return (GL_INVALID_VALUE); }
+    if (!pShader) { return (0); }
+    if (!pName)   { return (0); }
+    if (!pData)   { return (0); }
 
-    /* read 'pFile' */
-    GLchar *code = 0;
-    __ftReadFile(pSpirv, &code, 0);
-    if (!code) { return (GL_INVALID_OPERATION); }
+    /* set 'type' uniform */
+    switch (type) {
+        default: { return (0); }
 
-    /* try to compile shader 'object' */
-    GLshader object = glCreateShader(type);
-    if (__ftShaderCompileSPIRV(object, (const GLchar * const *) &code) != GL_NO_ERROR) {
-        free(code);
-        return (0);
+        /* 'type' : 'FT_UNIFORM_MATRIX4X4' */
+        case (FT_UNIFORM_MATRIX4X4): {
+            /* get uniform 'location' */
+            GLint location = glGetUniformLocation(pShader->program, pName);
+            if (location == -1) {
+                return (0);
+            }
+
+            /* set uniform 'pData' */
+            glProgramUniformMatrix4fv(pShader->program, location, 1, GL_FALSE, pData);
+        } break;
     }
-
-    /* try to link 'shader' */
-    if (__ftShaderLink(shader, object) != GL_NO_ERROR) {
-        glDeleteShader(object);
-        free(code);
-        return (glGetError());
-    }
-
-    /* release resources */
-    glDeleteShader(object);
-    free(code);
 
     /* success */
-    return (GL_NO_ERROR);
+    return (1);
 }
 
-/* Static API */
+/* static API */
 
 static GLint __ftReadFile(FILE *pFile, char **pCstr, size_t *pSize) {
     /* null-check */
@@ -109,92 +139,4 @@ static GLint __ftReadFile(FILE *pFile, char **pCstr, size_t *pSize) {
 
     /* success */
     return (1);
-}
-
-static GLint __ftShaderCompileGLSL(GLshader shader, const GLchar * const *code) {
-    /* null-check */
-    if (!shader) { return (GL_INVALID_VALUE); }
-    if (!code)   { return (GL_INVALID_VALUE); }
-
-    /* set 'shader's GLSL 'code' */
-    glShaderSource(shader, 1, code, 0);
-
-    /* compile 'shader' */
-    glCompileShader(shader);
-
-    /* compilation 'status' */
-    GLint status = 0;
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
-    if (status != GL_TRUE) {
-        /* log compilation error */
-        GLchar log[1024] = { 0 };
-        GLsizei length = 0;
-        glGetShaderInfoLog(shader, sizeof(log), &length, log);
-
-        /* print 'log' */
-        printf("%s", log);
-        return (GL_INVALID_OPERATION);
-    }
-
-    /* success */
-    return (GL_NO_ERROR);
-}
-
-static GLint __ftShaderCompileSPIRV(GLshader shader, const GLchar * const *code) {
-    /* null-check */
-    if (!shader) { return (GL_INVALID_VALUE); }
-    if (!code)   { return (GL_INVALID_VALUE); }
-
-    /* set 'shader's GLSL 'code' */
-    glShaderBinary(1, &shader, GL_SHADER_BINARY_FORMAT_SPIR_V, code, 0);
-
-    /* compile 'shader' */
-    glCompileShader(shader);
-
-    /* compilation 'status' */
-    GLint status = 0;
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
-    if (status != GL_TRUE) {
-        /* get error 'log' */
-        GLchar log[1024] = { 0 };
-        GLsizei length = 0;
-        glGetShaderInfoLog(shader, sizeof(log), &length, log);
-
-        /* print 'log' */
-        printf("%s", log);
-        return (GL_INVALID_OPERATION);
-    }
-
-    /* success */
-    return (GL_NO_ERROR);
-}
-
-
-static GLint __ftShaderLink(GLshader shader, GLshader object) {
-    /* null-check */
-    if (!shader) { return (GL_INVALID_VALUE); }
-    if (!object) { return (GL_INVALID_VALUE); }
-    
-    /* link 'object' to 'shader' program */
-    glAttachShader(shader, object);
-
-    /* link 'shader' */
-    glLinkProgram(shader);
-    
-    /* link 'status' */
-    GLint status = 0;
-    glGetProgramiv(shader, GL_LINK_STATUS, &status);
-    if (status != GL_TRUE) {
-        /* get error 'log' */
-        GLchar log[1024] = { 0 };
-        GLsizei length = 0;
-        glGetProgramInfoLog(shader, sizeof(log), &length, log);
-
-        /* print 'log' */
-        printf("%s", log);
-        return (0);
-    }
-
-    /* success */
-    return (GL_NO_ERROR);
 }

@@ -109,13 +109,9 @@ extern int ftWorldUpdate(World *pWorld) {
     return (1);
 }
 
-extern int ftWorldRender(World *pWorld, const GLuint vao, const GLshader shader) {
+extern int ftWorldRender(World *pWorld, const GLuint vao, Shader *shader) {
     /* null-check */
     if (!pWorld) { return (0); }
-
-    /* get 'u_model' location */
-    GLint u_model_loc = glGetUniformLocation(shader, "u_model");
-    if (u_model_loc == -1) { return (0); }
 
     /* iterate on every 'chunk' */
     for (int y = 0; y < FT_VOX_RENDER_DIAMETER_X; y++) {
@@ -127,13 +123,11 @@ extern int ftWorldRender(World *pWorld, const GLuint vao, const GLshader shader)
         if (chunk->flags.empty) { continue; }
 
         /* check 'dirty' flag */
-        if (chunk->flags.dirty) {
-            ftChunkGenGPU(chunk);
-        }
+        if (chunk->flags.dirty) { ftChunkGenGPU(chunk); }
         
         /* 'u_model' matrix */
         mat4 u_model = alg_mat4translate(chunk->position);
-        glProgramUniformMatrix4fv(shader, u_model_loc, 1, GL_FALSE, (GLfloat *) &u_model);
+        ftShaderUniformSet(shader, "u_model", FT_UNIFORM_MATRIX4X4, &u_model);
         
         /* 'mesh' reference */
         BlockMesh *mesh = chunk->mesh;
@@ -170,6 +164,7 @@ extern int ftWorldGetChunk(World *pWorld, Chunk **pChunk, int cx, int cy, int cz
         (unsigned) cy >= FT_VOX_RENDER_DIAMETER_Y ||
         (unsigned) cz >= FT_VOX_RENDER_DIAMETER_Z
     ) {
+        if (pChunk) { *pChunk = chunk; }
         return (0);
     }
 

@@ -68,9 +68,9 @@ extern int ftChunkGenCPU(Chunk *pChunk, int seed) {
     for (int y = 0; y < FT_VOX_CHUNK_BLOCKS_Y; y++) {
     for (int x = 0; x < FT_VOX_CHUNK_BLOCKS_X; x++) {
     for (int z = 0; z < FT_VOX_CHUNK_BLOCKS_Z; z++) {
-        double noise = perlin3d((pChunk->position.x + x) * 0.01,
-                                (pChunk->position.y + y) * 0.01,
-                                (pChunk->position.z + z) * 0.01,
+        double noise = perlin3d((pChunk->position.x + x) * 0.1,
+                                (pChunk->position.y + y) * 0.1,
+                                (pChunk->position.z + z) * 0.1,
                                  seed);
 
         /* > 'noise' <= '0.0' : air

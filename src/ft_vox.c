@@ -75,20 +75,24 @@ int main(void) {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     
-    /* create shader program */
+    /* create 'shader' */
 
-    GLshader shader = glCreateProgram();
-    
+    Shader *shader = 0;
+    ftShaderCreate(&shader);
+
+    /* load 'vertex.glsl' */
     FILE *fp_vertex_glsl = fopen("src/glsl/vertex.glsl", "rb");
-    ftLoadShaderGLSL(shader, GL_VERTEX_SHADER, fp_vertex_glsl);
-    fclose(fp_vertex_glsl);
-    
-    FILE *fp_fragment_glsl = fopen("src/glsl/fragment.glsl", "rb");
-    ftLoadShaderGLSL(shader, GL_FRAGMENT_SHADER, fp_fragment_glsl);
-    fclose(fp_fragment_glsl);
+    if (fp_vertex_glsl) {
+        ftShaderLoadGLSL(shader, fp_vertex_glsl, FT_SHADER_VERTEX);
+        fclose(fp_vertex_glsl);
+    }
 
-    GLint u_proj_loc = glGetUniformLocation(shader, "u_proj");
-    GLint u_view_loc = glGetUniformLocation(shader, "u_view");
+    /* load 'fragment.glsl' */
+    FILE *fp_fragment_glsl = fopen("src/glsl/fragment.glsl", "rb");
+    if (fp_fragment_glsl) {
+        ftShaderLoadGLSL(shader, fp_fragment_glsl, FT_SHADER_FRAGMENT);
+        fclose(fp_fragment_glsl);
+    }
 
     /* create vertex array */
 
@@ -214,11 +218,11 @@ int main(void) {
         mat4 u_proj = alg_mat4(1.0),
              u_view = alg_mat4(1.0);
         ftCameraMatrix(&camera, &u_proj, &u_view, size);
-        glProgramUniformMatrix4fv(shader, u_proj_loc, 1, GL_FALSE, (GLfloat *) &u_proj);
-        glProgramUniformMatrix4fv(shader, u_view_loc, 1, GL_FALSE, (GLfloat *) &u_view);
+        ftShaderUniformSet(shader, "u_proj", FT_UNIFORM_MATRIX4X4, &u_proj);
+        ftShaderUniformSet(shader, "u_view", FT_UNIFORM_MATRIX4X4, &u_view);
 
         /* render current vertex array */
-        glUseProgram(shader);
+        glUseProgram(shader->program);
         glBindVertexArray(vao);
 
         /* render 'world' */
@@ -292,8 +296,9 @@ int main(void) {
 
     /* unload OpenGL */
 
+    ftShaderDelete(shader);
+
     glDeleteVertexArrays(1, &vao);
-    glDeleteProgram(shader);
 
     /* quit */
 

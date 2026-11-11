@@ -39,13 +39,66 @@ struct GLvertex {
 
 /* ft_vox-shader.c */
 
-typedef GLuint GLshader;
+typedef enum ShaderType ShaderType;
 
-extern GLint ftLoadShaderGLSL(GLshader, GLenum, FILE *);
+enum ShaderType {
+    FT_SHADER_VERTEX = 0,
 
-extern GLint ftLoadShaderSPIRV(GLshader, GLenum, FILE *);
+    FT_SHADER_TESS_CTRL = 1,
+
+    FT_SHADER_TESS_EVAL = 2,
+    
+    FT_SHADER_GEOMETRY = 3,
+    
+    FT_SHADER_FRAGMENT = 4,
+    
+    FT_SHADER_COMPUTE = 5,
+
+    /* ... */
+
+    FT_SHADER_TYPE_COUNT
+};
 
 
+typedef enum ShaderUniformType ShaderUniformType;
+
+enum ShaderUniformType {
+    FT_UNIFORM_NONE = 0,
+
+    FT_UNIFORM_MATRIX4X4,
+
+    /* ... */
+
+    FT_UNIFORM_TYPE_COUNT
+};
+
+
+typedef struct Shader Shader;
+
+struct Shader {
+    /* Shader 'program' */
+    GLuint program;
+
+    /* Shader 'pipeline':
+     * - [0] : vertex
+     * - [1] : tess. control
+     * - [2] : tess. evaluation 
+     * - [3] : geometry
+     * - [4] : fragment
+     * - [5] : compute
+     * - ... : padding
+     * */
+    GLuint pipeline[8];
+};
+
+
+extern int ftShaderCreate(Shader **);
+
+extern int ftShaderDelete(Shader *);
+
+extern int ftShaderLoadGLSL(Shader *, FILE *, ShaderType);
+
+extern int ftShaderUniformSet(Shader *, const char *, ShaderUniformType, const void *);
 
 
 /* ft_vox-camera.c */
@@ -80,11 +133,6 @@ extern int ftCameraMatrix(Camera *, mat4 *, mat4 *, vec2);
 
 
 /* ft_vox-mesh.c */
-
-/* TODO:
- * Create an index-buffer layout of:
- * [...solid indices...][...trans. indices...]
- * */
 
 struct BlockMesh {
     struct {
@@ -161,17 +209,17 @@ extern int ftChunkSetBlock(Chunk *, const vec3, const uint32_t);
 # endif
 #
 # if !defined (FT_VOX_RENDER_DISTANCE_X)
-#  define FT_VOX_RENDER_DISTANCE_X 8 /* world X-axis render distance */
+#  define FT_VOX_RENDER_DISTANCE_X 2 /* world X-axis render distance */
 #  define FT_VOX_RENDER_DIAMETER_X (FT_VOX_RENDER_DISTANCE_X * 2)
 # endif
 #
 # if !defined (FT_VOX_RENDER_DISTANCE_Y)
-#  define FT_VOX_RENDER_DISTANCE_Y 8 /* world Y-axis render distance */
+#  define FT_VOX_RENDER_DISTANCE_Y 2 /* world Y-axis render distance */
 #  define FT_VOX_RENDER_DIAMETER_Y (FT_VOX_RENDER_DISTANCE_Y * 2)
 # endif
 #
 # if !defined (FT_VOX_RENDER_DISTANCE_Z)
-#  define FT_VOX_RENDER_DISTANCE_Z 8 /* world Z-axis render distance */
+#  define FT_VOX_RENDER_DISTANCE_Z 2 /* world Z-axis render distance */
 #  define FT_VOX_RENDER_DIAMETER_Z (FT_VOX_RENDER_DISTANCE_Z * 2)
 # endif
 #
@@ -193,7 +241,7 @@ extern int ftWorldDelete(World *);
 
 extern int ftWorldUpdate(World *);
 
-extern int ftWorldRender(World *, const GLuint, const GLshader);
+extern int ftWorldRender(World *, const GLuint, Shader *);
 
 extern int ftWorldChunkTo3D(World *, Chunk *, int *, int *, int *);
 
