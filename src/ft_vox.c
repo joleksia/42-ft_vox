@@ -1,5 +1,38 @@
 #include "ft_vox.h"
 
+static int __ftEntityTestCreate(struct Entity *self) {
+    /* null-check */
+    if (!self) { return (0); }
+
+    printf("Hello, world!\n");
+
+    /* success */
+    return (1);
+}
+
+
+static int __ftEntityTestDelete(struct Entity *self) {
+    /* null-check */
+    if (!self) { return (0); }
+
+    printf("Goodbye, world!\n");
+
+    /* success */
+    return (1);
+}
+
+
+static int __ftEntityTestUpdate(struct Entity *self) {
+    /* null-check */
+    if (!self) { return (0); }
+    
+    /* ... */
+
+    /* success */
+    return (1);
+}
+
+
 int main(void) {
 
     /* create OpenGL window */
@@ -61,6 +94,14 @@ int main(void) {
     ftWorldCreate(&world, rand());
     ftWorldGenerate(&world);
 
+    /* create 'test' entity */
+    struct
+    Entity *test = malloc(sizeof(struct Entity));
+    test->create = __ftEntityTestCreate;
+    test->delete = __ftEntityTestDelete;
+    test->update = __ftEntityTestUpdate;
+    ftEntitySystemInsert(world.ecs, test);
+
     /* update-render loop */
 
     do {
@@ -69,6 +110,9 @@ int main(void) {
 
         /* set new 'window' title */
         ftWindowSetTitle("42warsaw - ft_vox (FPS.: %d)", (int) (1.0 / Time->delta));
+
+        /* update 'world' */
+        ftWorldUpdate(&world);
         
         /* enable 'locked' mode */
         if (Mouse->input.current[1]) {

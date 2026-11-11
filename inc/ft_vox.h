@@ -22,9 +22,23 @@
 
 /* Forward-Declare */
 
-struct ECS;
+struct GLvertex;
+
+struct Window;
+
+struct Keyboard;
+
+struct Mouse;
+
+struct Time;
 
 struct Entity;
+
+struct EntitySystem;
+
+struct Shader;
+
+struct VertexArray;
 
 struct BlockMesh;
 
@@ -128,21 +142,48 @@ extern int ftTimeSync(void);
 /* ft_vox-entity.c */
 
 struct Entity {
-    /* 'ECS' : ECS reference */
+    /* 'parent' : EntitySystem-parent object */
     struct
-    ECS *ECS;
+    EntitySystem *parent;
 
+    /* 'ID' : ID of this entity, used for O(1) look-up into 'parent' */
+    size_t ID;
+    
     /* 'data' : additional data used by the 'entity' */
     void *data;
 
     /* methods used by this entity */
-    int (*create) (struct Entity *, void *);
-    int (*delete) (struct Entity *, void *);
-    int (*update) (struct Entity *, void *);
-
-    /* 'ID' : ID of this entity, used for O(1) look-up into 'ECS' */
-    size_t ID;
+    int (*create) (struct Entity *);
+    int (*delete) (struct Entity *);
+    int (*update) (struct Entity *);
+    int (*render) (struct Entity *);
 };
+
+
+struct EntitySystem {
+    /* 'parent' : parent reference */
+    struct
+    World *parent;
+
+    /* 'entities' : vector of entities */
+    struct {
+        struct
+        Entity **data;
+        size_t count;
+        size_t capacity;
+    } entities;
+};
+
+
+extern int ftEntitySystemCreate(struct EntitySystem *, struct World *);
+
+extern int ftEntitySystemDelete(struct EntitySystem *);
+
+extern int ftEntitySystemUpdate(struct EntitySystem *);
+
+extern int ftEntitySystemRender(struct EntitySystem *, struct VertexArray *, struct Shader *);
+
+extern int ftEntitySystemInsert(struct EntitySystem *, struct Entity *);
 
 
 /* ft_vox-shader.c */
@@ -283,7 +324,7 @@ struct BlockMesh {
 # define FT_VOX_CHUNK_3D_1D(x, y, z) (x + y * FT_VOX_CHUNK_SIZE_X + z * FT_VOX_CHUNK_SIZE_X * FT_VOX_CHUNK_SIZE_Y)
 
 struct Chunk {
-    /* 'world' : reference to the 'World' struct */
+    /* 'world' : World-parent reference */
     struct
     World *world;
 
@@ -339,6 +380,10 @@ extern int ftChunkSetBlock(struct Chunk *, const vec3, const uint32_t);
 # define FT_VOX_WORLD_3D_1D(x, y, z) (x + y * FT_VOX_RENDER_DIAMETER_X + z * FT_VOX_RENDER_DIAMETER_X * FT_VOX_RENDER_DIAMETER_Y)
 
 struct World {
+
+    /* 'ecs' : 'EntitySystem' object */
+    struct
+    EntitySystem *ecs;
 
     /* 'chunks' : array of chunk pointers */
     struct

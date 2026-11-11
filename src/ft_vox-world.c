@@ -4,6 +4,15 @@ extern int ftWorldCreate(struct World *self, const int seed) {
     /* null-check */
     if (!self) { return (0); }
 
+    /* alloc. 'ecs' */
+    struct
+    EntitySystem *ecs = (struct EntitySystem *) calloc(1, sizeof(struct EntitySystem));
+    if (!ecs) { return (0); }
+    else {
+        ftEntitySystemCreate(ecs, self);
+        self->ecs = ecs;
+    }
+
     /* alloc. 'chunks' */
     struct
     Chunk **chunks = (struct Chunk **) malloc(FT_VOX_RENDER_DIAMETER_X *
@@ -51,6 +60,13 @@ extern int ftWorldCreate(struct World *self, const int seed) {
 extern int ftWorldDelete(struct World *self) {
     /* null-check */
     if (!self) { return (0); }
+
+    /* release 'ecs' */
+    struct
+    EntitySystem *ecs = self->ecs;
+    if (ecs) {
+        ftEntitySystemDelete(ecs); free(ecs);
+    }
     
     /* iterate on every 'chunk' */
     for (int y = 0; y < FT_VOX_RENDER_DIAMETER_X; y++) {
@@ -117,6 +133,13 @@ extern int ftWorldUpdate(struct World *self) {
     /* null-check */
     if (!self) { return (0); }
     
+    /* update 'ecs' */
+    struct
+    EntitySystem *ecs = self->ecs;
+    if (ecs) {
+        ftEntitySystemUpdate(ecs);
+    }
+    
     /* iterate on every 'chunk' */
     for (int y = 0; y < FT_VOX_RENDER_DIAMETER_X; y++) {
     for (int x = 0; x < FT_VOX_RENDER_DIAMETER_Y; x++) {
@@ -134,6 +157,13 @@ extern int ftWorldUpdate(struct World *self) {
 extern int ftWorldRender(struct World *self, struct VertexArray *pVao, struct Shader *pShader) {
     /* null-check */
     if (!self) { return (0); }
+    
+    /* render 'ecs' */
+    struct
+    EntitySystem *ecs = self->ecs;
+    if (ecs) {
+        ftEntitySystemRender(ecs, pVao, pShader);
+    }
 
     /* iterate on every 'chunk' */
     for (int y = 0; y < FT_VOX_RENDER_DIAMETER_X; y++) {
