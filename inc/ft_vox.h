@@ -5,6 +5,7 @@
 #if !defined (_ft_vox_h_)
 # define _ft_vox_h_ 1
 #
+# include <time.h>
 # include <stdio.h>
 # include <stddef.h>
 # include <stdint.h>
@@ -35,6 +36,83 @@ struct GLvertex {
     vec3 normal;
     vec2 texcoord;
 };
+
+
+/* ft_vox-window.c */
+
+struct Window {
+    void *window;
+    void *context;
+
+    struct {
+        uint8_t close : 1;
+        uint8_t vsync : 1;
+    } flags;
+};
+
+extern struct Window *Window;
+
+extern int ftWindowCreate(const char *, const size_t, const size_t);
+
+extern int ftWindowDelete(void);
+
+extern int ftWindowPollEvents(void);
+
+
+/* ft_vox-input.c */
+    
+/* create 'Keyboard' struct */
+struct Keyboard {
+    uint8_t current[SDL_NUM_SCANCODES];
+    uint8_t previous[SDL_NUM_SCANCODES];
+};
+
+extern struct Keyboard *Keyboard;
+
+extern int ftKeyboardCreate(void);
+
+extern int ftKeyboardDelete(void);
+
+extern int ftKeyboardSync(void);
+
+
+/* create 'Mouse' struct */
+struct Mouse {
+    struct {
+        vec2 current;
+        vec2 previous;
+        vec2 delta;
+    } position;
+    struct {
+        uint8_t current[8];
+        uint8_t previous[8];
+    } input;
+    uint8_t locked;
+};
+
+extern struct Mouse *Mouse;
+
+extern int ftMouseCreate(void);
+
+extern int ftMouseDelete(void);
+
+extern int ftMouseSync(void);
+
+
+/* create 'Time' struct */
+struct Time {
+    double current;
+    double previous;
+    double delta;
+};
+
+extern struct Time *Time;
+
+extern int ftTimeCreate(void);
+
+extern int ftTimeDelete(void);
+
+extern int ftTimeSync(void);
 
 
 /* ft_vox-shader.c */
