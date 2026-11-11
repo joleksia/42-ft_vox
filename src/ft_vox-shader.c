@@ -69,9 +69,37 @@ extern int ftShaderLoadGLSL(Shader *pShader, FILE *pFile, ShaderType type) {
     glShaderSource(pShader->pipeline[type], 1, (const GLchar * const *) &code, 0);
     glCompileShader(pShader->pipeline[type]);
 
+    /* 'compile' status */
+    GLint compile;
+    glGetShaderiv(pShader->pipeline[type], GL_COMPILE_STATUS, &compile);
+    if (compile != GL_TRUE) {
+        /* log compilation error */
+        GLchar log[1024] = { 0 };
+        GLsizei length = 0;
+        glGetShaderInfoLog(pShader->pipeline[type], sizeof(log), &length, log);
+
+        /* print 'log' */
+        printf("compile: %s\n", log);
+        return (0);
+    }
+
     /* link */
     glAttachShader(pShader->program, pShader->pipeline[type]);
     glLinkProgram(pShader->program);
+
+    /* 'link' status */
+    GLint link = 0;
+    glGetProgramiv(pShader->program, GL_LINK_STATUS, &link);
+    if (link != GL_TRUE) {
+        /* get error 'log' */
+        GLchar log[1024] = { 0 };
+        GLsizei length = 0;
+        glGetProgramInfoLog(pShader->program, sizeof(log), &length, log);
+
+        /* print 'log' */
+        printf("link: %s\n", log);
+        return (0);
+    }
 
     /* release 'code' */
     free(code);

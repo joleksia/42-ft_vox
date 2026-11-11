@@ -10,7 +10,7 @@ extern int ftKeyboardCreate(void) {
     if (Keyboard) { return (0); }
 
     /* alloc. 'keyboard' */
-    struct Keyboard *keyboard = (struct Keyboard *) malloc(sizeof(struct Keyboard));
+    struct Keyboard *keyboard = (struct Keyboard *) calloc(1, sizeof(struct Keyboard));
     if (!keyboard) { return (0); }
 
     /* return 'keyboard' */
@@ -56,7 +56,7 @@ extern int ftMouseCreate(void) {
     if (Mouse) { return (0); }
 
     /* alloc. 'mouse' object */
-    struct Mouse *mouse = (struct Mouse *) malloc(sizeof(struct Mouse));
+    struct Mouse *mouse = (struct Mouse *) calloc(1, sizeof(struct Mouse));
     if (!mouse) { return (0); }
 
     /* return 'mouse' */
@@ -102,7 +102,7 @@ extern int ftTimeCreate(void) {
     if (Time) { return (0); }
 
     /* alloc. 'mouse' object */
-    struct Time *mouse = (struct Time *) malloc(sizeof(struct Time));
+    struct Time *mouse = (struct Time *) calloc(1, sizeof(struct Time));
     if (!mouse) { return (0); }
 
     /* return 'mouse' */

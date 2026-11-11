@@ -23,9 +23,6 @@ extern int ftVertexArrayDelete(VertexArray *pVao) {
     /* null-check */
     if (!pVao) { return (0); }
 
-    /* 'ID'-check */
-    if (glIsVertexArray(pVao->ID) != GL_TRUE) { return (0); }
-
     /* release resources */
     glDeleteVertexArrays(1, &pVao->ID);
 
@@ -41,9 +38,6 @@ extern int ftVertexArrayLayout(VertexArray *pVao, const size_t attrib, const siz
     /* null-check */
     if (!pVao) { return (0); }
 
-    /* 'ID'-check */
-    if (glIsVertexArray(pVao->ID) != GL_TRUE) { return (0); }
-
     /* set new 'layout' */
     glEnableVertexArrayAttrib(pVao->ID, attrib);
     glVertexArrayAttribBinding(pVao->ID, attrib, 0);
@@ -58,12 +52,6 @@ extern int ftVertexArrayVertexBuffer(VertexArray *pVao, const GLuint vbo) {
     /* null-check */
     if (!pVao) { return (0); }
 
-    /* 'ID'-check */
-    if (glIsVertexArray(pVao->ID) != GL_TRUE) { return (0); }
-
-    /* 'vbo'-check */
-    if (glIsBuffer(vbo) != GL_TRUE) { return (0); }
-
     /* set 'vbo' buffer */
     glVertexArrayVertexBuffer(pVao->ID, 0, vbo, 0, sizeof(GLvertex));
     
@@ -75,12 +63,6 @@ extern int ftVertexArrayVertexBuffer(VertexArray *pVao, const GLuint vbo) {
 extern int ftVertexArrayIndexBuffer(VertexArray *pVao, const GLuint ibo) {
     /* null-check */
     if (!pVao) { return (0); }
-
-    /* 'ID'-check */
-    if (glIsVertexArray(pVao->ID) != GL_TRUE) { return (0); }
-
-    /* 'ibo'-check */
-    if (glIsBuffer(ibo) != GL_TRUE) { return (0); }
 
     /* set 'ibo' buffer */
     glVertexArrayElementBuffer(pVao->ID, ibo);

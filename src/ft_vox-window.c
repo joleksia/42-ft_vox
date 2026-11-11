@@ -7,9 +7,6 @@ struct Window *Window = { 0 };
 /* public API */
 
 extern int ftWindowCreate(const char *pTitle, const size_t width, const size_t height) {
-    /* initialize 'SDL2' */
-    if (SDL_Init(SDL_INIT_VIDEO)) { return (0); }
-
     /* alloc. global 'Window' object */
     if (!Window) {
         Window = (struct Window *) malloc(sizeof(struct Window));
@@ -18,22 +15,25 @@ extern int ftWindowCreate(const char *pTitle, const size_t width, const size_t h
             return (0);
         }
     }
+    
+    /* initialize 'SDL2' */
+    if (SDL_Init(SDL_INIT_VIDEO)) { return (0); }
+    
+    /* configure OpenGL 'context' */
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
     /* create OpenGL 'window' */
     void *window = SDL_CreateWindow(pTitle, SDL_WINDOWPOS_CENTERED,
-                                            SDL_WINDOWPOS_CENTERED, width,
-                                                                    height, SDL_WINDOW_OPENGL |
-                                                                            SDL_WINDOW_RESIZABLE);
+                                            SDL_WINDOWPOS_CENTERED,
+                                            width, height,
+                                            SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
     if (!window) {
         SDL_Quit();
         free(Window);
         return (0);
     }
-
-    /* configure OpenGL 'context' */
-    if (SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4)) { return (0); }
-    if (SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6)) { return (0); }
-    if (SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE)) { return (0); }
 
     /* create OpenGL 'context' */
     void *context = SDL_GL_CreateContext(window);
@@ -67,7 +67,7 @@ extern int ftWindowCreate(const char *pTitle, const size_t width, const size_t h
 
     /* set-up configuration 'flags' */
     Window->flags.close = 0;
-    Window->flags.vsync = 1;
+    Window->flags.vsync = 0;
 
     /* configure OpenGL */
     SDL_GL_SetSwapInterval(Window->flags.vsync);
@@ -163,6 +163,50 @@ extern int ftWindowPollEvents(void) {
             } break;
         }
     }
+
+    /* success */
+    return (1);
+}
+
+
+extern int ftWindowSetTitle(const char *format, ...) {
+    /* null-check */
+    if (!Window) { return (0); }
+
+    /* fixed-size null-terminated c-string */
+    char buffer[128] = { 0 };
+
+    /* extract 'list' */
+    va_list list;
+    va_start(list, format);
+    size_t nwrite = vsnprintf(buffer, sizeof(buffer), format, list);
+    va_end(list);
+
+    /* if 'nwrite' matches or exceeds 'buffer' size */
+    if (nwrite >= sizeof(buffer)) {
+        snprintf((buffer + sizeof(buffer)) - 4, 4, "...");
+    }
+
+    /* set 'buffer' as 'Window's title */
+    SDL_SetWindowTitle(Window->window, buffer);
+
+    /* success */
+    return (1);
+}
+
+
+extern int ftWindowGetSize(int *pX, int *pY) {
+    /* null-check */
+    if (!Window) { return (0); }
+
+    /* get 'Window's size */
+    int x = 0,
+        y = 0;
+    SDL_GL_GetDrawableSize(Window->window, &x, &y);
+
+    /* return results */
+    if (pX) { *pX = x; }
+    if (pY) { *pY = y; }
 
     /* success */
     return (1);

@@ -10,6 +10,7 @@
 # include <stddef.h>
 # include <stdint.h>
 # include <stdlib.h>
+# include <stdarg.h>
 #
 # include "glld.h"
 # include "perlin.h"
@@ -58,6 +59,9 @@ extern int ftWindowDelete(void);
 
 extern int ftWindowPollEvents(void);
 
+extern int ftWindowSetTitle(const char *, ...);
+
+extern int ftWindowGetSize(int *, int *);
 
 /* ft_vox-input.c */
     
@@ -228,7 +232,11 @@ struct Camera {
     float fieldOfView;
 };
 
-extern int ftCameraMatrix(Camera *, mat4 *, mat4 *, vec2);
+extern int ftCameraMove(Camera *, float);
+
+extern int ftCameraRotate(Camera *, float);
+
+extern int ftCameraMatrix(Camera *, mat4 *, mat4 *);
 
 
 /* ft_vox-mesh.c */
