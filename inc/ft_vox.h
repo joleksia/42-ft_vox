@@ -340,9 +340,9 @@ struct Chunk {
 
     /* 'flags' : 1-bit chunk flags */
     struct {
-        uint8_t dirty : 1; /* 'dirty' : dirty-flag, if '1' then re-run CPU-to-GPU process */
+        uint8_t dirty : 1; /* 'dirty' : dirty-flag, if '1' then re-run GPU meshing */
         uint8_t empty : 1; /* 'empty' : if '1' then chunk has no blocks */
-        uint8_t modified : 1; /* 'modified' : if '1' then chunk was modified by the player */
+        uint8_t ready : 1; /* 'ready' : flag telling if this chunk is ready to use */
     } flags;
 };
 

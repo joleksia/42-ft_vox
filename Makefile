@@ -12,8 +12,9 @@ CC = cc
 CFLAGS = -Wall -Wextra -Werror -std=c99 -ggdb3
 
 # linker files
-LFLAGS = -l:libSDL2.so \
-		 -l:libm.so
+LFLAGS = -l:libSDL2.so 		\
+		 -l:libpthread.so.0	\
+		 -l:libm.so			\
 
 # linker directories
 LDFLAGS = # ...

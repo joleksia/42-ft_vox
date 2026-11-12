@@ -188,7 +188,7 @@ int main(void) {
 
     /* create 'player' entity */
     struct
-    PlayerEntity *player = malloc(sizeof(struct PlayerEntity));
+    PlayerEntity *player = calloc(1, sizeof(struct PlayerEntity));
     player->create = ftPlayerCreate;
     player->delete = ftPlayerDelete;
     player->update = ftPlayerUpdate;

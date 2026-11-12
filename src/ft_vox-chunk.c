@@ -75,6 +75,11 @@ extern int ftChunkCreate(struct Chunk *self, struct World *pWorld, int x, int y,
                               y * FT_VOX_CHUNK_SIZE_Y,
                               z * FT_VOX_CHUNK_SIZE_Z);
 
+    /* set 'flags' */
+    self->flags.dirty = 0;
+    self->flags.empty = 1;
+    self->flags.ready = 0;
+
     /* success */
     return (1);
 }
@@ -128,7 +133,7 @@ extern int ftChunkRelease(struct Chunk *self) {
     /* get 'mesh' */
     struct
     BlockMesh *mesh = self->mesh;
-    if (!mesh) {
+    if (mesh) {
         glDeleteBuffers(1, &mesh->vbo.id);
         glDeleteBuffers(1, &mesh->ibo[0].id);
         glDeleteBuffers(1, &mesh->ibo[1].id);
@@ -138,7 +143,7 @@ extern int ftChunkRelease(struct Chunk *self) {
     
     /* get 'data' */
     uint32_t *data = self->data;
-    if (!data) {
+    if (data) {
         free(data);
         self->data = 0;
     }
@@ -197,8 +202,7 @@ extern int ftChunkGenerateData(struct Chunk *self, int seed) {
     }
    
     /* fill 'data' with some procedural ID's */
-    uint8_t dirty = 0;
-    uint8_t empty = 1;
+    self->flags.ready = 0;
     for (int y = 0; y < FT_VOX_CHUNK_SIZE_Y; y++) {
     for (int x = 0; x < FT_VOX_CHUNK_SIZE_X; x++) {
     for (int z = 0; z < FT_VOX_CHUNK_SIZE_Z; z++) {
@@ -212,8 +216,8 @@ extern int ftChunkGenerateData(struct Chunk *self, int seed) {
          * */
         if (noise > 0.0) {
             data[FT_VOX_CHUNK_3D_1D(x, y, z)] = 1;
-            dirty = 1;
-            empty = 0;
+            self->flags.dirty = 1;
+            self->flags.empty = 0;
         }
 
         /* set 'air' */
@@ -222,9 +226,8 @@ extern int ftChunkGenerateData(struct Chunk *self, int seed) {
         }
     }}}
 
-    /* set 'flags' */
-    self->flags.dirty = dirty;
-    self->flags.empty = empty;
+    /* set 'ready' */
+    self->flags.ready = 1;
 
     /* success */
     return (1);
@@ -235,6 +238,9 @@ extern int ftChunkGenerateMesh(struct Chunk *self){
     /* null-check */
     if (!self) { return (0); }
     if (!self->data) { return (0); }
+
+    /* check if 'self' is 'ready' */
+    if (!self->flags.ready) { return (1); }
 
     /* get 'mesh' */
     struct

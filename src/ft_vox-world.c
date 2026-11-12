@@ -146,11 +146,6 @@ extern int ftWorldRender(struct World *self, struct VertexArray *pVao, struct Sh
 }
 
 
-/* TODO:
- * - implement multithreading.
- * - return 'self->chunks' only at the end of the function;
- *   don't edit 'self->chunks' directly to not cause race conditions.
- * */
 extern int ftWorldSetCenter(struct World *self, const vec3 block) {
     /* null-check */
     if (!self) { return (0); }
@@ -170,7 +165,7 @@ extern int ftWorldSetCenter(struct World *self, const vec3 block) {
     /* re-center 'self' */
     self->position = position;
 
-    /* back-up 'old' chunks and clear 'self->chunks' */
+    /* 'old' chunks, 'self->chunks' back-up */
     size_t count = FT_VOX_RENDER_DIAMETER_X *
                    FT_VOX_RENDER_DIAMETER_Y *
                    FT_VOX_RENDER_DIAMETER_Z;
@@ -179,16 +174,11 @@ extern int ftWorldSetCenter(struct World *self, const vec3 block) {
     Chunk **old = (struct Chunk **) calloc(count, sizeof(struct Chunk *));
     if (!old) { return (0); }
 
-    /* back-up 'self->chunks' */
+    /* copy 'self->chunks' to 'old' */
     memcpy(old, self->chunks, count * sizeof(struct Chunk *));
 
     /* clear 'self->chunks' */
     memset(self->chunks, 0, count * sizeof(struct Chunk *));
-
-    /* alloc. 'spare' chunk list */
-    struct
-    Chunk **spare = (struct Chunk **) calloc(count, sizeof(struct Chunk *));
-    size_t nspare = 0;
 
     /* PASS 1.: copy 'old' chunks to 'self->chunks' if in-bounds */ 
     for (size_t i = 0; i < count; i++) {
@@ -196,15 +186,16 @@ extern int ftWorldSetCenter(struct World *self, const vec3 block) {
         Chunk *chunk = old[i];
         if (!chunk) { continue; }
 
-        if (ftWorldPointInBounds(self, chunk->position)) {
-            int x = chunk->position.x - self->position.x,
-                y = chunk->position.y - self->position.y,
-                z = chunk->position.z - self->position.z;
+        if (ftWorldPointInBounds(self, chunk->offset)) {
+            int x = chunk->offset.x - self->position.x,
+                y = chunk->offset.y - self->position.y,
+                z = chunk->offset.z - self->position.z;
             self->chunks[FT_VOX_WORLD_3D_1D(x, y, z)] = chunk;
         }
-        /* out-of-bounds are store in 'spare' (save alloc.) */
+        /* out-of-bounds 'chunk' are released */
         else {
-            spare[nspare++] = chunk;
+            ftChunkRelease(chunk);
+            free(chunk);
         }
     }
 
@@ -220,18 +211,15 @@ extern int ftWorldSetCenter(struct World *self, const vec3 block) {
 
         /* alloc. 'chunk' */
         struct
-        Chunk *chunk = nspare ? spare[--nspare] : 0;
-        if (!chunk) {
-            chunk = (struct Chunk *) calloc(1, sizeof(struct Chunk));
-            ftChunkAlloc(chunk);
-        }
+        Chunk *chunk = (struct Chunk *) calloc(1, sizeof(struct Chunk));
+        if (!chunk) { continue; } /* ? */
 
         /* CPU-generate this 'chunk' */
+        ftChunkAlloc(chunk);
         ftChunkCreate(chunk, self, (int) position.x + x,
                                    (int) position.y + y,
                                    (int) position.z + z);
         ftChunkGenerateData(chunk, self->seed);
-        chunk->flags.dirty = 1;
 
         /* set 'chunk' back to 'self->chunks' */
         self->chunks[i] = chunk;
@@ -255,14 +243,6 @@ extern int ftWorldSetCenter(struct World *self, const vec3 block) {
             }
         }
     }}}
-
-    /* release 'spare' */
-    while (nspare) {
-        struct
-        Chunk *chunk = spare[--nspare];
-        ftChunkRelease(chunk); free(chunk);
-    }
-    free(spare);
 
     /* success */
     return (1);
