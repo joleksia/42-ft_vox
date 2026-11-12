@@ -59,7 +59,28 @@ static int __ftChunkFaceCube(struct GLvertex *pVertices, GLsizei *pVsize, GLuint
 
 /* public API */
 
-extern int ftChunkGenerateData(struct Chunk *self, int seed) {
+extern int ftChunkCreate(struct Chunk *self, struct World *pWorld, int x, int y, int z) {
+    /* null-check */
+    if (!self)   { return (0); }
+    if (!pWorld) { return (0); }
+
+    /* set 'chunk's 'parent' */
+    self->parent = pWorld;
+
+    /* set 'offset' */
+    self->offset = alg_vec3(x, y, z);
+
+    /* set 'position' */
+    self->position = alg_vec3(x * FT_VOX_CHUNK_SIZE_X,
+                              y * FT_VOX_CHUNK_SIZE_Y,
+                              z * FT_VOX_CHUNK_SIZE_Z);
+
+    /* success */
+    return (1);
+}
+
+
+extern int ftChunkAlloc(struct Chunk *self) {
     /* null-check */
     if (!self) { return (0); }
 
@@ -76,6 +97,103 @@ extern int ftChunkGenerateData(struct Chunk *self, int seed) {
 
         /* return 'data' */
         self->data = data;
+    }
+    
+    /* get 'mesh' */
+    struct
+    BlockMesh *mesh = self->mesh;
+    if (!mesh) {
+        /* alloc. 'mesh' */
+        mesh = (struct BlockMesh *) calloc(1, sizeof(struct BlockMesh));
+        if (!mesh) {
+            return (0);
+        }
+
+        /* return 'mesh' */
+        glCreateBuffers(1, &mesh->vbo.id);
+        glCreateBuffers(1, &mesh->ibo[0].id);
+        glCreateBuffers(1, &mesh->ibo[1].id);
+        self->mesh = mesh;
+    }
+
+    /* success */
+    return (1);
+}
+
+
+extern int ftChunkRelease(struct Chunk *self) {
+    /* null-check */
+    if (!self) { return (0); }
+    
+    /* get 'mesh' */
+    struct
+    BlockMesh *mesh = self->mesh;
+    if (!mesh) {
+        glDeleteBuffers(1, &mesh->vbo.id);
+        glDeleteBuffers(1, &mesh->ibo[0].id);
+        glDeleteBuffers(1, &mesh->ibo[1].id);
+        free(mesh);
+        self->mesh = 0;
+    }
+    
+    /* get 'data' */
+    uint32_t *data = self->data;
+    if (!data) {
+        free(data);
+        self->data = 0;
+    }
+
+    /* success */
+    return (1);
+}
+
+
+extern int ftChunkRender(struct Chunk *self, struct VertexArray *pVao, struct Shader *pShader) {
+    /* null-check */
+    if (!self)    { return (0); }
+    if (!pVao)    { return (0); }
+    if (!pShader) { return (0); }
+
+    /* get 'mesh' */
+    struct
+    BlockMesh *mesh = self->mesh;
+    if (!mesh) { return (0); }
+
+    /* check 'flags' */
+    if (self->flags.empty) { return (1); }
+    if (self->flags.dirty) { ftChunkGenerateMesh(self); }
+       
+    /* 'u_model' matrix */
+    mat4 u_model = alg_mat4translate(self->position);
+    ftShaderUniformSet(pShader, "u_model", FT_UNIFORM_MATRIX4X4, &u_model);
+        
+    /* set 'vbo' */
+    ftVertexArrayVertexBuffer(pVao, mesh->vbo.id);
+
+    /* render 'solid' */
+    if (1) {
+        if (mesh->ibo[0].sz > 0) {
+            /* set 'ibo[0]' */
+            ftVertexArrayIndexBuffer(pVao, mesh->ibo[0].id);
+
+            /* draw-call */
+            glDrawElements(GL_TRIANGLES, mesh->ibo[0].sz, GL_UNSIGNED_INT, (GLvoid *) (0));
+        }
+    }
+
+    /* success */
+    return (1);
+}
+
+
+extern int ftChunkGenerateData(struct Chunk *self, int seed) {
+    /* null-check */
+    if (!self) { return (0); }
+
+    /* get 'data' */
+    uint32_t *data = self->data;
+    if (!data) {
+        return (0);
     }
    
     /* fill 'data' with some procedural ID's */
@@ -97,6 +215,11 @@ extern int ftChunkGenerateData(struct Chunk *self, int seed) {
             dirty = 1;
             empty = 0;
         }
+
+        /* set 'air' */
+        else {
+            data[FT_VOX_CHUNK_3D_1D(x, y, z)] = 0;
+        }
     }}}
 
     /* set 'flags' */
@@ -117,17 +240,7 @@ extern int ftChunkGenerateMesh(struct Chunk *self){
     struct
     BlockMesh *mesh = self->mesh;
     if (!mesh) {
-        /* alloc. 'mesh' */
-        mesh = (struct BlockMesh *) calloc(1, sizeof(struct BlockMesh));
-        if (!mesh) {
-            return (0);
-        }
-
-        /* return 'mesh' */
-        glCreateBuffers(1, &mesh->vbo.id);
-        glCreateBuffers(1, &mesh->ibo[0].id);
-        glCreateBuffers(1, &mesh->ibo[1].id);
-        self->mesh = mesh;
+        return (0);
     }
     
     /* CPU-to-GPU */
@@ -208,9 +321,10 @@ extern int ftChunkGetBlock(struct Chunk *self, const vec3 position, uint32_t *pI
     /* null-check */
     if (!self) { return (0); }
 
-    int cx = self->cx,
-        cy = self->cy,
-        cz = self->cz;
+
+    int cx = (int) self->offset.x,
+        cy = (int) self->offset.y,
+        cz = (int) self->offset.z;
 
     int x = (int) position.x;
     if (x < 0) {
@@ -235,11 +349,11 @@ extern int ftChunkGetBlock(struct Chunk *self, const vec3 position, uint32_t *pI
     
    
     /* get actual 'self' (bound-check) */
-    if (cx != self->cx ||
-        cy != self->cy ||
-        cz != self->cz
+    if (cx != (int) self->offset.x ||
+        cy != (int) self->offset.y ||
+        cz != (int) self->offset.z
     ) {
-        ftWorldGetChunk(self->world, &self, cx, cy, cz);
+        ftWorldGetChunk(self->parent, &self, cx, cy, cz);
         if (!self) {
             return (0);
         }

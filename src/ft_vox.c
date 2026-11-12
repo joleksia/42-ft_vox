@@ -19,6 +19,9 @@ struct PlayerEntity {
     /* 'camera' : 3D perspective projection */
     struct
     Camera camera;
+
+    /* 'block' : 3D position (block-specific) */
+    vec3 block;
 };
 
 
@@ -93,8 +96,16 @@ static int ftPlayerUpdate(struct Entity *self) {
     ftCameraMove(&player->camera, 8.0 * Time->delta);
     ftCameraRotate(&player->camera, 0.1);
 
-    /* re-center the 'world' if needed */
-    ftWorldSetCenter(world, player->camera.position);
+    /* 'player' position to 'block' position */
+    vec3 block = FT_VOX_FLOAT_TO_BLOCK(player->camera.position.x,
+                                       player->camera.position.y,
+                                       player->camera.position.z);
+
+    /* re-center the 'world' center to 'block' if needed */
+    if (alg_vec3ne(block, player->block)) {
+        player->block = block;
+        ftWorldSetCenter(world, block);
+    }
 
     /* success */
     return (1);

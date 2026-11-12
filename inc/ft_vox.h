@@ -321,9 +321,9 @@ struct BlockMesh {
 # define FT_VOX_CHUNK_3D_1D(x, y, z) (x + y * FT_VOX_CHUNK_SIZE_X + z * FT_VOX_CHUNK_SIZE_X * FT_VOX_CHUNK_SIZE_Y)
 
 struct Chunk {
-    /* 'world' : World-parent reference */
+    /* 'parent' : world reference */
     struct
-    World *world;
+    World *parent;
 
     /* 'data' : CPU representation of the block in the chunk */
     uint32_t *data;
@@ -332,10 +332,10 @@ struct Chunk {
     struct
     BlockMesh *mesh;
 
-    /* 'cx', 'cy', 'cz' : chunk indices */
-    int cx, cy, cz;
+    /* 'offset' : position (in chunks) */
+    vec3 offset;
 
-    /* 'position' : chunk position */
+    /* 'position' : position (in blocks) */
     vec3 position;
 
     /* 'flags' : 1-bit chunk flags */
@@ -346,7 +346,13 @@ struct Chunk {
     } flags;
 };
 
-extern int ftChunkDelete(struct Chunk *);
+extern int ftChunkCreate(struct Chunk *, struct World *, int, int, int);
+
+extern int ftChunkAlloc(struct Chunk *);
+
+extern int ftChunkRelease(struct Chunk *);
+
+extern int ftChunkRender(struct Chunk *, struct VertexArray *, struct Shader *);
 
 extern int ftChunkGenerateData(struct Chunk *, const int);
 
@@ -360,21 +366,31 @@ extern int ftChunkSetBlock(struct Chunk *, const vec3, const uint32_t);
 /* ft_vox-world.c */
 
 # if !defined (FT_VOX_RENDER_DISTANCE_X)
-#  define FT_VOX_RENDER_DISTANCE_X 8 /* world X-axis render distance */
+#  define FT_VOX_RENDER_DISTANCE_X 2 /* world X-axis render distance */
 #  define FT_VOX_RENDER_DIAMETER_X (FT_VOX_RENDER_DISTANCE_X * 2)
 # endif
 #
 # if !defined (FT_VOX_RENDER_DISTANCE_Y)
-#  define FT_VOX_RENDER_DISTANCE_Y 8 /* world Y-axis render distance */
+#  define FT_VOX_RENDER_DISTANCE_Y 2 /* world Y-axis render distance */
 #  define FT_VOX_RENDER_DIAMETER_Y (FT_VOX_RENDER_DISTANCE_Y * 2)
 # endif
 #
 # if !defined (FT_VOX_RENDER_DISTANCE_Z)
-#  define FT_VOX_RENDER_DISTANCE_Z 8 /* world Z-axis render distance */
+#  define FT_VOX_RENDER_DISTANCE_Z 2 /* world Z-axis render distance */
 #  define FT_VOX_RENDER_DIAMETER_Z (FT_VOX_RENDER_DISTANCE_Z * 2)
 # endif
 #
-# define FT_VOX_WORLD_3D_1D(x, y, z) (x + y * FT_VOX_RENDER_DIAMETER_X + z * FT_VOX_RENDER_DIAMETER_X * FT_VOX_RENDER_DIAMETER_Y)
+# define FT_VOX_WORLD_3D_1D(x, y, z) ((x) + \
+                                      (y) * FT_VOX_RENDER_DIAMETER_X + \
+                                      (z) * FT_VOX_RENDER_DIAMETER_X * FT_VOX_RENDER_DIAMETER_Y)
+#
+# define FT_VOX_BLOCK_TO_CHUNK(x, y, z) (alg_vec3(floorf((x) / FT_VOX_CHUNK_SIZE_X), \
+                                                  floorf((y) / FT_VOX_CHUNK_SIZE_Y), \
+                                                  floorf((z) / FT_VOX_CHUNK_SIZE_Z)))
+#
+# define FT_VOX_FLOAT_TO_BLOCK(x, y, z) (alg_vec3(floorf((x)), \
+                                                  floorf((y)), \
+                                                  floorf((z))))
 
 struct World {
 
@@ -386,11 +402,8 @@ struct World {
     struct
     Chunk **chunks;
 
-    /* 'center' : current world's center position */
-    vec3 center;
-
-    /* 'offset' : current chunk's offset position */
-    vec3 offset;
+    /* 'position' : current world's center position */
+    vec3 position;
 
     /* 'seed' : 32-bit seed of the world */
     int seed;
@@ -410,6 +423,8 @@ extern int ftWorldRender(struct World *, struct VertexArray *, struct Shader *);
 extern int ftWorldSetCenter(struct World *, const vec3);
 
 extern int ftWorldGetChunk(struct World *, struct Chunk **, int, int, int);
+
+extern int ftWorldPointInBounds(struct World *, vec3);
 
 /* ... */
 
