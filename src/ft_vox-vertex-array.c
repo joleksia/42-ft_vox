@@ -41,7 +41,7 @@ extern int ftVertexArrayLayout(struct VertexArray *self, const size_t attrib, co
     /* set new 'layout' */
     glEnableVertexArrayAttrib(self->ID, attrib);
     glVertexArrayAttribBinding(self->ID, attrib, 0);
-    glVertexArrayAttribFormat(self->ID, attrib, count, GL_FLOAT, GL_FALSE, offset);
+    glVertexArrayAttribIFormat(self->ID, attrib, count, GL_UNSIGNED_INT, offset);
     
     /* success */
     return (1);
@@ -53,7 +53,7 @@ extern int ftVertexArrayVertexBuffer(struct VertexArray *self, const GLuint vbo)
     if (!self) { return (0); }
 
     /* set 'vbo' buffer */
-    glVertexArrayVertexBuffer(self->ID, 0, vbo, 0, sizeof(struct GLvertex));
+    glVertexArrayVertexBuffer(self->ID, 0, vbo, 0, sizeof(GLuint));
     
     /* success */
     return (1);

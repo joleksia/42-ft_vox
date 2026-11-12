@@ -1,13 +1,7 @@
 #version 460 core
 
 layout (location=0)
-in vec3 a_position;
-
-layout (location=1)
-in vec3 a_normal;
-
-layout (location=2)
-in vec2 a_texcoord;
+in uint a_vertex;
 
 layout (location=0)
 out vec3 v_normal;
@@ -20,7 +14,16 @@ uniform mat4 u_proj;
 uniform mat4 u_view;
 
 void main() {
-    gl_Position = u_proj * u_view * u_model * vec4(a_position, 1.0);
-    v_normal = a_normal;
-    v_texcoord = a_texcoord;
+    vec3 v_position = vec3(float((a_vertex >>  0) & 0xffu),
+                           float((a_vertex >>  8) & 0xffu),
+                           float((a_vertex >> 16) & 0xffu));
+    
+    v_normal = vec3(float((a_vertex >> 24) & 0x01u),
+                    float((a_vertex >> 25) & 0x01u),
+                    float((a_vertex >> 26) & 0x01u));
+
+    v_texcoord = vec2(float((a_vertex >> 27) & 0x01u),
+                      float((a_vertex >> 28) & 0x01u));
+    
+    gl_Position = u_proj * u_view * u_model * vec4(v_position, 1.0);
 }

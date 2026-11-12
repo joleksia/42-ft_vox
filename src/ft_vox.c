@@ -173,9 +173,7 @@ int main(void) {
     struct
     VertexArray *vao = 0;
     ftVertexArrayCreate(&vao);
-    ftVertexArrayLayout(vao, 0, 3, offsetof(struct GLvertex, position));
-    ftVertexArrayLayout(vao, 1, 3, offsetof(struct GLvertex, normal));
-    ftVertexArrayLayout(vao, 2, 2, offsetof(struct GLvertex, texcoord));
+    ftVertexArrayLayout(vao, 0, 1, 0);
 
     /* create 'world' */
 

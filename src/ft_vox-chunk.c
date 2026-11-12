@@ -2,12 +2,12 @@
 
 /* static API */
 
-static const vec3 FT_VOX_FACE_DIRECTION[] = { {  0.0,  0.0, -1.0, }, /* north (-z) */
-                                              {  0.0,  0.0,  1.0, }, /* south (+z) */
-                                              { -1.0,  0.0,  0.0, }, /* west  (-x) */
-                                              {  1.0,  0.0,  0.0, }, /* east  (+x) */
-                                              {  0.0, -1.0,  0.0, }, /* down  (-y) */
-                                              {  0.0,  1.0,  0.0, }, /* top   (+y) */ };
+static const GLint FT_VOX_FACE_DIRECTION[6][3] = { {  0,  0, -1, }, /* north (-z) */
+                                                   {  0,  0,  1, }, /* south (+z) */
+                                                   { -1,  0,  0, }, /* west  (-x) */
+                                                   {  1,  0,  0, }, /* east  (+x) */
+                                                   {  0, -1,  0, }, /* down  (-y) */
+                                                   {  0,  1,  0, }, /* top   (+y) */ };
 
 static const GLuint FT_VOX_FACE_UNIQUE[] = { 1, 0, 5, 2 };
 static const GLuint FT_VOX_FACE_INDICES[] = { 1, 0, 3, 1, 3, 2, };
@@ -18,32 +18,49 @@ static const GLuint FT_VOX_CUBE_INDICES[] = { 1, 0, 3, 1, 3, 2, /* north (-z) */
                                               5, 4, 0, 5, 0, 1, /* down  (-y) */
                                               2, 3, 7, 2, 7, 6, /* top   (+y) */ };
 
-static const vec3 FT_VOX_CUBE_POSITION[] = { { 0, 0, 0, },
-                                             { 1, 0, 0, },
-                                             { 1, 1, 0, },
-                                             { 0, 1, 0, },
-                                             { 0, 0, 1, },
-                                             { 1, 0, 1, },
-                                             { 1, 1, 1, },
-                                             { 0, 1, 1, }, };
+static const GLuint FT_VOX_CUBE_POSITION[] = { 0, 0, 0,
+                                               1, 0, 0,
+                                               1, 1, 0,
+                                               0, 1, 0,
+                                               0, 0, 1,
+                                               1, 0, 1,
+                                               1, 1, 1,
+                                               0, 1, 1, };
 
-static const vec2 FT_VOX_CUBE_TEXCOORD[] = { { 1, 0, },
-                                             { 0, 0, },
-                                             { 0, 1, },
-                                             { 1, 1, }, };
+static const GLuint FT_VOX_CUBE_NORMAL[] = { 0, 0, 1, /* north (-z) */
+                                             0, 0, 1, /* south (+z) */
+                                             1, 0, 0, /* west  (-x) */
+                                             1, 0, 0, /* east  (+x) */
+                                             0, 1, 0, /* down  (-y) */
+                                             0, 1, 0, /* top   (+y) */ };
+
+static const GLuint FT_VOX_CUBE_TEXCOORD[] = { 1, 0,
+                                               0, 0,
+                                               0, 1,
+                                               1, 1, };
 
 
-static int __ftChunkFaceCube(struct GLvertex *pVertices, GLsizei *pVsize, GLuint *pIndices, GLsizei *pIsize, int face, vec3 offset) {
+static int __ftChunkFaceCube(GLuint *pVertices, GLsizei *pVsize, GLuint *pIndices, GLsizei *pIsize, int face, int x, int y, int z) {
     /* 'pVertices' : send face */
     GLsizei base = *pVsize;
     for (size_t j = 0; j < 4; j++) {
-        struct GLvertex vertex = { 0 };
-        vertex.position = FT_VOX_CUBE_POSITION[FT_VOX_CUBE_INDICES[face * 6 + FT_VOX_FACE_UNIQUE[j]]];
-        vertex.normal   = FT_VOX_FACE_DIRECTION[face];
-        vertex.texcoord = FT_VOX_CUBE_TEXCOORD[j];
-        vertex.position.x += offset.x;
-        vertex.position.y += offset.y;
-        vertex.position.z += offset.z;
+        const GLuint *position = &FT_VOX_CUBE_POSITION[FT_VOX_CUBE_INDICES[face * 6 + FT_VOX_FACE_UNIQUE[j]] * 3];
+        const GLuint   *normal = &FT_VOX_CUBE_NORMAL[face * 3];
+        const GLuint *texcoord = &FT_VOX_CUBE_TEXCOORD[j * 2];
+        GLuint vertex = /* pack: 'position */
+                        (((position[0] + (GLuint) x) & 0xffu) << 0)  |
+                        (((position[1] + (GLuint) y) & 0xffu) << 8)  |
+                        (((position[2] + (GLuint) z) & 0xffu) << 16) |
+
+                        /* pack: 'normal' */
+                        (((normal[0]) & 0x01u) << 24) |
+                        (((normal[1]) & 0x01u) << 25) |
+                        (((normal[2]) & 0x01u) << 26) |
+                        
+                        /* pack: 'texoord' */
+                        ((texcoord[0] & 0x01u) << 27) |
+                        ((texcoord[1] & 0x01u) << 28);
+
         pVertices[(*pVsize)++] = vertex;
     }
 
@@ -259,8 +276,8 @@ extern int ftChunkGenerateMesh(struct Chunk *self){
      * 's' : solid index buffer
      * 't' : transparent index buffer
      * */
-    struct GLvertex *v = (struct GLvertex *) malloc(size * 24 * sizeof(struct GLvertex));
-    GLuint *s = (GLuint *) malloc(size * 36 * sizeof(GLuint)),
+    GLuint *v = (GLuint *) malloc(size * 24 * sizeof(GLuint)),
+           *s = (GLuint *) malloc(size * 36 * sizeof(GLuint)),
            *t = (GLuint *) malloc(size * 36 * sizeof(GLuint));
 
     /* 'nv' : 'v' buffer size/index
@@ -286,14 +303,14 @@ extern int ftChunkGenerateMesh(struct Chunk *self){
             for (size_t i = 0; i < 6; i++) {
                 /* get the 'neighbor' block */
                 uint32_t neighbor = 0;
-                ftChunkGetBlock(self, alg_vec3(x + FT_VOX_FACE_DIRECTION[i].x,
-                                               y + FT_VOX_FACE_DIRECTION[i].y,
-                                               z + FT_VOX_FACE_DIRECTION[i].z), &neighbor);
+                ftChunkGetBlock(self, alg_vec3(x + FT_VOX_FACE_DIRECTION[i][0],
+                                               y + FT_VOX_FACE_DIRECTION[i][1],
+                                               z + FT_VOX_FACE_DIRECTION[i][2]), &neighbor);
                 
                 /*check if 'neighbor' is 'solid' */
                 if (neighbor == 1) { continue; }
                 else {
-                    __ftChunkFaceCube(v, &nv, s, &ns, i, alg_vec3(x, y, z));
+                    __ftChunkFaceCube(v, &nv, s, &ns, i, x, y, z);
                 }
             }
         }
@@ -302,7 +319,7 @@ extern int ftChunkGenerateMesh(struct Chunk *self){
     /* set 'v', 's' and 't' to the 'mesh' */
 
     mesh->vbo.sz = nv;
-    glNamedBufferData(mesh->vbo.id, nv * sizeof(struct GLvertex), v, GL_STATIC_DRAW);
+    glNamedBufferData(mesh->vbo.id, nv * sizeof(GLuint), v, GL_STATIC_DRAW);
 
     mesh->ibo[0].sz = ns;
     glNamedBufferData(mesh->ibo[0].id, ns * sizeof(GLuint), s, GL_STATIC_DRAW);
