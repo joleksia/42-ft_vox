@@ -1,32 +1,124 @@
 #include "ft_vox.h"
 
-static int __ftEntityTestCreate(struct Entity *self) {
+struct PlayerEntity {
+    /* 'parent' : EntitySystem-parent object */
+    struct
+    EntitySystem *parent;
+
+    /* 'ID' : ID of this entity, used for O(1) look-up into 'parent' */
+    size_t ID;
+
+    /* methods used by this entity */
+    int (*create) (struct Entity *);
+    int (*delete) (struct Entity *);
+    int (*update) (struct Entity *);
+    int (*render) (struct Entity *, struct VertexArray *, struct Shader *);
+
+    /* 'PlayerEntity' specific */
+
+    /* 'camera' : 3D perspective projection */
+    struct
+    Camera camera;
+};
+
+
+static int ftPlayerCreate(struct Entity *self) {
     /* null-check */
     if (!self) { return (0); }
 
-    printf("Hello, world!\n");
+    /* get 'PlayerEntity' */
+    struct
+    PlayerEntity *player = (struct PlayerEntity *) self;
+    if (!player) { return (0); }
+
+    /* create 'camera' */
+    player->camera = (struct Camera) {
+        .position = alg_vec3(0.0, 0.0, 0.0),
+        .rotation = alg_vec3(0.0, 0.0, -1.0),
+        .direction = alg_vec3(0.0, 0.0, -90.0),
+        .up = alg_vec3(0.0, 1.0, 0.0),
+        .fieldOfView = 60.0,
+    };
 
     /* success */
     return (1);
 }
 
 
-static int __ftEntityTestDelete(struct Entity *self) {
+static int ftPlayerDelete(struct Entity *self) {
     /* null-check */
     if (!self) { return (0); }
 
-    printf("Goodbye, world!\n");
+    /* get 'PlayerEntity' */
+    struct
+    PlayerEntity *player = (struct PlayerEntity *) self;
+    if (!player) { return (0); }
+
+    /* ... */ (void) player;
 
     /* success */
     return (1);
 }
 
 
-static int __ftEntityTestUpdate(struct Entity *self) {
+static int ftPlayerUpdate(struct Entity *self) {
     /* null-check */
     if (!self) { return (0); }
-    
-    /* ... */
+
+    /* get 'PlayerEntity' */
+    struct
+    PlayerEntity *player = (struct PlayerEntity *) self;
+    if (!player) { return (0); }
+
+    /* get 'world' reference */
+    struct
+    World *world = self->parent->parent;
+    if (!world) { return (0); }
+        
+    /* enable 'locked' mode */
+    if (Mouse->input.current[1]  == 1 &&
+        Mouse->input.previous[1] == 0
+    ) {
+        Mouse->locked = 1;
+    }
+
+    /* disable 'locked' mode */
+    if (Keyboard->current[SDL_SCANCODE_ESCAPE]  == 1 &&
+        Keyboard->previous[SDL_SCANCODE_ESCAPE] == 0
+    ) {
+        Mouse->locked = 0;
+    }
+
+    /* update 'camera' */
+    ftCameraMove(&player->camera, 8.0 * Time->delta);
+    ftCameraRotate(&player->camera, 0.1);
+
+    /* re-center the 'world' if needed */
+    ftWorldSetCenter(world, player->camera.position);
+
+    /* success */
+    return (1);
+}
+
+
+static int ftPlayerRender(struct Entity *self, struct VertexArray *pVao, struct Shader *pShader) {
+    /* null-check */
+    if (!self) { return (0); }
+
+    /* get 'PlayerEntity' */
+    struct
+    PlayerEntity *player = (struct PlayerEntity *) self;
+    if (!player) { return (0); }
+   
+    /* create 'u_proj' and 'u_view' projection matrices */
+    mat4 u_proj = alg_mat4(1.0),
+         u_view = alg_mat4(1.0);
+    ftCameraMatrix(&player->camera, &u_proj, &u_view);
+    ftShaderUniformSet(pShader, "u_proj", FT_UNIFORM_MATRIX4X4, &u_proj);
+    ftShaderUniformSet(pShader, "u_view", FT_UNIFORM_MATRIX4X4, &u_view);
+
+    /* 'pVao' is unused */
+    (void) pVao;
 
     /* success */
     return (1);
@@ -74,17 +166,6 @@ int main(void) {
     ftVertexArrayLayout(vao, 1, 3, offsetof(struct GLvertex, normal));
     ftVertexArrayLayout(vao, 2, 2, offsetof(struct GLvertex, texcoord));
 
-    /* create 3D 'camera' */
-
-    struct
-    Camera camera = {
-        .position = alg_vec3(0.0, 0.0, 0.0),
-        .rotation = alg_vec3(0.0, 0.0, -1.0),
-        .direction = alg_vec3(0.0, 0.0, -90.0),
-        .up = alg_vec3(0.0, 1.0, 0.0),
-        .fieldOfView = 60.0,
-    };
-
     /* create 'world' */
 
     srand(time(0));
@@ -94,13 +175,14 @@ int main(void) {
     ftWorldCreate(&world, rand());
     ftWorldGenerate(&world);
 
-    /* create 'test' entity */
+    /* create 'player' entity */
     struct
-    Entity *test = malloc(sizeof(struct Entity));
-    test->create = __ftEntityTestCreate;
-    test->delete = __ftEntityTestDelete;
-    test->update = __ftEntityTestUpdate;
-    ftEntitySystemInsert(world.ecs, test);
+    PlayerEntity *player = malloc(sizeof(struct PlayerEntity));
+    player->create = ftPlayerCreate;
+    player->delete = ftPlayerDelete;
+    player->update = ftPlayerUpdate;
+    player->render = ftPlayerRender;
+    ftEntitySystemInsert(world.ecs, (struct Entity *) player);
 
     /* update-render loop */
 
@@ -113,24 +195,6 @@ int main(void) {
 
         /* update 'world' */
         ftWorldUpdate(&world);
-        
-        /* enable 'locked' mode */
-        if (Mouse->input.current[1]) {
-            if (!Mouse->input.previous[1]) {
-                Mouse->locked = 1;
-            }
-        }
-
-        /* disable 'locked' mode */
-        if (Keyboard->current[SDL_SCANCODE_ESCAPE]) {
-            if (!Keyboard->previous[SDL_SCANCODE_ESCAPE]) {
-                Mouse->locked = 0;
-            }
-        }
-
-        /* update 'camera' */
-        ftCameraMove(&camera, 8.0 * Time->delta);
-        ftCameraRotate(&camera, 0.1);
 
         /* render */
 
@@ -138,13 +202,6 @@ int main(void) {
         glClearColor(0.1, 0.1, 0.1, 1.0);
         glClear(GL_COLOR_BUFFER_BIT |
                 GL_DEPTH_BUFFER_BIT);
-
-        /* update uniforms */
-        mat4 u_proj = alg_mat4(1.0),
-             u_view = alg_mat4(1.0);
-        ftCameraMatrix(&camera, &u_proj, &u_view);
-        ftShaderUniformSet(shader, "u_proj", FT_UNIFORM_MATRIX4X4, &u_proj);
-        ftShaderUniformSet(shader, "u_view", FT_UNIFORM_MATRIX4X4, &u_view);
 
         /* render current vertex array */
         glUseProgram(shader->program);

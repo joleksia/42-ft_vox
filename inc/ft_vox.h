@@ -148,15 +148,12 @@ struct Entity {
 
     /* 'ID' : ID of this entity, used for O(1) look-up into 'parent' */
     size_t ID;
-    
-    /* 'data' : additional data used by the 'entity' */
-    void *data;
 
     /* methods used by this entity */
     int (*create) (struct Entity *);
     int (*delete) (struct Entity *);
     int (*update) (struct Entity *);
-    int (*render) (struct Entity *);
+    int (*render) (struct Entity *, struct VertexArray *, struct Shader *);
 };
 
 

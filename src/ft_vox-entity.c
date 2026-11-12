@@ -84,7 +84,10 @@ extern int ftEntitySystemRender(struct EntitySystem *self, struct VertexArray *p
         Entity *entity = self->entities.data[i];
         if (!entity) { continue; }
 
-        /* ... */
+        /* run 'render' */
+        if (entity->render) {
+            entity->render(entity, pVao, pShader);
+        }
     }
 
     /* success */
