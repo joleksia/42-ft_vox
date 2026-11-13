@@ -219,7 +219,7 @@ extern int ftWorldSetCenter(struct World *self, const vec3 block) {
         ftChunkCreate(chunk, self, (int) position.x + x,
                                    (int) position.y + y,
                                    (int) position.z + z);
-        ftChunkGenerateData(chunk, self->seed);
+        ftChunkGenerateData(chunk);
 
         /* set 'chunk' back to 'self->chunks' */
         self->chunks[i] = chunk;

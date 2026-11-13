@@ -366,7 +366,7 @@ extern int ftChunkRelease(struct Chunk *);
 
 extern int ftChunkRender(struct Chunk *, struct VertexArray *, struct Shader *);
 
-extern int ftChunkGenerateData(struct Chunk *, const int);
+extern int ftChunkGenerateData(struct Chunk *);
 
 extern int ftChunkGenerateMesh(struct Chunk *);
 
@@ -405,7 +405,6 @@ extern int ftChunkSetBlock(struct Chunk *, int, int, int, uint);
                                                   floorf((z))))
 
 struct World {
-
     /* 'ecs' : 'EntitySystem' object */
     struct
     EntitySystem *ecs;
@@ -419,7 +418,6 @@ struct World {
 
     /* 'seed' : 32-bit seed of the world */
     int seed;
-
 };
 
 

@@ -206,7 +206,7 @@ extern int ftChunkRender(struct Chunk *self, struct VertexArray *pVao, struct Sh
 }
 
 
-extern int ftChunkGenerateData(struct Chunk *self, int seed) {
+extern int ftChunkGenerateData(struct Chunk *self) {
     /* null-check */
     if (!self) { return (0); }
 
@@ -215,6 +215,9 @@ extern int ftChunkGenerateData(struct Chunk *self, int seed) {
     if (!data) {
         return (0);
     }
+
+    /* get 'seed' from 'parent' */
+    int seed = self->parent->seed;
    
     /* fill 'data' with some procedural ID's */
     self->flags.ready = 0;
