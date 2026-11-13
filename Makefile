@@ -13,7 +13,6 @@ CFLAGS = -Wall -Wextra -Werror -std=c99 -ggdb3
 
 # linker files
 LFLAGS = -l:libSDL2.so 		\
-		 -l:libpthread.so.0	\
 		 -l:libm.so			\
 
 # linker directories
@@ -26,7 +25,7 @@ IFLAGS = -I $(MK_ROOT)glld.h	\
 		 -I $(MK_ROOT)/inc		\
 
 # preprocessor definitions
-DFLAGS = -DMESA_DEBUG 
+DFLAGS = # ... 
 
 # ========
 

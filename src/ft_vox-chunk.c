@@ -2,51 +2,51 @@
 
 /* static API */
 
-static const GLint FT_VOX_FACE_DIRECTION[] = {  0,  0, -1, /* north (-z) */
-                                                0,  0,  1, /* south (+z) */
-                                               -1,  0,  0, /* west  (-x) */
-                                                1,  0,  0, /* east  (+x) */
-                                                0, -1,  0, /* down  (-y) */
-                                                0,  1,  0, /* top   (+y) */ };
+static const int FT_VOX_FACE_DIRECTION[] = {  0,  0, -1, /* north (-z) */
+                                              0,  0,  1, /* south (+z) */
+                                             -1,  0,  0, /* west  (-x) */
+                                              1,  0,  0, /* east  (+x) */
+                                              0, -1,  0, /* down  (-y) */
+                                              0,  1,  0, /* top   (+y) */ };
 
-static const GLuint FT_VOX_FACE_UNIQUE[] = { 1, 0, 5, 2 };
-static const GLuint FT_VOX_FACE_INDICES[] = { 1, 0, 3, 1, 3, 2, };
-static const GLuint FT_VOX_CUBE_INDICES[] = { 1, 0, 3, 1, 3, 2, /* north (-z) */
-                                              4, 5, 6, 4, 6, 7, /* south (+z) */
-                                              0, 4, 7, 0, 7, 3, /* west  (-x) */
-                                              5, 1, 2, 5, 2, 6, /* east  (+x) */
-                                              5, 4, 0, 5, 0, 1, /* down  (-y) */
-                                              2, 3, 7, 2, 7, 6, /* top   (+y) */ };
+static const uint FT_VOX_FACE_UNIQUE[] = { 1, 0, 5, 2 };
+static const uint FT_VOX_FACE_INDICES[] = { 1, 0, 3, 1, 3, 2, };
+static const uint FT_VOX_CUBE_INDICES[] = { 1, 0, 3, 1, 3, 2, /* north (-z) */
+                                            4, 5, 6, 4, 6, 7, /* south (+z) */
+                                            0, 4, 7, 0, 7, 3, /* west  (-x) */
+                                            5, 1, 2, 5, 2, 6, /* east  (+x) */
+                                            5, 4, 0, 5, 0, 1, /* down  (-y) */
+                                            2, 3, 7, 2, 7, 6, /* top   (+y) */ };
 
-static const GLuint FT_VOX_CUBE_POSITION[] = { 0, 0, 0,
-                                               1, 0, 0,
-                                               1, 1, 0,
-                                               0, 1, 0,
-                                               0, 0, 1,
-                                               1, 0, 1,
-                                               1, 1, 1,
-                                               0, 1, 1, };
+static const uint FT_VOX_CUBE_POSITION[] = { 0, 0, 0,
+                                             1, 0, 0,
+                                             1, 1, 0,
+                                             0, 1, 0,
+                                             0, 0, 1,
+                                             1, 0, 1,
+                                             1, 1, 1,
+                                             0, 1, 1, };
 
-static const GLuint FT_VOX_CUBE_NORMAL[] = { 0, 0, 1, /* north (-z) */
-                                             0, 0, 1, /* south (+z) */
-                                             1, 0, 0, /* west  (-x) */
-                                             1, 0, 0, /* east  (+x) */
-                                             0, 1, 0, /* down  (-y) */
-                                             0, 1, 0, /* top   (+y) */ };
+static const uint FT_VOX_CUBE_NORMAL[] = { 0, 0, 1, /* north (-z) */
+                                           0, 0, 1, /* south (+z) */
+                                           1, 0, 0, /* west  (-x) */
+                                           1, 0, 0, /* east  (+x) */
+                                           0, 1, 0, /* down  (-y) */
+                                           0, 1, 0, /* top   (+y) */ };
 
-static const GLuint FT_VOX_CUBE_TEXCOORD[] = { 1, 0,
-                                               0, 0,
-                                               0, 1,
-                                               1, 1, };
+static const uint FT_VOX_CUBE_TEXCOORD[] = { 1, 0,
+                                             0, 0,
+                                             0, 1,
+                                             1, 1, };
 
 
 static int __ftChunkFaceCube(GLuint *pVertices, GLsizei *pVsize, GLuint *pIndices, GLsizei *pIsize, int face, int x, int y, int z) {
     /* 'pVertices' : send face */
     GLsizei base = *pVsize;
     for (size_t j = 0; j < 4; j++) {
-        const GLuint *position = &FT_VOX_CUBE_POSITION[FT_VOX_CUBE_INDICES[face * 6 + FT_VOX_FACE_UNIQUE[j]] * 3];
-        const GLuint   *normal = &FT_VOX_CUBE_NORMAL[face * 3];
-        const GLuint *texcoord = &FT_VOX_CUBE_TEXCOORD[j * 2];
+        const uint *position = &FT_VOX_CUBE_POSITION[FT_VOX_CUBE_INDICES[face * 6 + FT_VOX_FACE_UNIQUE[j]] * 3];
+        const uint   *normal = &FT_VOX_CUBE_NORMAL[face * 3];
+        const uint *texcoord = &FT_VOX_CUBE_TEXCOORD[j * 2];
         GLuint vertex = /* pack: 'position */
                         (((position[0] + (GLuint) x) & 0xffu) << 0)  |
                         (((position[1] + (GLuint) y) & 0xffu) << 8)  |
@@ -107,12 +107,12 @@ extern int ftChunkAlloc(struct Chunk *self) {
     if (!self) { return (0); }
 
     /* get 'data' */
-    uint32_t *data = self->data;
+    uint *data = self->data;
     if (!data) {
         /* alloc. 'data' */
-        data = (uint32_t *) calloc(FT_VOX_CHUNK_SIZE_X *
-                                   FT_VOX_CHUNK_SIZE_Y *
-                                   FT_VOX_CHUNK_SIZE_Z, sizeof(uint32_t));
+        data = (uint *) calloc(FT_VOX_CHUNK_SIZE_X *
+                               FT_VOX_CHUNK_SIZE_Y *
+                               FT_VOX_CHUNK_SIZE_Z, sizeof(uint));
         if (!data) {
             return (0);
         }
@@ -159,7 +159,7 @@ extern int ftChunkRelease(struct Chunk *self) {
     }
     
     /* get 'data' */
-    uint32_t *data = self->data;
+    uint *data = self->data;
     if (data) {
         free(data);
         self->data = 0;
@@ -193,14 +193,12 @@ extern int ftChunkRender(struct Chunk *self, struct VertexArray *pVao, struct Sh
     ftVertexArrayVertexBuffer(pVao, mesh->vbo.id);
 
     /* render 'solid' */
-    if (1) {
-        if (mesh->ibo[0].sz > 0) {
-            /* set 'ibo[0]' */
-            ftVertexArrayIndexBuffer(pVao, mesh->ibo[0].id);
+    if (mesh->ibo[0].sz > 0) {
+        /* set 'ibo[0]' */
+        ftVertexArrayIndexBuffer(pVao, mesh->ibo[0].id);
 
-            /* draw-call */
-            glDrawElements(GL_TRIANGLES, mesh->ibo[0].sz, GL_UNSIGNED_INT, (GLvoid *) (0));
-        }
+        /* draw-call */
+        glDrawElements(GL_TRIANGLES, mesh->ibo[0].sz, GL_UNSIGNED_INT, (GLvoid *) (0));
     }
 
     /* success */
@@ -213,7 +211,7 @@ extern int ftChunkGenerateData(struct Chunk *self, int seed) {
     if (!self) { return (0); }
 
     /* get 'data' */
-    uint32_t *data = self->data;
+    uint *data = self->data;
     if (!data) {
         return (0);
     }
@@ -251,7 +249,7 @@ extern int ftChunkGenerateData(struct Chunk *self, int seed) {
 }
 
 
-extern int ftChunkGenerateMesh(struct Chunk *self){
+extern int ftChunkGenerateMesh(struct Chunk *self) {
     /* null-check */
     if (!self) { return (0); }
     if (!self->data) { return (0); }
@@ -291,24 +289,26 @@ extern int ftChunkGenerateMesh(struct Chunk *self){
     for (int y = 0; y < FT_VOX_CHUNK_SIZE_Y; y++) {
     for (int x = 0; x < FT_VOX_CHUNK_SIZE_X; x++) {
     for (int z = 0; z < FT_VOX_CHUNK_SIZE_Z; z++) {
-        /* get the 'current' block */
-        uint32_t current = 0;
-        ftChunkGetBlock(self, alg_vec3(x, y, z), &current);
+        /* get the 'block' */
+        uint block = ftChunkGetBlock(self, x, y, z);
 
-        /* check if 'current' is 'air' */
-        if (!current) { continue; }
+        /* block type: 'air' */
+        if (!block) { continue; }
 
-        /* check if 'current' is 'solid' */
-        else if (current == 1) {
+        /* block type: 'solid' */
+        else if (block == 1) {
             for (size_t i = 0; i < 6; i++) {
-                /* get the 'neighbor' block */
-                uint32_t neighbor = 0;
-                ftChunkGetBlock(self, alg_vec3(x + FT_VOX_FACE_DIRECTION[i * 3 + 0],
-                                               y + FT_VOX_FACE_DIRECTION[i * 3 + 1],
-                                               z + FT_VOX_FACE_DIRECTION[i * 3 + 2]), &neighbor);
+                const int *direction = &FT_VOX_FACE_DIRECTION[i * 3];
+
+                /* get the neighbor 'block' */
+                uint block = ftChunkGetBlock(self, x + direction[0],
+                                                   y + direction[1],
+                                                   z + direction[2]);
                 
-                /*check if 'neighbor' is 'solid' */
-                if (neighbor == 1) { continue; }
+                /* block type: 'solid' */
+                if (block == 1) { continue; }
+
+                /* block type: 'air' / 'trans' */
                 else {
                     __ftChunkFaceCube(v, &nv, s, &ns, i, x, y, z);
                 }
@@ -328,9 +328,7 @@ extern int ftChunkGenerateMesh(struct Chunk *self){
     glNamedBufferData(mesh->ibo[1].id, nt * sizeof(GLuint), t, GL_STATIC_DRAW);
 
     /* release 'v', 's' and 't' buffers */
-    free(v);
-    free(s);
-    free(t);
+    free(v); free(s); free(t);
 
     /* set 'dirty' flag */
     self->flags.dirty = 0;
@@ -340,37 +338,31 @@ extern int ftChunkGenerateMesh(struct Chunk *self){
 }
 
 
-extern int ftChunkGetBlock(struct Chunk *self, const vec3 position, uint32_t *pID) {
+extern int ftChunkGetBlock(struct Chunk *self, int ix, int iy, int iz) {
     /* null-check */
     if (!self) { return (0); }
 
+    int cx = (int) self->offset.x;
+    if (ix < 0) {
+        cx--; ix += FT_VOX_CHUNK_SIZE_X;
+    } else if (ix >= FT_VOX_CHUNK_SIZE_X) {
+        cx++; ix -= FT_VOX_CHUNK_SIZE_X;
+    }
 
-    int cx = (int) self->offset.x,
-        cy = (int) self->offset.y,
-        cz = (int) self->offset.z;
+    int cy = (int) self->offset.y;
+    if (iy < 0) {
+        cy--; iy += FT_VOX_CHUNK_SIZE_Y;
+    } else if (iy >= FT_VOX_CHUNK_SIZE_Y) {
+        cy++; iy -= FT_VOX_CHUNK_SIZE_Y;
+    }
 
-    int x = (int) position.x;
-    if (x < 0) {
-        cx--; x += FT_VOX_CHUNK_SIZE_X;
-    } else if (x >= FT_VOX_CHUNK_SIZE_X) {
-        cx++; x -= FT_VOX_CHUNK_SIZE_X;
+    int cz = (int) self->offset.z;
+    if (iz < 0) {
+        cz--; iz += FT_VOX_CHUNK_SIZE_Z;
+    } else if (iz >= FT_VOX_CHUNK_SIZE_Z) {
+        cz++; iz -= FT_VOX_CHUNK_SIZE_Z;
     }
-    
-    int y = (int) position.y;
-    if (y < 0) {
-        cy--; y += FT_VOX_CHUNK_SIZE_Y;
-    } else if (y >= FT_VOX_CHUNK_SIZE_Y) {
-        cy++; y -= FT_VOX_CHUNK_SIZE_Y;
-    }
-    
-    int z = (int) position.z;
-    if (z < 0) {
-        cz--; z += FT_VOX_CHUNK_SIZE_Z;
-    } else if (z >= FT_VOX_CHUNK_SIZE_Z) {
-        cz++; z -= FT_VOX_CHUNK_SIZE_Z;
-    }
-    
-   
+
     /* get actual 'self' (bound-check) */
     if (cx != (int) self->offset.x ||
         cy != (int) self->offset.y ||
@@ -383,28 +375,31 @@ extern int ftChunkGetBlock(struct Chunk *self, const vec3 position, uint32_t *pI
     }
 
     /* read 'ID' from 'data' */
-    uint32_t *data = self->data;
+    uint *data = self->data;
     if (!data) { return (0); }
     
     /* return 'ID' */
-    uint32_t ID = self->data[FT_VOX_CHUNK_3D_1D(x, y, z)];
-    if (pID) { *pID = ID; }
+    uint ID = self->data[FT_VOX_CHUNK_3D_1D(ix, iy, iz)];
 
     /* success */
-    return (1);
+    return (ID);
 }
 
 
-extern int ftChunkSetBlock(struct Chunk *self, const vec3 position, const uint32_t ID) {
+extern int ftChunkSetBlock(struct Chunk *self, int ix, int iy, int iz, uint ID) {
     /* null-check */
-    if (!self)       { return (0); }
-    if (!self->data) { return (0); }
+    if (!self) { return (0); }
 
     /* try to set 'ID' into CPU 'data' */
-    int x = alg_clamp((int) position.x, 0, FT_VOX_CHUNK_SIZE_X - 1),
-        y = alg_clamp((int) position.y, 0, FT_VOX_CHUNK_SIZE_Y - 1),
-        z = alg_clamp((int) position.z, 0, FT_VOX_CHUNK_SIZE_Z - 1);
-    self->data[FT_VOX_CHUNK_3D_1D(x, y, z)] = ID;
+    ix = alg_clamp(ix, 0, FT_VOX_CHUNK_SIZE_X - 1),
+    iy = alg_clamp(iy, 0, FT_VOX_CHUNK_SIZE_Y - 1),
+    iz = alg_clamp(iz, 0, FT_VOX_CHUNK_SIZE_Z - 1);
+
+    /* get 'data' */
+    uint *data = self->data;
+    if (data) {
+        data[FT_VOX_CHUNK_3D_1D(ix, iy, iz)] = ID;
+    }
 
     /* success */
     return (1);

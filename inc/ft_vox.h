@@ -20,6 +20,15 @@
 # include <SDL2/SDL_video.h>
 # include <SDL2/SDL_events.h>
 
+/* typedefs */
+
+typedef signed char byte;
+
+typedef unsigned char ubyte;
+
+typedef unsigned int uint;
+
+
 /* Forward-Declare */
 
 struct GLvertex;
@@ -54,8 +63,8 @@ struct Window {
     void *context;
 
     struct {
-        uint8_t close : 1;
-        uint8_t vsync : 1;
+        ubyte close : 1;
+        ubyte vsync : 1;
     } flags;
 };
 
@@ -76,8 +85,8 @@ extern int ftWindowGetSize(int *, int *);
     
 /* create 'Keyboard' struct */
 struct Keyboard {
-    uint8_t current[SDL_NUM_SCANCODES];
-    uint8_t previous[SDL_NUM_SCANCODES];
+    ubyte current[SDL_NUM_SCANCODES];
+    ubyte previous[SDL_NUM_SCANCODES];
 };
 
 extern struct Keyboard *Keyboard;
@@ -98,10 +107,10 @@ struct Mouse {
         vec2 delta;
     } position;
     struct {
-        uint8_t current[8];
-        uint8_t previous[8];
+        ubyte current[8];
+        ubyte previous[8];
     } input;
-    uint8_t locked;
+    ubyte locked;
 };
 
 extern struct Mouse *Mouse;
@@ -329,7 +338,7 @@ struct Chunk {
     World *parent;
 
     /* 'data' : CPU representation of the block in the chunk */
-    uint32_t *data;
+    uint *data;
 
     /* 'mesh' : GPU representation of solid/trans. blocks */
     struct
@@ -343,9 +352,9 @@ struct Chunk {
 
     /* 'flags' : 1-bit chunk flags */
     struct {
-        uint8_t dirty : 1; /* 'dirty' : dirty-flag, if '1' then re-run GPU meshing */
-        uint8_t empty : 1; /* 'empty' : if '1' then chunk has no blocks */
-        uint8_t ready : 1; /* 'ready' : flag telling if this chunk is ready to use */
+        ubyte dirty : 1; /* 'dirty' : dirty-flag, if '1' then re-run GPU meshing */
+        ubyte empty : 1; /* 'empty' : if '1' then chunk has no blocks */
+        ubyte ready : 1; /* 'ready' : flag telling if this chunk is ready to use */
     } flags;
 };
 
@@ -361,9 +370,9 @@ extern int ftChunkGenerateData(struct Chunk *, const int);
 
 extern int ftChunkGenerateMesh(struct Chunk *);
 
-extern int ftChunkGetBlock(struct Chunk *, const vec3, uint32_t *);
+extern int ftChunkGetBlock(struct Chunk *, int, int, int);
 
-extern int ftChunkSetBlock(struct Chunk *, const vec3, const uint32_t);
+extern int ftChunkSetBlock(struct Chunk *, int, int, int, uint);
 
 
 /* ft_vox-world.c */

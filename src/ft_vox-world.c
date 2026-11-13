@@ -2,12 +2,12 @@
 
 /* static API */
 
-static const GLint FT_VOX_CHUNK_NEIGHBORS[] = {  0.0,  0.0, -1.0, /* north (-z) */
-                                                 0.0,  0.0,  1.0, /* south (+z) */
-                                                -1.0,  0.0,  0.0, /* west  (-x) */
-                                                 1.0,  0.0,  0.0, /* east  (+x) */
-                                                 0.0, -1.0,  0.0, /* down  (-y) */
-                                                 0.0,  1.0,  0.0, /* top   (+y) */ };
+static const int FT_VOX_CHUNK_NEIGHBORS[] = {  0.0,  0.0, -1.0, /* north (-z) */
+                                               0.0,  0.0,  1.0, /* south (+z) */
+                                              -1.0,  0.0,  0.0, /* west  (-x) */
+                                               1.0,  0.0,  0.0, /* east  (+x) */
+                                               0.0, -1.0,  0.0, /* down  (-y) */
+                                               0.0,  1.0,  0.0, /* top   (+y) */ };
 
 /* public API */
 
@@ -229,9 +229,9 @@ extern int ftWorldSetCenter(struct World *self, const vec3 block) {
             int nx = x + FT_VOX_CHUNK_NEIGHBORS[j * 3 + 0],
                 ny = y + FT_VOX_CHUNK_NEIGHBORS[j * 3 + 1],
                 nz = z + FT_VOX_CHUNK_NEIGHBORS[j * 3 + 2];
-            if ((unsigned) nx >= FT_VOX_RENDER_DIAMETER_X ||
-                (unsigned) ny >= FT_VOX_RENDER_DIAMETER_Y ||
-                (unsigned) nz >= FT_VOX_RENDER_DIAMETER_Z
+            if ((uint) nx >= FT_VOX_RENDER_DIAMETER_X ||
+                (uint) ny >= FT_VOX_RENDER_DIAMETER_Y ||
+                (uint) nz >= FT_VOX_RENDER_DIAMETER_Z
             ) {
                 continue;
             }
@@ -259,9 +259,9 @@ extern int ftWorldGetChunk(struct World *self, struct Chunk **pChunk, int cx, in
 
     struct
     Chunk *chunk = 0;
-    if ((unsigned) cx >= FT_VOX_RENDER_DIAMETER_X ||
-        (unsigned) cy >= FT_VOX_RENDER_DIAMETER_Y ||
-        (unsigned) cz >= FT_VOX_RENDER_DIAMETER_Z
+    if ((uint) cx >= FT_VOX_RENDER_DIAMETER_X ||
+        (uint) cy >= FT_VOX_RENDER_DIAMETER_Y ||
+        (uint) cz >= FT_VOX_RENDER_DIAMETER_Z
     ) {
         if (pChunk) { *pChunk = chunk; }
         return (0);
@@ -282,9 +282,9 @@ extern int ftWorldPointInBounds(struct World *self, vec3 point) {
 
     /* in-bounds 'status' */
     vec3 p = alg_vec3sub(point, self->position);
-    int status = (unsigned) p.x < FT_VOX_RENDER_DIAMETER_X &&
-                 (unsigned) p.y < FT_VOX_RENDER_DIAMETER_Y &&
-                 (unsigned) p.z < FT_VOX_RENDER_DIAMETER_Z;
+    int status = (uint) p.x < FT_VOX_RENDER_DIAMETER_X &&
+                 (uint) p.y < FT_VOX_RENDER_DIAMETER_Y &&
+                 (uint) p.z < FT_VOX_RENDER_DIAMETER_Z;
 
     /* return 'status' */
     return (status);
