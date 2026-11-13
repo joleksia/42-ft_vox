@@ -42,28 +42,22 @@ extern int ftCameraRotate(struct Camera *self, const float value) {
     /* null-check */
     if (!self) { return (0); }
 
-    /* set mouse to 'relative' if 'locked' set */
-    SDL_SetRelativeMouseMode(Mouse->locked);
+    /* apply 'offset' to 'direction' */
+    self->direction.z += Mouse->position.delta.x * value; /* yaw */
+    self->direction.y -= Mouse->position.delta.y * value; /* pitch */
+    
+    /* clear 'Mouse' 'delta' */
+    Mouse->position.delta = alg_vec2(0.0, 0.0);
 
-    /* if 'locked' set */
-    if (Mouse->locked) {
-        /* apply 'offset' to 'direction' */
-        self->direction.z += Mouse->position.delta.x * value; /* yaw */
-        self->direction.y -= Mouse->position.delta.y * value; /* pitch */
-        
-        /* clear 'Mouse' 'delta' */
-        Mouse->position.delta = alg_vec2(0.0, 0.0);
+    /* clamp 'pitch' in [-89.0, 89.0] */
+    self->direction.y = alg_clamp(self->direction.y, -89.9, 89.9);
 
-        /* clamp 'pitch' in [-89.0, 89.0] */
-        self->direction.y = alg_clamp(self->direction.y, -89.9, 89.9);
-
-        /* apply 'direction' to 'rotation' */
-        double sp = sin(alg_deg2rad(self->direction.y)),
-               cp = cos(alg_deg2rad(self->direction.y)),
-               sy = sin(alg_deg2rad(self->direction.z)),
-               cy = cos(alg_deg2rad(self->direction.z));
-        self->rotation = alg_vec3norm(alg_vec3(cy * cp, sp, sy * cp));
-    }
+    /* apply 'direction' to 'rotation' */
+    double sp = sin(alg_deg2rad(self->direction.y)),
+           cp = cos(alg_deg2rad(self->direction.y)),
+           sy = sin(alg_deg2rad(self->direction.z)),
+           cy = cos(alg_deg2rad(self->direction.z));
+    self->rotation = alg_vec3norm(alg_vec3(cy * cp, sp, sy * cp));
 
     /* success */
     return (1);

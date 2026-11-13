@@ -245,7 +245,17 @@ extern int ftVertexArrayCreate(struct VertexArray **);
 
 extern int ftVertexArrayDelete(struct VertexArray *);
 
-extern int ftVertexArrayLayout(struct VertexArray *, const size_t, const size_t, const size_t);
+extern int ftVertexArrayLayoutFloat(struct VertexArray *, const size_t, const size_t, const size_t);
+
+extern int ftVertexArrayLayoutDouble(struct VertexArray *, const size_t, const size_t, const size_t);
+
+extern int ftVertexArrayLayoutByte(struct VertexArray *, const size_t, const size_t, const size_t);
+
+extern int ftVertexArrayLayoutShort(struct VertexArray *, const size_t, const size_t, const size_t);
+
+extern int ftVertexArrayLayoutInt(struct VertexArray *, const size_t, const size_t, const size_t);
+
+extern int ftVertexArrayLayoutLong(struct VertexArray *, const size_t, const size_t, const size_t);
 
 extern int ftVertexArrayVertexBuffer(struct VertexArray *, const GLuint);
 
@@ -293,6 +303,7 @@ struct BlockMesh {
         GLsizei sz;
     } vbo, ibo[2];
 };
+
 
 /* ft_vox-chunk.c */
 
@@ -358,17 +369,17 @@ extern int ftChunkSetBlock(struct Chunk *, const vec3, const uint32_t);
 /* ft_vox-world.c */
 
 # if !defined (FT_VOX_RENDER_DISTANCE_X)
-#  define FT_VOX_RENDER_DISTANCE_X 8 /* world X-axis render distance */
+#  define FT_VOX_RENDER_DISTANCE_X 2 /* world X-axis render distance */
 #  define FT_VOX_RENDER_DIAMETER_X (FT_VOX_RENDER_DISTANCE_X * 2)
 # endif
 #
 # if !defined (FT_VOX_RENDER_DISTANCE_Y)
-#  define FT_VOX_RENDER_DISTANCE_Y 8 /* world Y-axis render distance */
+#  define FT_VOX_RENDER_DISTANCE_Y 2 /* world Y-axis render distance */
 #  define FT_VOX_RENDER_DIAMETER_Y (FT_VOX_RENDER_DISTANCE_Y * 2)
 # endif
 #
 # if !defined (FT_VOX_RENDER_DISTANCE_Z)
-#  define FT_VOX_RENDER_DISTANCE_Z 8 /* world Z-axis render distance */
+#  define FT_VOX_RENDER_DISTANCE_Z 2 /* world Z-axis render distance */
 #  define FT_VOX_RENDER_DIAMETER_Z (FT_VOX_RENDER_DISTANCE_Z * 2)
 # endif
 #
@@ -401,6 +412,7 @@ struct World {
     int seed;
 
 };
+
 
 extern int ftWorldCreate(struct World *, const int);
 

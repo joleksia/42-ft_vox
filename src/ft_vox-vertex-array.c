@@ -34,7 +34,63 @@ extern int ftVertexArrayDelete(struct VertexArray *self) {
 }
 
 
-extern int ftVertexArrayLayout(struct VertexArray *self, const size_t attrib, const size_t count, const size_t offset) {
+extern int ftVertexArrayLayoutFloat(struct VertexArray *self, const size_t attrib, const size_t count, const size_t offset) {
+    /* null-check */
+    if (!self) { return (0); }
+
+    /* set new 'layout' */
+    glEnableVertexArrayAttrib(self->ID, attrib);
+    glVertexArrayAttribBinding(self->ID, attrib, 0);
+    glVertexArrayAttribFormat(self->ID, attrib, count, GL_FLOAT, GL_FALSE, offset);
+    
+    /* success */
+    return (1);
+}
+
+
+extern int ftVertexArrayLayoutDouble(struct VertexArray *self, const size_t attrib, const size_t count, const size_t offset) {
+    /* null-check */
+    if (!self) { return (0); }
+
+    /* set new 'layout' */
+    glEnableVertexArrayAttrib(self->ID, attrib);
+    glVertexArrayAttribBinding(self->ID, attrib, 0);
+    glVertexArrayAttribFormat(self->ID, attrib, count, GL_DOUBLE, GL_FALSE, offset);
+    
+    /* success */
+    return (1);
+}
+
+
+extern int ftVertexArrayLayoutByte(struct VertexArray *self, const size_t attrib, const size_t count, const size_t offset) {
+    /* null-check */
+    if (!self) { return (0); }
+
+    /* set new 'layout' */
+    glEnableVertexArrayAttrib(self->ID, attrib);
+    glVertexArrayAttribBinding(self->ID, attrib, 0);
+    glVertexArrayAttribIFormat(self->ID, attrib, count, GL_UNSIGNED_BYTE, offset);
+    
+    /* success */
+    return (1);
+}
+
+
+extern int ftVertexArrayLayoutShort(struct VertexArray *self, const size_t attrib, const size_t count, const size_t offset) {
+    /* null-check */
+    if (!self) { return (0); }
+
+    /* set new 'layout' */
+    glEnableVertexArrayAttrib(self->ID, attrib);
+    glVertexArrayAttribBinding(self->ID, attrib, 0);
+    glVertexArrayAttribIFormat(self->ID, attrib, count, GL_UNSIGNED_SHORT, offset);
+    
+    /* success */
+    return (1);
+}
+
+
+extern int ftVertexArrayLayoutInt(struct VertexArray *self, const size_t attrib, const size_t count, const size_t offset) {
     /* null-check */
     if (!self) { return (0); }
 
@@ -42,6 +98,20 @@ extern int ftVertexArrayLayout(struct VertexArray *self, const size_t attrib, co
     glEnableVertexArrayAttrib(self->ID, attrib);
     glVertexArrayAttribBinding(self->ID, attrib, 0);
     glVertexArrayAttribIFormat(self->ID, attrib, count, GL_UNSIGNED_INT, offset);
+    
+    /* success */
+    return (1);
+}
+
+
+extern int ftVertexArrayLayoutLong(struct VertexArray *self, const size_t attrib, const size_t count, const size_t offset) {
+    /* null-check */
+    if (!self) { return (0); }
+
+    /* set new 'layout' */
+    glEnableVertexArrayAttrib(self->ID, attrib);
+    glVertexArrayAttribBinding(self->ID, attrib, 0);
+    glVertexArrayAttribLFormat(self->ID, attrib, count, GL_UNSIGNED_INT, offset);
     
     /* success */
     return (1);

@@ -2,12 +2,12 @@
 
 /* static API */
 
-static const vec3 FT_VOX_CHUNK_NEIGHBORS[] = { {  0.0,  0.0, -1.0, }, /* north (-z) */
-                                               {  0.0,  0.0,  1.0, }, /* south (+z) */
-                                               { -1.0,  0.0,  0.0, }, /* west  (-x) */
-                                               {  1.0,  0.0,  0.0, }, /* east  (+x) */
-                                               {  0.0, -1.0,  0.0, }, /* down  (-y) */
-                                               {  0.0,  1.0,  0.0, }, /* top   (+y) */ };
+static const GLint FT_VOX_CHUNK_NEIGHBORS[] = {  0.0,  0.0, -1.0, /* north (-z) */
+                                                 0.0,  0.0,  1.0, /* south (+z) */
+                                                -1.0,  0.0,  0.0, /* west  (-x) */
+                                                 1.0,  0.0,  0.0, /* east  (+x) */
+                                                 0.0, -1.0,  0.0, /* down  (-y) */
+                                                 0.0,  1.0,  0.0, /* top   (+y) */ };
 
 /* public API */
 
@@ -226,9 +226,9 @@ extern int ftWorldSetCenter(struct World *self, const vec3 block) {
 
         /* set 'chunk's neighbors to 'dirty' */
         for (size_t j = 0; j < 6; j++) {
-            int nx = x + FT_VOX_CHUNK_NEIGHBORS[j].x,
-                ny = y + FT_VOX_CHUNK_NEIGHBORS[j].y,
-                nz = z + FT_VOX_CHUNK_NEIGHBORS[j].z;
+            int nx = x + FT_VOX_CHUNK_NEIGHBORS[j * 3 + 0],
+                ny = y + FT_VOX_CHUNK_NEIGHBORS[j * 3 + 1],
+                nz = z + FT_VOX_CHUNK_NEIGHBORS[j * 3 + 2];
             if ((unsigned) nx >= FT_VOX_RENDER_DIAMETER_X ||
                 (unsigned) ny >= FT_VOX_RENDER_DIAMETER_Y ||
                 (unsigned) nz >= FT_VOX_RENDER_DIAMETER_Z
@@ -282,12 +282,9 @@ extern int ftWorldPointInBounds(struct World *self, vec3 point) {
 
     /* in-bounds 'status' */
     vec3 p = alg_vec3sub(point, self->position);
-    int status = p.x >= 0.0 &&
-                 p.y >= 0.0 &&
-                 p.z >= 0.0 &&
-                 p.x < FT_VOX_RENDER_DIAMETER_X &&
-                 p.y < FT_VOX_RENDER_DIAMETER_Y &&
-                 p.z < FT_VOX_RENDER_DIAMETER_Z;
+    int status = (unsigned) p.x < FT_VOX_RENDER_DIAMETER_X &&
+                 (unsigned) p.y < FT_VOX_RENDER_DIAMETER_Y &&
+                 (unsigned) p.z < FT_VOX_RENDER_DIAMETER_Z;
 
     /* return 'status' */
     return (status);

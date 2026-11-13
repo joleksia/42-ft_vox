@@ -2,12 +2,12 @@
 
 /* static API */
 
-static const GLint FT_VOX_FACE_DIRECTION[6][3] = { {  0,  0, -1, }, /* north (-z) */
-                                                   {  0,  0,  1, }, /* south (+z) */
-                                                   { -1,  0,  0, }, /* west  (-x) */
-                                                   {  1,  0,  0, }, /* east  (+x) */
-                                                   {  0, -1,  0, }, /* down  (-y) */
-                                                   {  0,  1,  0, }, /* top   (+y) */ };
+static const GLint FT_VOX_FACE_DIRECTION[] = {  0,  0, -1, /* north (-z) */
+                                                0,  0,  1, /* south (+z) */
+                                               -1,  0,  0, /* west  (-x) */
+                                                1,  0,  0, /* east  (+x) */
+                                                0, -1,  0, /* down  (-y) */
+                                                0,  1,  0, /* top   (+y) */ };
 
 static const GLuint FT_VOX_FACE_UNIQUE[] = { 1, 0, 5, 2 };
 static const GLuint FT_VOX_FACE_INDICES[] = { 1, 0, 3, 1, 3, 2, };
@@ -303,9 +303,9 @@ extern int ftChunkGenerateMesh(struct Chunk *self){
             for (size_t i = 0; i < 6; i++) {
                 /* get the 'neighbor' block */
                 uint32_t neighbor = 0;
-                ftChunkGetBlock(self, alg_vec3(x + FT_VOX_FACE_DIRECTION[i][0],
-                                               y + FT_VOX_FACE_DIRECTION[i][1],
-                                               z + FT_VOX_FACE_DIRECTION[i][2]), &neighbor);
+                ftChunkGetBlock(self, alg_vec3(x + FT_VOX_FACE_DIRECTION[i * 3 + 0],
+                                               y + FT_VOX_FACE_DIRECTION[i * 3 + 1],
+                                               z + FT_VOX_FACE_DIRECTION[i * 3 + 2]), &neighbor);
                 
                 /*check if 'neighbor' is 'solid' */
                 if (neighbor == 1) { continue; }

@@ -20,6 +20,9 @@ struct PlayerEntity {
     struct
     Camera camera;
 
+    /* 'position' : 3D position */
+    vec3 position;
+
     /* 'block' : 3D position (block-specific) */
     vec3 block;
 };
@@ -72,17 +75,13 @@ static int ftPlayerUpdate(struct Entity *self) {
     struct
     PlayerEntity *player = (struct PlayerEntity *) self;
     if (!player) { return (0); }
-
-    /* get 'world' reference */
-    struct
-    World *world = self->parent->parent;
-    if (!world) { return (0); }
         
     /* enable 'locked' mode */
     if (Mouse->input.current[1]  == 1 &&
         Mouse->input.previous[1] == 0
     ) {
         Mouse->locked = 1;
+        SDL_SetRelativeMouseMode(Mouse->locked);
     }
 
     /* disable 'locked' mode */
@@ -90,21 +89,34 @@ static int ftPlayerUpdate(struct Entity *self) {
         Keyboard->previous[SDL_SCANCODE_ESCAPE] == 0
     ) {
         Mouse->locked = 0;
+        SDL_SetRelativeMouseMode(Mouse->locked);
     }
 
     /* update 'camera' */
-    ftCameraMove(&player->camera, 8.0 * Time->delta);
-    ftCameraRotate(&player->camera, 0.1);
+    if (Mouse->locked) {
+        ftCameraMove(&player->camera, 8.0 * Time->delta);
+        ftCameraRotate(&player->camera, 0.1);
+    }
+
+    /* update 'player's 'position' */
+    vec3 position = player->position = player->camera.position;
 
     /* 'player' position to 'block' position */
-    vec3 block = FT_VOX_FLOAT_TO_BLOCK(player->camera.position.x,
-                                       player->camera.position.y,
-                                       player->camera.position.z);
+    vec3 block = FT_VOX_FLOAT_TO_BLOCK(position.x,
+                                       position.y,
+                                       position.z);
 
     /* re-center the 'world' center to 'block' if needed */
     if (alg_vec3ne(block, player->block)) {
+        /* update 'player's 'block' position */
         player->block = block;
-        ftWorldSetCenter(world, block);
+
+        /* get 'world' reference */
+        struct
+        World *world = self->parent->parent;
+        if (world) {
+            ftWorldSetCenter(world, block);
+        }
     }
 
     /* success */
@@ -173,7 +185,7 @@ int main(void) {
     struct
     VertexArray *vao = 0;
     ftVertexArrayCreate(&vao);
-    ftVertexArrayLayout(vao, 0, 1, 0);
+    ftVertexArrayLayoutInt(vao, 0, 1, 0);
 
     /* create 'world' */
 
