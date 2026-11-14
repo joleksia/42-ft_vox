@@ -1,0 +1,28 @@
+# ft_vox TODO list:
+- [ ] Chunk multi-threading:
+    - [ ] introduce a solid base for data-gen. and mesh-gen. processes of chunk generation;
+    - [ ] separate main thread into two: main thread and worker thread;
+    - [ ] delegate worker thread to process chunk generation and meshing in the most efficient way;
+    - [ ] make sure there're no race conditions, chunks are marked as "generated", "meshed", "finished" "not ready" properly;
+    - [ ] ...
+    - Sources:
+        - https://stackoverflow.com/questions/79250510/need-help-to-multi-thread-in-my-minecraft-clone
+        - https://github.com/EhadBalayla/A-Minecraft-Clone/blob/main/AMinecraftClone/Src/ThreadPool.cpp#L17
+
+- [ ] Entity system:
+    - [ ] introduce solid base for entity polymorphism;
+    - ...
+    - Sources:
+        - https://www.reddit.com/r/C_Programming/comments/18ljmo9/polymorphism_in_c/
+        - https://stackoverflow.com/questions/8194250/polymorphism-in-c
+        - https://embeddedartistry.com/fieldatlas/technique-inheritance-and-polymorphism-in-c/
+        - https://medium.com/@mustafaboyuk24/object-oriented-design-in-c-polymorphism-and-dependency-inversion-8d500ee8d80c
+        - https://wiki.libsdl.org/SDL3/SDL_Event
+    - ...
+- [ ] BLocks:
+    - [ ] Introduce textures
+    - [ ] Introduce texture atlas
+    - [ ] Create 'block' structure
+    - [ ] Create blocks as data
+    - [ ] Serialize blocks from .json files
+    - [ ] ...
