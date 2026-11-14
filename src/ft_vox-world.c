@@ -2,12 +2,12 @@
 
 /* static API */
 
-static const int FT_VOX_CHUNK_NEIGHBORS[] = {  0.0,  0.0, -1.0, /* north (-z) */
-                                               0.0,  0.0,  1.0, /* south (+z) */
-                                              -1.0,  0.0,  0.0, /* west  (-x) */
-                                               1.0,  0.0,  0.0, /* east  (+x) */
-                                               0.0, -1.0,  0.0, /* down  (-y) */
-                                               0.0,  1.0,  0.0, /* top   (+y) */ };
+static const byte FT_VOX_CHUNK_NEIGHBORS[] = {  0,  0, -1, /* north (-z) */
+                                                0,  0,  1, /* south (+z) */
+                                               -1,  0,  0, /* west  (-x) */
+                                                1,  0,  0, /* east  (+x) */
+                                                0, -1,  0, /* down  (-y) */
+                                                0,  1,  0, /* top   (+y) */ };
 
 /* public API */
 
@@ -226,12 +226,12 @@ extern int ftWorldSetCenter(struct World *self, const vec3 block) {
 
         /* set 'chunk's neighbors to 'dirty' */
         for (size_t j = 0; j < 6; j++) {
-            int nx = x + FT_VOX_CHUNK_NEIGHBORS[j * 3 + 0],
-                ny = y + FT_VOX_CHUNK_NEIGHBORS[j * 3 + 1],
-                nz = z + FT_VOX_CHUNK_NEIGHBORS[j * 3 + 2];
-            if ((uint) nx >= FT_VOX_RENDER_DIAMETER_X ||
-                (uint) ny >= FT_VOX_RENDER_DIAMETER_Y ||
-                (uint) nz >= FT_VOX_RENDER_DIAMETER_Z
+            byte nx = x + FT_VOX_CHUNK_NEIGHBORS[j * 3 + 0],
+                 ny = y + FT_VOX_CHUNK_NEIGHBORS[j * 3 + 1],
+                 nz = z + FT_VOX_CHUNK_NEIGHBORS[j * 3 + 2];
+            if ((ubyte) nx >= FT_VOX_RENDER_DIAMETER_X ||
+                (ubyte) ny >= FT_VOX_RENDER_DIAMETER_Y ||
+                (ubyte) nz >= FT_VOX_RENDER_DIAMETER_Z
             ) {
                 continue;
             }

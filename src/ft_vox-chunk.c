@@ -2,71 +2,71 @@
 
 /* static API */
 
-static const int FT_VOX_FACE_DIRECTION[] = {  0,  0, -1, /* north (-z) */
-                                              0,  0,  1, /* south (+z) */
-                                             -1,  0,  0, /* west  (-x) */
-                                              1,  0,  0, /* east  (+x) */
-                                              0, -1,  0, /* down  (-y) */
-                                              0,  1,  0, /* top   (+y) */ };
+static const byte FT_VOX_FACE_DIRECTION[] = {  0,  0, -1, /* north (-z) */
+                                               0,  0,  1, /* south (+z) */
+                                              -1,  0,  0, /* west  (-x) */
+                                               1,  0,  0, /* east  (+x) */
+                                               0, -1,  0, /* down  (-y) */
+                                               0,  1,  0, /* top   (+y) */ };
 
-static const uint FT_VOX_FACE_UNIQUE[] = { 1, 0, 5, 2 };
-static const uint FT_VOX_FACE_INDICES[] = { 1, 0, 3, 1, 3, 2, };
-static const uint FT_VOX_CUBE_INDICES[] = { 1, 0, 3, 1, 3, 2, /* north (-z) */
-                                            4, 5, 6, 4, 6, 7, /* south (+z) */
-                                            0, 4, 7, 0, 7, 3, /* west  (-x) */
-                                            5, 1, 2, 5, 2, 6, /* east  (+x) */
-                                            5, 4, 0, 5, 0, 1, /* down  (-y) */
-                                            2, 3, 7, 2, 7, 6, /* top   (+y) */ };
+static const ubyte FT_VOX_FACE_UNIQUE[] = { 1, 0, 5, 2 };
+static const ubyte FT_VOX_FACE_INDICES[] = { 1, 0, 3, 1, 3, 2, };
+static const ubyte FT_VOX_CUBE_INDICES[] = { 1, 0, 3, 1, 3, 2, /* north (-z) */
+                                             4, 5, 6, 4, 6, 7, /* south (+z) */
+                                             0, 4, 7, 0, 7, 3, /* west  (-x) */
+                                             5, 1, 2, 5, 2, 6, /* east  (+x) */
+                                             5, 4, 0, 5, 0, 1, /* down  (-y) */
+                                             2, 3, 7, 2, 7, 6, /* top   (+y) */ };
 
-static const uint FT_VOX_CUBE_POSITION[] = { 0, 0, 0,
-                                             1, 0, 0,
-                                             1, 1, 0,
-                                             0, 1, 0,
-                                             0, 0, 1,
-                                             1, 0, 1,
-                                             1, 1, 1,
-                                             0, 1, 1, };
+static const ubyte FT_VOX_CUBE_POSITION[] = { 0, 0, 0,
+                                              1, 0, 0,
+                                              1, 1, 0,
+                                              0, 1, 0,
+                                              0, 0, 1,
+                                              1, 0, 1,
+                                              1, 1, 1,
+                                              0, 1, 1, };
 
-static const uint FT_VOX_CUBE_NORMAL[] = { 0, 0, 1, /* north (-z) */
-                                           0, 0, 1, /* south (+z) */
-                                           1, 0, 0, /* west  (-x) */
-                                           1, 0, 0, /* east  (+x) */
-                                           0, 1, 0, /* down  (-y) */
-                                           0, 1, 0, /* top   (+y) */ };
+static const ubyte FT_VOX_CUBE_NORMAL[] = { 0, 0, 1, /* north (-z) */
+                                            0, 0, 1, /* south (+z) */
+                                            1, 0, 0, /* west  (-x) */
+                                            1, 0, 0, /* east  (+x) */
+                                            0, 1, 0, /* down  (-y) */
+                                            0, 1, 0, /* top   (+y) */ };
 
-static const uint FT_VOX_CUBE_TEXCOORD[] = { 1, 0,
-                                             0, 0,
-                                             0, 1,
-                                             1, 1, };
+static const ubyte FT_VOX_CUBE_TEXCOORD[] = { 1, 0,
+                                              0, 0,
+                                              0, 1,
+                                              1, 1, };
 
 
-static int __ftChunkFaceCube(GLuint *pVertices, GLsizei *pVsize, GLuint *pIndices, GLsizei *pIsize, int face, int x, int y, int z) {
+static int __ftChunkFaceCube(uint *pVertices, size_t *pVsize, uint *pIndices, size_t *pIsize, int face, int x, int y, int z) {
     /* 'pVertices' : send face */
     GLsizei base = *pVsize;
     for (size_t j = 0; j < 4; j++) {
-        const uint *position = &FT_VOX_CUBE_POSITION[FT_VOX_CUBE_INDICES[face * 6 + FT_VOX_FACE_UNIQUE[j]] * 3];
-        const uint   *normal = &FT_VOX_CUBE_NORMAL[face * 3];
-        const uint *texcoord = &FT_VOX_CUBE_TEXCOORD[j * 2];
-        GLuint vertex = /* pack: 'position */
-                        (((position[0] + (GLuint) x) & 0xffu) << 0)  |
-                        (((position[1] + (GLuint) y) & 0xffu) << 8)  |
-                        (((position[2] + (GLuint) z) & 0xffu) << 16) |
+        const ubyte *position = &FT_VOX_CUBE_POSITION[FT_VOX_CUBE_INDICES[face * 6 + FT_VOX_FACE_UNIQUE[j]] * 3];
+        const ubyte   *normal = &FT_VOX_CUBE_NORMAL[face * 3];
+        const ubyte *texcoord = &FT_VOX_CUBE_TEXCOORD[j * 2];
+        uint vertex = /* pack: 'position */
+                      (((position[0] + (uint) x) & 0xffu) << 0)  |
+                      (((position[1] + (uint) y) & 0xffu) << 8)  |
+                      (((position[2] + (uint) z) & 0xffu) << 16) |
 
-                        /* pack: 'normal' */
-                        (((normal[0]) & 0x01u) << 24) |
-                        (((normal[1]) & 0x01u) << 25) |
-                        (((normal[2]) & 0x01u) << 26) |
+                      /* pack: 'normal' */
+                      (((normal[0]) & 0x01u) << 24) |
+                      (((normal[1]) & 0x01u) << 25) |
+                      (((normal[2]) & 0x01u) << 26) |
                         
-                        /* pack: 'texoord' */
-                        ((texcoord[0] & 0x01u) << 27) |
-                        ((texcoord[1] & 0x01u) << 28);
+                      /* pack: 'texoord' */
+                      ((texcoord[0] & 0x01u) << 27) |
+                      ((texcoord[1] & 0x01u) << 28);
 
         pVertices[(*pVsize)++] = vertex;
     }
 
     /* 'pIndices' : send face */
     for (size_t j = 0; j < 6; j++) {
-        GLuint index = base + FT_VOX_FACE_INDICES[j];
+        uint index = base + FT_VOX_FACE_INDICES[j];
         pIndices[(*pIsize)++] = index;
     }
 
@@ -277,17 +277,17 @@ extern int ftChunkGenerateMesh(struct Chunk *self) {
      * 's' : solid index buffer
      * 't' : transparent index buffer
      * */
-    GLuint *v = (GLuint *) malloc(size * 24 * sizeof(GLuint)),
-           *s = (GLuint *) malloc(size * 36 * sizeof(GLuint)),
-           *t = (GLuint *) malloc(size * 36 * sizeof(GLuint));
+    uint *v = (uint *) malloc(size * 24 * sizeof(uint)),
+         *s = (uint *) malloc(size * 36 * sizeof(uint)),
+         *t = (uint *) malloc(size * 36 * sizeof(uint));
 
     /* 'nv' : 'v' buffer size/index
      * 'ns' : 's' buffer size/index
      * 'nt' : 't' buffer size/index
      * */
-    GLsizei nv = 0,
-            ns = 0,
-            nt = 0;
+    size_t nv = 0,
+           ns = 0,
+           nt = 0;
     
     for (int y = 0; y < FT_VOX_CHUNK_SIZE_Y; y++) {
     for (int x = 0; x < FT_VOX_CHUNK_SIZE_X; x++) {
@@ -301,7 +301,7 @@ extern int ftChunkGenerateMesh(struct Chunk *self) {
         /* block type: 'solid' */
         else if (block == 1) {
             for (size_t i = 0; i < 6; i++) {
-                const int *direction = &FT_VOX_FACE_DIRECTION[i * 3];
+                const byte *direction = &FT_VOX_FACE_DIRECTION[i * 3];
 
                 /* get the neighbor 'block' */
                 uint block = ftChunkGetBlock(self, x + direction[0],
@@ -322,13 +322,13 @@ extern int ftChunkGenerateMesh(struct Chunk *self) {
     /* set 'v', 's' and 't' to the 'mesh' */
 
     mesh->vbo.sz = nv;
-    glNamedBufferData(mesh->vbo.id, nv * sizeof(GLuint), v, GL_STATIC_DRAW);
+    glNamedBufferData(mesh->vbo.id, nv * sizeof(uint), v, GL_STATIC_DRAW);
 
     mesh->ibo[0].sz = ns;
-    glNamedBufferData(mesh->ibo[0].id, ns * sizeof(GLuint), s, GL_STATIC_DRAW);
+    glNamedBufferData(mesh->ibo[0].id, ns * sizeof(uint), s, GL_STATIC_DRAW);
 
     mesh->ibo[1].sz = nt;
-    glNamedBufferData(mesh->ibo[1].id, nt * sizeof(GLuint), t, GL_STATIC_DRAW);
+    glNamedBufferData(mesh->ibo[1].id, nt * sizeof(uint), t, GL_STATIC_DRAW);
 
     /* release 'v', 's' and 't' buffers */
     free(v); free(s); free(t);
