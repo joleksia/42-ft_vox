@@ -388,6 +388,31 @@ struct block_mesh_s {
 #
 # define FT_VOX_CHUNK_3D_1D(x, y, z) (x + y * FT_VOX_CHUNK_SIZE_X + z * FT_VOX_CHUNK_SIZE_X * FT_VOX_CHUNK_SIZE_Y)
 
+enum ChunkState {
+    /* 'NEW' : new chunk */
+    FT_CHUNK_NEW = 0,
+   
+    /* 'QUEUE' : queued for ThreadPool job */
+    FT_CHUNK_QUEUE,
+    
+    /* 'GEN_DATA' : CPU-based generation */
+    FT_CHUNK_GEN_DATA,
+    
+    /* 'GEN_MESH' : GPU-based generation */
+    FT_CHUNK_GEN_MESH,
+   
+    /* "BAKE' : bake vertices and indices into GPU-mesh */
+    FT_CHUNK_BAKE,
+
+    /* 'READY' : ready to be rendered */
+    FT_CHUNK_READY,
+
+    /* ... */
+
+    FT_CHUNK_STATE_COUNT
+};
+
+
 struct Chunk {
     /* 'parent' : world reference */
     struct
@@ -406,12 +431,15 @@ struct Chunk {
     /* 'position' : position (in blocks) */
     vec3 position;
 
-    /* 'flags' : 1-bit chunk flags */
+    /* 'atoms' : chunk atoms */
     struct {
-        ubyte empty : 1; /* 'empty' : if '1', chunk is empty */
-        ubyte dirty : 1; /* 'dirty' : if '1', chunk was modified  */
-        ubyte yield : 1; /* 'yield' : if '1', chunk is ready to be meshed */
-        ubyte ready : 1; /* 'ready' : if '1', chunk is ready to be rendered */
+        SDL_atomic_t state; /* 'state' : chunk's state atom */ 
+    } atoms;
+    
+
+    /* 'flags' : chunk flags */
+    struct {
+        ubyte dirty; /* 'dirty' : if '1', chunk was modified  */
     } flags;
 };
 
@@ -435,17 +463,17 @@ extern int ftChunkSetBlock(struct Chunk *, int, int, int, uint);
 /* ft_vox-world.c */
 
 # if !defined (FT_VOX_RENDER_DISTANCE_X)
-#  define FT_VOX_RENDER_DISTANCE_X 2 /* world X-axis render distance */
+#  define FT_VOX_RENDER_DISTANCE_X 8 /* world X-axis render distance */
 #  define FT_VOX_RENDER_DIAMETER_X (FT_VOX_RENDER_DISTANCE_X * 2)
 # endif
 #
 # if !defined (FT_VOX_RENDER_DISTANCE_Y)
-#  define FT_VOX_RENDER_DISTANCE_Y 2 /* world Y-axis render distance */
+#  define FT_VOX_RENDER_DISTANCE_Y 8 /* world Y-axis render distance */
 #  define FT_VOX_RENDER_DIAMETER_Y (FT_VOX_RENDER_DISTANCE_Y * 2)
 # endif
 #
 # if !defined (FT_VOX_RENDER_DISTANCE_Z)
-#  define FT_VOX_RENDER_DISTANCE_Z 2 /* world Z-axis render distance */
+#  define FT_VOX_RENDER_DISTANCE_Z 8 /* world Z-axis render distance */
 #  define FT_VOX_RENDER_DIAMETER_Z (FT_VOX_RENDER_DISTANCE_Z * 2)
 # endif
 #

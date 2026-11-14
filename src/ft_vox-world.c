@@ -146,7 +146,16 @@ extern int ftWorldUpdate(struct World *self) {
     for (int z = 0; z < FT_VOX_RENDER_DIAMETER_Z; z++) {
         struct
         Chunk *chunk = self->chunks[FT_VOX_WORLD_3D_1D(x, y, z)];
+        if (!chunk) { continue; }
 
+        /* run 'meshing' */
+        int state = SDL_AtomicGet(&chunk->atoms.state);
+        if (state == FT_CHUNK_GEN_DATA) { ftChunkGenerateMesh(chunk); }
+        else if (state == FT_CHUNK_READY) {
+            if (chunk->flags.dirty) {
+                ftChunkGenerateMesh(chunk);
+            }
+        } 
         (void) chunk;
     }}}
 
@@ -272,7 +281,6 @@ extern int ftWorldSetCenter(struct World *self, const vec3 block) {
             struct
             Chunk *chunk = self->chunks[FT_VOX_WORLD_3D_1D(nx, ny, nz)];
             if (chunk) {
-                chunk->flags.ready = 0;
                 chunk->flags.dirty = 1;
             }
         }

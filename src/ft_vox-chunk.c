@@ -92,11 +92,11 @@ extern int ftChunkCreate(struct Chunk *self, struct World *pWorld, int x, int y,
                               y * FT_VOX_CHUNK_SIZE_Y,
                               z * FT_VOX_CHUNK_SIZE_Z);
 
+    /* set 'atoms' */
+    SDL_AtomicSet(&self->atoms.state, FT_CHUNK_NEW);
+
     /* set 'flags' */
-    self->flags.empty = 1;
     self->flags.dirty = 0;
-    self->flags.yield = 0;
-    self->flags.ready = 0;
 
     /* success */
     return (1);
@@ -182,9 +182,8 @@ extern int ftChunkRender(struct Chunk *self, struct VertexArray *pVao, struct Sh
     block_mesh_s *mesh = self->mesh;
     if (!mesh) { return (0); }
 
-    /* check 'flags' */
-    if (self->flags.empty) { return (1); }
-    if (self->flags.dirty) { ftChunkGenerateMesh(self); }
+    /* atom-check */
+    if (SDL_AtomicGet(&self->atoms.state) != FT_CHUNK_READY) { return (1); }
        
     /* 'u_model' matrix */
     mat4 u_model = alg_mat4translate(self->position);
@@ -211,20 +210,19 @@ extern int ftChunkGenerateData(struct Chunk *self) {
     /* null-check */
     if (!self) { return (0); }
 
-    /* flag-check */
-    if (!self->flags.dirty) { return (1); }
-
     /* get 'data' */
     uint *data = self->data;
     if (!data) {
         return (0);
     }
 
+    /* set 'state' to 'GEN' */
+    SDL_AtomicSet(&self->atoms.state, FT_CHUNK_GEN_DATA);
+
     /* get 'seed' from 'parent' */
     int seed = self->parent->seed;
    
     /* fill 'data' with some procedural ID's */
-    self->flags.ready = 0;
     for (int y = 0; y < FT_VOX_CHUNK_SIZE_Y; y++) {
     for (int x = 0; x < FT_VOX_CHUNK_SIZE_X; x++) {
     for (int z = 0; z < FT_VOX_CHUNK_SIZE_Z; z++) {
@@ -238,8 +236,6 @@ extern int ftChunkGenerateData(struct Chunk *self) {
          * */
         if (noise > 0.0) {
             data[FT_VOX_CHUNK_3D_1D(x, y, z)] = 1;
-            self->flags.dirty = 1;
-            self->flags.empty = 0;
         }
 
         /* set 'air' */
@@ -248,8 +244,8 @@ extern int ftChunkGenerateData(struct Chunk *self) {
         }
     }}}
 
-    /* set 'ready' */
-    self->flags.yield = 1;
+    /* set 'state' to 'GEN_MESH' */
+    SDL_AtomicSet(&self->atoms.state, FT_CHUNK_GEN_MESH);
 
     /* success */
     return (1);
@@ -260,9 +256,6 @@ extern int ftChunkGenerateMesh(struct Chunk *self) {
     /* null-check */
     if (!self) { return (0); }
     if (!self->data) { return (0); }
-
-    /* flag-check */
-    if (!self->flags.yield) { return (1); }
 
     /* get 'mesh' */
     struct
@@ -323,6 +316,9 @@ extern int ftChunkGenerateMesh(struct Chunk *self) {
         }
     }}}
 
+    /* set 'atoms' */
+    SDL_AtomicSet(&self->atoms.state, FT_CHUNK_BAKE);
+
     /* set 'v', 's' and 't' to the 'mesh' */
 
     mesh->vbo.sz = nv;
@@ -337,9 +333,11 @@ extern int ftChunkGenerateMesh(struct Chunk *self) {
     /* release 'v', 's' and 't' buffers */
     free(v); free(s); free(t);
 
-    /* set flags */
-    self->flags.yield = 0;
-    self->flags.ready = 1;
+    /* set 'atoms' */
+    SDL_AtomicSet(&self->atoms.state, FT_CHUNK_READY);
+
+    /* set 'flags' */
+    self->flags.dirty = 0;
 
     /* return 'status' */
     return (1);

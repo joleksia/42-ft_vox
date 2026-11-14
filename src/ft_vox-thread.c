@@ -41,9 +41,8 @@ static int __ftThreadPoolUpdate(void *data) {
     struct ThreadPool *self = (struct ThreadPool *) data;
     if (!self) { return (0); }
 
+    SDL_LockMutex(self->mutex);
     while (1) {
-        SDL_LockMutex(self->mutex);
-
         /* until 'running' */
         if (self->running) {
             /* wait for any job */
@@ -53,7 +52,6 @@ static int __ftThreadPoolUpdate(void *data) {
         }
         /* otherwise 'break' */
         else {
-            SDL_UnlockMutex(self->mutex);
             break;
         }
         
@@ -61,8 +59,8 @@ static int __ftThreadPoolUpdate(void *data) {
         struct
         job_node_s *node = 0;
         __ftThreadPoolPop(self, &node);
-        self->working++;
         
+        self->working++;
         SDL_UnlockMutex(self->mutex);
     
         /* exec. 'node' */
@@ -75,16 +73,7 @@ static int __ftThreadPoolUpdate(void *data) {
         self->working--;
         SDL_UnlockMutex(self->mutex);
     }
-
-    /* update-loop */
-    while (self->running) {
-        self->working++;
-       
-
-        SDL_LockMutex(self->mutex);
-        self->working--;
-        SDL_UnlockMutex(self->mutex);
-    }
+    SDL_UnlockMutex(self->mutex);
 
     /* success */
     return (1);
@@ -201,7 +190,10 @@ extern int ftThreadPoolQueue(struct ThreadPool *self, void *data, int (*func) (v
     /* create 'node' */
     struct
     job_node_s *node = (struct job_node_s *) malloc(sizeof(struct job_node_s));
-    if (!node) { return (0); }
+    if (!node) {
+        SDL_UnlockMutex(self->mutex);
+        return (0);
+    }
 
     /* populate 'node' */
     node->next = 0;
