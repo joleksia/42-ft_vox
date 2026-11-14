@@ -36,6 +36,7 @@ SRCS = $(MK_ROOT)src/deps.c					\
 	   $(MK_ROOT)src/ft_vox-input.c			\
 	   $(MK_ROOT)src/ft_vox-shader.c		\
 	   $(MK_ROOT)src/ft_vox-vertex-array.c	\
+	   $(MK_ROOT)src/ft_vox-thread.c		\
 	   $(MK_ROOT)src/ft_vox-chunk.c			\
 	   $(MK_ROOT)src/ft_vox-entity.c		\
 	   $(MK_ROOT)src/ft_vox-world.c			\

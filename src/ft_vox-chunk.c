@@ -93,8 +93,9 @@ extern int ftChunkCreate(struct Chunk *self, struct World *pWorld, int x, int y,
                               z * FT_VOX_CHUNK_SIZE_Z);
 
     /* set 'flags' */
-    self->flags.dirty = 0;
     self->flags.empty = 1;
+    self->flags.dirty = 0;
+    self->flags.yield = 0;
     self->flags.ready = 0;
 
     /* success */
@@ -114,6 +115,7 @@ extern int ftChunkAlloc(struct Chunk *self) {
                                FT_VOX_CHUNK_SIZE_Y *
                                FT_VOX_CHUNK_SIZE_Z, sizeof(uint));
         if (!data) {
+            ftChunkRelease(self);
             return (0);
         }
 
@@ -123,11 +125,12 @@ extern int ftChunkAlloc(struct Chunk *self) {
     
     /* get 'mesh' */
     struct
-    BlockMesh *mesh = self->mesh;
+    block_mesh_s *mesh = self->mesh;
     if (!mesh) {
         /* alloc. 'mesh' */
-        mesh = (struct BlockMesh *) calloc(1, sizeof(struct BlockMesh));
+        mesh = (struct block_mesh_s *) calloc(1, sizeof(struct block_mesh_s));
         if (!mesh) {
+            ftChunkRelease(self);
             return (0);
         }
 
@@ -149,20 +152,18 @@ extern int ftChunkRelease(struct Chunk *self) {
     
     /* get 'mesh' */
     struct
-    BlockMesh *mesh = self->mesh;
+    block_mesh_s *mesh = self->mesh;
     if (mesh) {
         glDeleteBuffers(1, &mesh->vbo.id);
         glDeleteBuffers(1, &mesh->ibo[0].id);
         glDeleteBuffers(1, &mesh->ibo[1].id);
         free(mesh);
-        self->mesh = 0;
     }
     
     /* get 'data' */
     uint *data = self->data;
     if (data) {
         free(data);
-        self->data = 0;
     }
 
     /* success */
@@ -178,7 +179,7 @@ extern int ftChunkRender(struct Chunk *self, struct VertexArray *pVao, struct Sh
 
     /* get 'mesh' */
     struct
-    BlockMesh *mesh = self->mesh;
+    block_mesh_s *mesh = self->mesh;
     if (!mesh) { return (0); }
 
     /* check 'flags' */
@@ -209,6 +210,9 @@ extern int ftChunkRender(struct Chunk *self, struct VertexArray *pVao, struct Sh
 extern int ftChunkGenerateData(struct Chunk *self) {
     /* null-check */
     if (!self) { return (0); }
+
+    /* flag-check */
+    if (!self->flags.dirty) { return (1); }
 
     /* get 'data' */
     uint *data = self->data;
@@ -245,7 +249,7 @@ extern int ftChunkGenerateData(struct Chunk *self) {
     }}}
 
     /* set 'ready' */
-    self->flags.ready = 1;
+    self->flags.yield = 1;
 
     /* success */
     return (1);
@@ -257,12 +261,12 @@ extern int ftChunkGenerateMesh(struct Chunk *self) {
     if (!self) { return (0); }
     if (!self->data) { return (0); }
 
-    /* check if 'self' is 'ready' */
-    if (!self->flags.ready) { return (1); }
+    /* flag-check */
+    if (!self->flags.yield) { return (1); }
 
     /* get 'mesh' */
     struct
-    BlockMesh *mesh = self->mesh;
+    block_mesh_s *mesh = self->mesh;
     if (!mesh) {
         return (0);
     }
@@ -333,8 +337,9 @@ extern int ftChunkGenerateMesh(struct Chunk *self) {
     /* release 'v', 's' and 't' buffers */
     free(v); free(s); free(t);
 
-    /* set 'dirty' flag */
-    self->flags.dirty = 0;
+    /* set flags */
+    self->flags.yield = 0;
+    self->flags.ready = 1;
 
     /* return 'status' */
     return (1);

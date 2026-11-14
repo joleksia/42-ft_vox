@@ -18,6 +18,8 @@
 #
 # include <SDL2/SDL.h>
 # include <SDL2/SDL_video.h>
+# include <SDL2/SDL_mutex.h>
+# include <SDL2/SDL_thread.h>
 # include <SDL2/SDL_events.h>
 
 /* typedefs */
@@ -49,7 +51,7 @@ struct Shader;
 
 struct VertexArray;
 
-struct BlockMesh;
+struct ThreadPool;
 
 struct Chunk;
 
@@ -304,9 +306,63 @@ extern int ftCameraRotate(struct Camera *, float);
 extern int ftCameraMatrix(struct Camera *, mat4 *, mat4 *);
 
 
+/* ft_vox-thread.c */
+
+typedef int (*thread_pool_func_t) (void *);
+
+
+struct job_node_s {
+    /* 'next' : pointer to next 'node' */
+    struct
+    job_node_s *next;
+
+    /* 'data' : reference to data object of this job */
+    void *data;
+
+    /* 'func' : function pointer executed by thread pool */
+    thread_pool_func_t func;
+};
+
+
+struct ThreadPool {
+    /* 'mutex' : main thread pool mutex */
+    SDL_mutex *mutex;
+
+    /* 'cond' : new job / shutdown signal */
+    SDL_cond *cond;
+
+    /* 'threads' : array of threads */
+    struct {
+        size_t size;
+        SDL_Thread **data;
+    } threads;
+
+    /* 'jobs' : queue of jobs */
+    struct {
+        size_t size;
+        struct
+        job_node_s *head,
+                   *tail;
+    } jobs;
+
+    /* 'working' : count of working threads */
+    size_t working;
+
+    /* 'running' : if thread pool is alive */
+    ubyte running;
+};
+
+
+extern int ftThreadPoolCreate(struct ThreadPool *);
+
+extern int ftThreadPoolDelete(struct ThreadPool *);
+
+extern int ftThreadPoolQueue(struct ThreadPool *, void *, int (*) (void *));
+
+
 /* ft_vox-mesh.c */
 
-struct BlockMesh {
+struct block_mesh_s {
     struct {
         GLuint  id;
         GLsizei sz;
@@ -342,7 +398,7 @@ struct Chunk {
 
     /* 'mesh' : GPU representation of solid/trans. blocks */
     struct
-    BlockMesh *mesh;
+    block_mesh_s *mesh;
 
     /* 'offset' : position (in chunks) */
     vec3 offset;
@@ -352,9 +408,10 @@ struct Chunk {
 
     /* 'flags' : 1-bit chunk flags */
     struct {
-        ubyte dirty : 1; /* 'dirty' : dirty-flag, if '1' then re-run GPU meshing */
-        ubyte empty : 1; /* 'empty' : if '1' then chunk has no blocks */
-        ubyte ready : 1; /* 'ready' : flag telling if this chunk is ready to use */
+        ubyte empty : 1; /* 'empty' : if '1', chunk is empty */
+        ubyte dirty : 1; /* 'dirty' : if '1', chunk was modified  */
+        ubyte yield : 1; /* 'yield' : if '1', chunk is ready to be meshed */
+        ubyte ready : 1; /* 'ready' : if '1', chunk is ready to be rendered */
     } flags;
 };
 
@@ -408,6 +465,10 @@ struct World {
     /* 'ecs' : 'EntitySystem' object */
     struct
     EntitySystem *ecs;
+
+    /* 'pool' : 'ThreadPool' object */
+    struct
+    ThreadPool *pool;
 
     /* 'chunks' : array of chunk pointers */
     struct

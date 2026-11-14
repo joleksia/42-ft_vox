@@ -19,18 +19,37 @@ extern int ftWorldCreate(struct World *self, const int seed) {
     /* alloc. 'ecs' */
     struct
     EntitySystem *ecs = (struct EntitySystem *) calloc(1, sizeof(struct EntitySystem));
-    if (!ecs) { return (0); }
-    else {
-        ftEntitySystemCreate(ecs, self);
-        self->ecs = ecs;
+    if (!ecs) {
+        ftWorldDelete(self);
+        return (0);
     }
+
+    /* create 'ecs' */
+    ftEntitySystemCreate(ecs, self);
+    self->ecs = ecs;
+
+    /* alloc 'pool' */
+    struct
+    ThreadPool *pool = (struct ThreadPool *) calloc(1, sizeof(struct ThreadPool));
+    if (!pool) {
+        ftWorldDelete(self);
+        return (0);
+    }
+
+    /* create 'pool' */
+    ftThreadPoolCreate(pool);
+    self->pool = pool;
 
     /* alloc. 'chunks' */
     struct
     Chunk **chunks = (struct Chunk **) calloc(FT_VOX_RENDER_DIAMETER_X *
                                               FT_VOX_RENDER_DIAMETER_Y *
                                               FT_VOX_RENDER_DIAMETER_Z, sizeof(struct Chunk *)); 
-    if (!chunks) { return (0); }
+    if (!chunks) {
+        ftWorldDelete(self);
+        return (0);
+    }
+
     self->chunks = chunks;
 
     /* store 'seed' */
@@ -51,20 +70,31 @@ extern int ftWorldDelete(struct World *self) {
     if (ecs) {
         ftEntitySystemDelete(ecs); free(ecs);
     }
-    
-    /* iterate on every 'chunk' */
-    for (int y = 0; y < FT_VOX_RENDER_DIAMETER_X; y++) {
-    for (int x = 0; x < FT_VOX_RENDER_DIAMETER_Y; x++) {
-    for (int z = 0; z < FT_VOX_RENDER_DIAMETER_Z; z++) {
-        struct Chunk *chunk = self->chunks[FT_VOX_WORLD_3D_1D(x, y, z)];
-        
-        /* release 'chunk' */
-        ftChunkRelease(chunk);
-        free(chunk);
-    }}}
 
+    /* release 'pool' */
+    struct
+    ThreadPool *pool = self->pool;
+    if (pool) {
+        ftThreadPoolDelete(pool); free(pool);
+    }
+   
     /* release 'chunks' */
-    free(self->chunks);
+    struct
+    Chunk **chunks = self->chunks;
+    if (chunks) {
+        /* iterate on every 'chunk' */
+        for (int y = 0; y < FT_VOX_RENDER_DIAMETER_X; y++) {
+        for (int x = 0; x < FT_VOX_RENDER_DIAMETER_Y; x++) {
+        for (int z = 0; z < FT_VOX_RENDER_DIAMETER_Z; z++) {
+            /* release 'chunk' */
+            struct Chunk *chunk = chunks[FT_VOX_WORLD_3D_1D(x, y, z)];
+            if (chunk) {
+                ftChunkRelease(chunk); free(chunk);
+            }
+        }}}
+
+        free(chunks);
+    }
 
     /* success */
     return (1);
@@ -97,6 +127,11 @@ extern int ftWorldGenerate(struct World *self) {
 extern int ftWorldUpdate(struct World *self) {
     /* null-check */
     if (!self) { return (0); }
+    
+    /* 'pool' reference  */    
+    struct
+    ThreadPool *pool = self->pool;
+    if (!pool) { return (0); }
     
     /* update 'ecs' */
     struct
@@ -212,14 +247,12 @@ extern int ftWorldSetCenter(struct World *self, const vec3 block) {
         /* alloc. 'chunk' */
         struct
         Chunk *chunk = (struct Chunk *) calloc(1, sizeof(struct Chunk));
-        if (!chunk) { continue; } /* ? */
-
-        /* CPU-generate this 'chunk' */
         ftChunkAlloc(chunk);
         ftChunkCreate(chunk, self, (int) position.x + x,
                                    (int) position.y + y,
                                    (int) position.z + z);
-        ftChunkGenerateData(chunk);
+
+        ftThreadPoolQueue(self->pool, chunk, (thread_pool_func_t) ftChunkGenerateData);
 
         /* set 'chunk' back to 'self->chunks' */
         self->chunks[i] = chunk;
@@ -239,6 +272,7 @@ extern int ftWorldSetCenter(struct World *self, const vec3 block) {
             struct
             Chunk *chunk = self->chunks[FT_VOX_WORLD_3D_1D(nx, ny, nz)];
             if (chunk) {
+                chunk->flags.ready = 0;
                 chunk->flags.dirty = 1;
             }
         }
