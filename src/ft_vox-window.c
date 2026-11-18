@@ -67,7 +67,7 @@ extern int ftWindowCreate(const char *pTitle, const size_t width, const size_t h
 
     /* set-up configuration 'flags' */
     Window->flags.close = 0;
-    Window->flags.vsync = 0;
+    Window->flags.vsync = 1;
 
     /* configure OpenGL */
     SDL_GL_SetSwapInterval(Window->flags.vsync);

@@ -114,9 +114,7 @@ static int ftPlayerUpdate(struct Entity *self) {
         /* get 'world' reference */
         struct
         World *world = self->parent->parent;
-        if (world) {
-            ftWorldSetCenter(world, block);
-        }
+        ftWorldSetCenter(world, block);
     }
 
     /* success */
@@ -124,7 +122,7 @@ static int ftPlayerUpdate(struct Entity *self) {
 }
 
 
-static int ftPlayerRender(struct Entity *self, struct VertexArray *pVao, struct Shader *pShader) {
+static int ftPlayerRender(struct Entity *self, struct VertexArray *vao, struct Shader *shader) {
     /* null-check */
     if (!self) { return (0); }
 
@@ -137,11 +135,11 @@ static int ftPlayerRender(struct Entity *self, struct VertexArray *pVao, struct 
     mat4 u_proj = alg_mat4(1.0),
          u_view = alg_mat4(1.0);
     ftCameraMatrix(&player->camera, &u_proj, &u_view);
-    ftShaderUniformSet(pShader, "u_proj", FT_UNIFORM_MATRIX4X4, &u_proj);
-    ftShaderUniformSet(pShader, "u_view", FT_UNIFORM_MATRIX4X4, &u_view);
+    ftShaderUniformSet(shader, "u_proj", FT_UNIFORM_MATRIX4X4, &u_proj);
+    ftShaderUniformSet(shader, "u_view", FT_UNIFORM_MATRIX4X4, &u_view);
 
-    /* 'pVao' is unused */
-    (void) pVao;
+    /* 'vao' is unused */
+    (void) vao;
 
     /* success */
     return (1);
@@ -194,7 +192,6 @@ int main(void) {
     struct
     World world = { 0 };
     ftWorldCreate(&world, rand());
-    ftWorldGenerate(&world);
 
     /* create 'player' entity */
     struct

@@ -41,17 +41,17 @@ static int __ftThreadPoolUpdate(void *data) {
     struct ThreadPool *self = (struct ThreadPool *) data;
     if (!self) { return (0); }
 
-    SDL_LockMutex(self->mutex);
-    while (1) {
-        /* until 'running' */
-        if (self->running) {
-            /* wait for any job */
-            if (!self->jobs.head) {
-                SDL_CondWait(self->cond, self->mutex);
-            }
+    while (SDL_AtomicGet(&self->alive)) {
+        SDL_LockMutex(self->mutex);
+        
+        /* wait until any 'node' */
+        if (!self->jobs.head) {
+            SDL_CondWait(self->cond, self->mutex);
         }
-        /* otherwise 'break' */
-        else {
+
+        /* check if still 'alive' */
+        if (!SDL_AtomicGet(&self->alive)) {
+            SDL_UnlockMutex(self->mutex);
             break;
         }
         
@@ -59,8 +59,6 @@ static int __ftThreadPoolUpdate(void *data) {
         struct
         job_node_s *node = 0;
         __ftThreadPoolPop(self, &node);
-        
-        self->working++;
         SDL_UnlockMutex(self->mutex);
     
         /* exec. 'node' */
@@ -68,12 +66,7 @@ static int __ftThreadPoolUpdate(void *data) {
             node->func(node->data);
             free(node);
         }
-
-        SDL_LockMutex(self->mutex);
-        self->working--;
-        SDL_UnlockMutex(self->mutex);
     }
-    SDL_UnlockMutex(self->mutex);
 
     /* success */
     return (1);
@@ -102,13 +95,10 @@ extern int ftThreadPoolCreate(struct ThreadPool *self) {
     self->cond = cond;
 
     /* create 'threads' */
-    int size = SDL_GetCPUCount();
-    if (size > 1) {
-        /* leave single core ('main' thread) */
-        size--;
-    } else {
-        /* use at least one core ('main' thread) */
-        size = 1;
+    int cpu_count = SDL_GetCPUCount();
+    int size = FT_VOX_THREAD_POOL_SIZE;
+    if (size > cpu_count) {
+        size = cpu_count - 1;
     }
 
     SDL_Thread **threads = (SDL_Thread **) calloc(size, sizeof(SDL_Thread *));
@@ -121,15 +111,9 @@ extern int ftThreadPoolCreate(struct ThreadPool *self) {
     self->threads.size = size;
 
     /* initialize each 'thread' */
-    self->running = 1;
+    SDL_AtomicSet(&self->alive, 1);
     for (int i = 0; i < size; i++) {
-        SDL_Thread *thread = SDL_CreateThread((SDL_ThreadFunction) __ftThreadPoolUpdate, "ft_vox-worker", self);
-        if (!thread) {
-            ftThreadPoolDelete(self);
-            return (0);
-        }
-
-        threads[i] = thread;
+        threads[i] = SDL_CreateThread((SDL_ThreadFunction) __ftThreadPoolUpdate, "ft_vox-worker", self);
     }
 
     /* success */
@@ -149,7 +133,7 @@ extern int ftThreadPoolDelete(struct ThreadPool *self) {
     if (mutex) {
         SDL_LockMutex(self->mutex);
         
-        self->running = 0;
+        SDL_AtomicSet(&self->alive, 0);
         if (cond) {
             SDL_CondBroadcast(cond);
         }
@@ -220,4 +204,35 @@ extern int ftThreadPoolQueue(struct ThreadPool *self, void *data, int (*func) (v
 
     /* success */
     return (1);
+}
+
+
+extern int ftThreadPoolDropJobs(struct ThreadPool *self, void *data) {
+    /* null-check */
+    if (!self) { return (0); }
+    if (!data) { return (0); }
+
+    int drop = 0;
+    
+    /* lock 'mutex' */
+    SDL_LockMutex(self->mutex);
+
+    /* iterate over each 'node' in 'pool' */
+    struct
+    job_node_s *curr = self->jobs.head;
+    while (curr) {
+        /* case : 'data' found */
+        if (curr->data == data) {
+            /* set 'curr's 'data' to null */
+            curr->data = 0;
+        }
+
+        curr = curr->next;
+    }
+
+    /* unlock 'mutex' */
+    SDL_UnlockMutex(self->mutex);
+
+    /* success */
+    return (drop);
 }

@@ -9,7 +9,7 @@ MK_ROOT	= $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 CC = cc
 
 # compiler flags
-CFLAGS = -Wall -Wextra -Werror -std=c99 -ggdb3
+CFLAGS = -Wall -Wextra -Werror -std=c99 -ggdb3 -g -O1 -fsanitize=address
 
 # linker files
 LFLAGS = -l:libSDL2.so 		\
