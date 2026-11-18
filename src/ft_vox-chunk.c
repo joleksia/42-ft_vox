@@ -145,49 +145,30 @@ static int __ftChunkGenGPU(struct Chunk *self) {
     for (int x = 0; x < FT_VOX_CHUNK_SIZE_X; x++) {
     for (int z = 0; z < FT_VOX_CHUNK_SIZE_Z; z++) {
         /* get the 'block' */
-        uint block = ftChunkGetBlock(self, x, y, z);
+        int id = ftChunkGetBlock(self, x, y, z);
         /* block type: 'air' */
-        if (!block) { continue; }
+        if (!id) { continue; }
         
         /* get the neighbors */
-        uint neighbor[6] = { 0 };
+        int ids[6] = { 0 };
         for (size_t i = 0; i < 6; i++) {
             const byte *direction = &FT_VOX_FACE_DIRECTION[i * 3];
-            neighbor[i] = ftChunkGetBlock(self, x + direction[0],
-                                                y + direction[1],
-                                                z + direction[2]);
+            ids[i] = ftChunkGetBlock(self, x + direction[0],
+                                           y + direction[1],
+                                           z + direction[2]);
         }
 
-        /* face : north */
-        if (neighbor[0] != 0) {
+        /* assemble faces */
+        for (size_t i = 0; i < 6; i++) {
+            int id = ids[i];
+
+            /* skip if not 'air' */
+            if (id != 0) { continue; }
+
             __ftChunkFaceCube(vb, &vbs,
                               sb, &sbs,
-                              0, x, y, z); }
-        /* face : south */
-        if (neighbor[1] != 0) {
-            __ftChunkFaceCube(vb, &vbs,
-                              sb, &sbs,
-                              1, x, y, z); }
-        /* face : west */
-        if (neighbor[2] != 0) {
-            __ftChunkFaceCube(vb, &vbs,
-                              sb, &sbs,
-                              2, x, y, z); }
-        /* face : east */
-        if (neighbor[3] != 0) {
-            __ftChunkFaceCube(vb, &vbs,
-                              sb, &sbs,
-                              3, x, y, z); }
-        /* face : down */
-        if (neighbor[4] != 0) {
-            __ftChunkFaceCube(vb, &vbs,
-                              sb, &sbs,
-                              4, x, y, z); }
-        /* face : top */
-        if (neighbor[5] != 0) {
-            __ftChunkFaceCube(vb, &vbs,
-                              sb, &sbs,
-                              5, x, y, z); }
+                              i, x, y, z);
+        }
 
     }}}
 
@@ -484,29 +465,29 @@ extern int ftChunkBakeMesh(struct Chunk *self) {
 }
 
 
-extern int ftChunkGetBlock(struct Chunk *self, int ix, int iy, int iz) {
+extern int ftChunkGetBlock(struct Chunk *self, int bx, int by, int bz) {
     /* null-check */
     if (!self) { return (0); }
 
     int cx = (int) self->origin.x;
-    if (ix < 0) {
-        cx--; ix += FT_VOX_CHUNK_SIZE_X;
-    } else if (ix >= FT_VOX_CHUNK_SIZE_X) {
-        cx++; ix -= FT_VOX_CHUNK_SIZE_X;
+    if (bx < 0) {
+        cx--; bx += FT_VOX_CHUNK_SIZE_X;
+    } else if (bx >= FT_VOX_CHUNK_SIZE_X) {
+        cx++; bx -= FT_VOX_CHUNK_SIZE_X;
     }
 
     int cy = (int) self->origin.y;
-    if (iy < 0) {
-        cy--; iy += FT_VOX_CHUNK_SIZE_Y;
-    } else if (iy >= FT_VOX_CHUNK_SIZE_Y) {
-        cy++; iy -= FT_VOX_CHUNK_SIZE_Y;
+    if (by < 0) {
+        cy--; by += FT_VOX_CHUNK_SIZE_Y;
+    } else if (by >= FT_VOX_CHUNK_SIZE_Y) {
+        cy++; by -= FT_VOX_CHUNK_SIZE_Y;
     }
 
     int cz = (int) self->origin.z;
-    if (iz < 0) {
-        cz--; iz += FT_VOX_CHUNK_SIZE_Z;
-    } else if (iz >= FT_VOX_CHUNK_SIZE_Z) {
-        cz++; iz -= FT_VOX_CHUNK_SIZE_Z;
+    if (bz < 0) {
+        cz--; bz += FT_VOX_CHUNK_SIZE_Z;
+    } else if (bz >= FT_VOX_CHUNK_SIZE_Z) {
+        cz++; bz -= FT_VOX_CHUNK_SIZE_Z;
     }
 
     /* get actual 'self' (bound-check) */
@@ -516,37 +497,34 @@ extern int ftChunkGetBlock(struct Chunk *self, int ix, int iy, int iz) {
     ) {
         ftWorldGetChunk(self->parent, &self, cx, cy, cz);
         if (!self) {
-            return (0);
+            return (-1);
         }
     }
-
-    /* 'id' reference */ 
-    uint *id = self->data.id;
-    if (!id) { return (0); }
     
-    /* return 'ID' */
-    uint ID = id[FT_VOX_CHUNK_3D_1D(ix, iy, iz)];
+    /* return 'id' */
+    int id = -1;
+    if (self->data.id) {
+        id = self->data.id[FT_VOX_CHUNK_3D_1D(bx, by, bz)];
+    }
 
     /* success */
-    return (ID);
+    return (id);
 }
 
 
-extern int ftChunkSetBlock(struct Chunk *self, int ix, int iy, int iz, uint ID) {
+extern int ftChunkSetBlock(struct Chunk *self, int bx, int by, int bz, int id) {
     /* null-check */
     if (!self) { return (0); }
 
     /* try to set 'ID' into CPU 'data' */
-    ix = alg_clamp(ix, 0, FT_VOX_CHUNK_SIZE_X - 1),
-    iy = alg_clamp(iy, 0, FT_VOX_CHUNK_SIZE_Y - 1),
-    iz = alg_clamp(iz, 0, FT_VOX_CHUNK_SIZE_Z - 1);
-    
-    /* 'id' reference */ 
-    uint *id = self->data.id;
-    if (!id) { return (0); }
+    bx = alg_clamp(bx, 0, FT_VOX_CHUNK_SIZE_X - 1),
+    by = alg_clamp(by, 0, FT_VOX_CHUNK_SIZE_Y - 1),
+    bz = alg_clamp(bz, 0, FT_VOX_CHUNK_SIZE_Z - 1);
 
-    /* set 'ID' */
-    id[FT_VOX_CHUNK_3D_1D(ix, iy, iz)] = ID;
+    /* set 'id' */
+    if (self->data.id) {
+        self->data.id[FT_VOX_CHUNK_3D_1D(bx, by, bz)] = id;
+    }
 
     /* success */
     return (1);

@@ -192,7 +192,7 @@ extern int ftWorldSetCenter(struct World *self, const vec3 block) {
         struct
         Chunk *chunk = tmp[i];
 
-        /* 'chunk's current origin : 'ccx', 'ccy', 'ccz' */
+        /* 'chunk's current origin : 'cx', 'cy', 'cz' */
         int cx = chunk ? chunk->origin.x : old.x + x,
             cy = chunk ? chunk->origin.y : old.y + y,
             cz = chunk ? chunk->origin.z : old.z + z;
@@ -225,7 +225,7 @@ extern int ftWorldSetCenter(struct World *self, const vec3 block) {
         /* case : 'chunk' is not null */
         else {
             /* case : 'chunk' is out-of-bounds */
-            if (nx != cx || ny != cy || nz != cz) {
+            if (ftWorldOutOfBounds(self, nx, ny, nz)) {
                 ftThreadPoolDropJobs(self->pool, chunk);
                 ftChunkClear(chunk);
                 ftChunkCreate(chunk, self, nx, ny, nz);
@@ -244,37 +244,39 @@ extern int ftWorldSetCenter(struct World *self, const vec3 block) {
 }
 
 
-extern int ftWorldGetChunk(struct World *self, struct Chunk **chunk, int x, int y, int z) {
+extern int ftWorldGetChunk(struct World *self, struct Chunk **chunk, int cx, int cy, int cz) {
     /* null-check */
     if (!self)  { return (0); }
     if (!chunk) { return (0); }
 
     /* check if 'chunk' is out-of-bounds */
-    if (ftWorldPointOutOfBounds(self, alg_vec3(x, y, z))) {
+    if (ftWorldOutOfBounds(self, cx, cy, cz)) {
         *chunk = 0;
         return (0);
     }
 
     /* return 'chunk' */
-    x -= (int) self->origin.x;
-    y -= (int) self->origin.y;
-    z -= (int) self->origin.z;
-    *chunk = self->loaded[FT_VOX_WORLD_3D_1D(x, y, z)];
+    cx -= (int) self->origin.x;
+    cy -= (int) self->origin.y;
+    cz -= (int) self->origin.z;
+    *chunk = self->loaded[FT_VOX_WORLD_3D_1D(cx, cy, cz)];
 
     /* success */
     return (1);
 }
 
 
-extern int ftWorldPointOutOfBounds(struct World *self, vec3 point) {
+extern int ftWorldOutOfBounds(struct World *self, int cx, int cy, int cz) {
     /* null-check */
     if (!self) { return (0); }
 
     /* in-bounds 'status' */
-    vec3 p = alg_vec3sub(point, self->origin);
-    int status = (uint) p.x >= FT_VOX_RENDER_DIAMETER_X &&
-                 (uint) p.y >= FT_VOX_RENDER_DIAMETER_Y &&
-                 (uint) p.z >= FT_VOX_RENDER_DIAMETER_Z;
+    cx -= self->origin.x;
+    cy -= self->origin.y;
+    cz -= self->origin.z;
+    int status = (uint) cx >= FT_VOX_RENDER_DIAMETER_X ||
+                 (uint) cy >= FT_VOX_RENDER_DIAMETER_Y ||
+                 (uint) cz >= FT_VOX_RENDER_DIAMETER_Z;
 
     /* return 'status' */
     return (status);

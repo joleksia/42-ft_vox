@@ -467,7 +467,7 @@ extern int ftChunkBakeMesh(struct Chunk *);
 
 extern int ftChunkGetBlock(struct Chunk *, int, int, int);
 
-extern int ftChunkSetBlock(struct Chunk *, int, int, int, uint);
+extern int ftChunkSetBlock(struct Chunk *, int, int, int, int);
 
 
 /* ft_vox-world.c */
@@ -535,7 +535,7 @@ extern int ftWorldSetCenter(struct World *, const vec3);
 
 extern int ftWorldGetChunk(struct World *, struct Chunk **, int, int, int);
 
-extern int ftWorldPointOutOfBounds(struct World *, vec3);
+extern int ftWorldOutOfBounds(struct World *, int, int, int);
 
 /* ... */
 
