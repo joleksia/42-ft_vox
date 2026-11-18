@@ -138,39 +138,57 @@ static int __ftChunkGenGPU(struct Chunk *self) {
     }
 
     /* get 'data' */
-    uint *vb = self->data.vb; size_t *vbs = &self->data.vbs;
-    uint *sb = self->data.sb; size_t *sbs = &self->data.sbs;
+    uint *vb = self->data.vb; size_t vbs = 0;
+    uint *sb = self->data.sb; size_t sbs = 0;
 
     for (int y = 0; y < FT_VOX_CHUNK_SIZE_Y; y++) {
     for (int x = 0; x < FT_VOX_CHUNK_SIZE_X; x++) {
     for (int z = 0; z < FT_VOX_CHUNK_SIZE_Z; z++) {
         /* get the 'block' */
         uint block = ftChunkGetBlock(self, x, y, z);
-
         /* block type: 'air' */
         if (!block) { continue; }
-
-        /* block type: 'solid' */
-        else if (block == 1) {
-            for (size_t i = 0; i < 6; i++) {
-                const byte *direction = &FT_VOX_FACE_DIRECTION[i * 3];
-
-                /* get the neighbor 'block' */
-                uint block = ftChunkGetBlock(self, x + direction[0],
-                                                   y + direction[1],
-                                                   z + direction[2]);
-                
-                /* block type: 'solid' */
-                if (block == 1) { continue; }
-
-                /* block type: 'air' / 'trans' */
-                else {
-                    __ftChunkFaceCube(vb, vbs,
-                                      sb, sbs,
-                                      i, x, y, z);
-                }
-            }
+        
+        /* get the neighbors */
+        uint neighbor[6] = { 0 };
+        for (size_t i = 0; i < 6; i++) {
+            const byte *direction = &FT_VOX_FACE_DIRECTION[i * 3];
+            neighbor[i] = ftChunkGetBlock(self, x + direction[0],
+                                                y + direction[1],
+                                                z + direction[2]);
         }
+
+        /* face : north */
+        if (neighbor[0] != 0) {
+            __ftChunkFaceCube(vb, &vbs,
+                              sb, &sbs,
+                              0, x, y, z); }
+        /* face : south */
+        if (neighbor[1] != 0) {
+            __ftChunkFaceCube(vb, &vbs,
+                              sb, &sbs,
+                              1, x, y, z); }
+        /* face : west */
+        if (neighbor[2] != 0) {
+            __ftChunkFaceCube(vb, &vbs,
+                              sb, &sbs,
+                              2, x, y, z); }
+        /* face : east */
+        if (neighbor[3] != 0) {
+            __ftChunkFaceCube(vb, &vbs,
+                              sb, &sbs,
+                              3, x, y, z); }
+        /* face : down */
+        if (neighbor[4] != 0) {
+            __ftChunkFaceCube(vb, &vbs,
+                              sb, &sbs,
+                              4, x, y, z); }
+        /* face : top */
+        if (neighbor[5] != 0) {
+            __ftChunkFaceCube(vb, &vbs,
+                              sb, &sbs,
+                              5, x, y, z); }
+
     }}}
 
     /* set 'state' */
@@ -200,6 +218,9 @@ extern int ftChunkCreate(struct Chunk *self, struct World *parent, int x, int y,
     self->offset = alg_vec3(x * FT_VOX_CHUNK_SIZE_X,
                             y * FT_VOX_CHUNK_SIZE_Y,
                             z * FT_VOX_CHUNK_SIZE_Z);
+
+    /* set 'state' */
+    SDL_AtomicSet(&self->atoms.state, FT_CHUNK_CREATE);
 
     /* success */
     return (1);
@@ -302,19 +323,22 @@ extern int ftChunkAlloc(struct Chunk *self) {
     self->data.id = id; self->data.ids = size;
 
     /* alloc. 'vb' */
-    uint *vb = (uint *) malloc(size * 8 * sizeof(uint));
+    uint vbs = size * 8;
+    uint *vb = (uint *) calloc(vbs, sizeof(uint));
     if (!vb) { ftChunkDelete(self); return (0); }
-    self->data.vb = vb; self->data.vbs = 0;
+    self->data.vb = vb; self->data.vbs = vbs;
 
     /* alloc. 'sb' */
-    uint *sb = (uint *) malloc(size * 6 * sizeof(uint));
+    uint sbs = size * 6;
+    uint *sb = (uint *) calloc(sbs, sizeof(uint));
     if (!sb) { ftChunkDelete(self); return (0); }
-    self->data.sb = sb; self->data.sbs = 0;
+    self->data.sb = sb; self->data.sbs = sbs;
 
     /* alloc. 'tb' */
-    uint *tb = (uint *) malloc(size * 6 * sizeof(uint));
+    uint tbs = size * 6;
+    uint *tb = (uint *) calloc(tbs, sizeof(uint));
     if (!tb) { ftChunkDelete(self); return (0); }
-    self->data.tb = tb; self->data.tbs = 0;
+    self->data.tb = tb; self->data.tbs = tbs;
     
     /* create 'mesh' */
     memset(&self->mesh, 0, sizeof(struct chunk_mesh_s));
@@ -342,15 +366,15 @@ extern int ftChunkClear(struct Chunk *self) {
     
     /* clear 'vb' */
     uint *vb = self->data.vb;
-    if (vb) { memset(vb, 0, size * 8 * sizeof(uint)); }
+    if (vb) { memset(vb, 0, self->data.vbs * sizeof(uint)); }
     
     /* clear 'sb' */
     uint *sb = self->data.sb;
-    if (sb) { memset(sb, 0, size * 6 * sizeof(uint)); }
+    if (sb) { memset(sb, 0, self->data.sbs * sizeof(uint)); }
     
     /* clear 'tb' */
     uint *tb = self->data.tb;
-    if (tb) { memset(tb, 0, size * 6 * sizeof(uint)); }
+    if (tb) { memset(tb, 0, self->data.tbs * sizeof(uint)); }
 
     /* success */
     return (1);

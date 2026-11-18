@@ -170,7 +170,7 @@ extern int ftWorldSetCenter(struct World *self, const vec3 block) {
                    FT_VOX_RENDER_DIAMETER_Z;
 
     struct
-    Chunk **tmp = (struct Chunk **) malloc(count * sizeof(struct Chunk *));
+    Chunk **tmp = (struct Chunk **) calloc(count, sizeof(struct Chunk *));
     if (!tmp) {
         return (0);
     }
