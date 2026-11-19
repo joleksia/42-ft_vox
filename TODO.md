@@ -1,7 +1,7 @@
 # ft_vox TODO list:
 - [ ] Chunk multi-threading:
     - [ ] introduce a solid base for data-gen. and mesh-gen. processes of chunk generation;
-    - [ ] separate main thread into two: main thread and worker thread;
+    - [X] separate main thread into two: main thread and worker thread;
     - [ ] delegate worker thread to process chunk generation and meshing in the most efficient way;
     - [ ] make sure there're no race conditions, chunks are marked as "generated", "meshed", "finished" "not ready" properly;
     - [ ] ...
