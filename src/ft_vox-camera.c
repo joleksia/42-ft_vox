@@ -1,31 +1,31 @@
 #include "ft_vox.h"
 
-extern int ftCameraMove(struct Camera *self, const float value) {
+extern int ft_camera_move(struct camera_s *self, const float value) {
     /* null-check */
     if (!self) { return (0); }
 
-    if (Keyboard->current[SDL_SCANCODE_D] ||
-        Keyboard->current[SDL_SCANCODE_A]
+    if (KEYBOARD->current[SDL_SCANCODE_D] ||
+        KEYBOARD->current[SDL_SCANCODE_A]
     ) {
-        int8_t input = Keyboard->current[SDL_SCANCODE_D] -
-                       Keyboard->current[SDL_SCANCODE_A];
+        int8_t input = KEYBOARD->current[SDL_SCANCODE_D] -
+                       KEYBOARD->current[SDL_SCANCODE_A];
         vec3 norm = alg_vec3norm(alg_vec3cross(self->rotation, self->up));
         self->position = alg_vec3add(self->position, alg_vec3mulf(norm, input * value));
     }
     
-    if (Keyboard->current[SDL_SCANCODE_SPACE] ||
-        Keyboard->current[SDL_SCANCODE_LSHIFT]
+    if (KEYBOARD->current[SDL_SCANCODE_SPACE] ||
+        KEYBOARD->current[SDL_SCANCODE_LSHIFT]
     ) {
-        int8_t input = Keyboard->current[SDL_SCANCODE_SPACE] -
-                       Keyboard->current[SDL_SCANCODE_LSHIFT];
+        int8_t input = KEYBOARD->current[SDL_SCANCODE_SPACE] -
+                       KEYBOARD->current[SDL_SCANCODE_LSHIFT];
         self->position = alg_vec3add(self->position, alg_vec3mulf(self->up, input * value));
     }
     
-    if (Keyboard->current[SDL_SCANCODE_W] ||
-        Keyboard->current[SDL_SCANCODE_S]
+    if (KEYBOARD->current[SDL_SCANCODE_W] ||
+        KEYBOARD->current[SDL_SCANCODE_S]
     ) {
-        int8_t input = Keyboard->current[SDL_SCANCODE_W] -
-                       Keyboard->current[SDL_SCANCODE_S];
+        int8_t input = KEYBOARD->current[SDL_SCANCODE_W] -
+                       KEYBOARD->current[SDL_SCANCODE_S];
 
         double sy = sin(alg_deg2rad(self->direction.z)),
                cy = cos(alg_deg2rad(self->direction.z));
@@ -38,16 +38,16 @@ extern int ftCameraMove(struct Camera *self, const float value) {
 }
 
 
-extern int ftCameraRotate(struct Camera *self, const float value) {
+extern int ft_camera_rotate(struct camera_s *self, const float value) {
     /* null-check */
     if (!self) { return (0); }
 
     /* apply 'offset' to 'direction' */
-    self->direction.z += Mouse->position.delta.x * value; /* yaw */
-    self->direction.y -= Mouse->position.delta.y * value; /* pitch */
+    self->direction.z += MOUSE->position.delta.x * value; /* yaw */
+    self->direction.y -= MOUSE->position.delta.y * value; /* pitch */
     
-    /* clear 'Mouse' 'delta' */
-    Mouse->position.delta = alg_vec2(0.0, 0.0);
+    /* clear 'MOUSE' 'delta' */
+    MOUSE->position.delta = alg_vec2(0.0, 0.0);
 
     /* clamp 'pitch' in [-89.0, 89.0] */
     self->direction.y = alg_clamp(self->direction.y, -89.9, 89.9);
@@ -64,25 +64,25 @@ extern int ftCameraRotate(struct Camera *self, const float value) {
 }
 
 
-extern int ftCameraMatrix(struct Camera *self, mat4 *pProj, mat4 *pView) {
+extern int ft_camera_matrix(struct camera_s *self, mat4 *proj, mat4 *view) {
     /* null-check */
     if (!self) { return (0); }
 
     /* get 'Window's 'size' */
     vec2 size = { 0 };
-    ftWindowGetSize((int *) &size.x, (int *) &size.y);
+    ft_window_size((int *) &size.x, (int *) &size.y);
 
     /* get 'proj' matrix */
-    mat4 proj = alg_mat4persp(alg_deg2rad(self->fieldOfView), size.x / size.y, 0.001f, 65536.0f);
+    if (proj) {
+        *proj = alg_mat4persp(alg_deg2rad(self->fieldOfView), size.x / size.y, 0.001f, 65536.0f);
+    }
 
     /* get 'view' matrix */
-    vec3 v_target = alg_vec3add(self->position,
-                                self->rotation);
-    mat4 view = alg_mat4lookat(self->position, v_target, self->up);
-
-    /* return */
-    if (pProj) { *pProj = proj; }
-    if (pView) { *pView = view; }
+    if (view) {
+        vec3 v_target = alg_vec3add(self->position,
+                                    self->rotation);
+        *view = alg_mat4lookat(self->position, v_target, self->up);
+    }
 
     /* success */
     return (1);

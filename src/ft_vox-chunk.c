@@ -2,55 +2,55 @@
 
 /* static API */
 
-static const byte FT_VOX_FACE_DIRECTION[] = {  0,  0, -1, /* north (-z) */
-                                               0,  0,  1, /* south (+z) */
-                                              -1,  0,  0, /* west  (-x) */
-                                               1,  0,  0, /* east  (+x) */
-                                               0, -1,  0, /* down  (-y) */
-                                               0,  1,  0, /* top   (+y) */ };
+static const i8 FT_VOX_FACE_DIRECTION[] = {  0,  0, -1, /* north (-z) */
+                                             0,  0,  1, /* south (+z) */
+                                            -1,  0,  0, /* west  (-x) */
+                                             1,  0,  0, /* east  (+x) */
+                                             0, -1,  0, /* down  (-y) */
+                                             0,  1,  0, /* top   (+y) */ };
 
-static const ubyte FT_VOX_FACE_UNIQUE[] = { 1, 0, 5, 2 };
-static const ubyte FT_VOX_FACE_INDICES[] = { 1, 0, 3, 1, 3, 2, };
-static const ubyte FT_VOX_CUBE_INDICES[] = { 1, 0, 3, 1, 3, 2, /* north (-z) */
-                                             4, 5, 6, 4, 6, 7, /* south (+z) */
-                                             0, 4, 7, 0, 7, 3, /* west  (-x) */
-                                             5, 1, 2, 5, 2, 6, /* east  (+x) */
-                                             5, 4, 0, 5, 0, 1, /* down  (-y) */
-                                             2, 3, 7, 2, 7, 6, /* top   (+y) */ };
+static const u8 FT_VOX_FACE_UNIQUE[]  = { 1, 0, 5, 2 };
+static const u8 FT_VOX_FACE_INDICES[] = { 1, 0, 3, 1, 3, 2, };
+static const u8 FT_VOX_CUBE_INDICES[] = { 1, 0, 3, 1, 3, 2, /* north (-z) */
+                                          4, 5, 6, 4, 6, 7, /* south (+z) */
+                                          0, 4, 7, 0, 7, 3, /* west  (-x) */
+                                          5, 1, 2, 5, 2, 6, /* east  (+x) */
+                                          5, 4, 0, 5, 0, 1, /* down  (-y) */
+                                          2, 3, 7, 2, 7, 6, /* top   (+y) */ };
 
-static const ubyte FT_VOX_CUBE_POSITION[] = { 0, 0, 0,
-                                              1, 0, 0,
-                                              1, 1, 0,
-                                              0, 1, 0,
-                                              0, 0, 1,
-                                              1, 0, 1,
-                                              1, 1, 1,
-                                              0, 1, 1, };
+static const u8 FT_VOX_CUBE_POSITION[] = { 0, 0, 0,
+                                           1, 0, 0,
+                                           1, 1, 0,
+                                           0, 1, 0,
+                                           0, 0, 1,
+                                           1, 0, 1,
+                                           1, 1, 1,
+                                           0, 1, 1, };
 
-static const ubyte FT_VOX_CUBE_NORMAL[] = { 0, 0, 1, /* north (-z) */
-                                            0, 0, 1, /* south (+z) */
-                                            1, 0, 0, /* west  (-x) */
-                                            1, 0, 0, /* east  (+x) */
-                                            0, 1, 0, /* down  (-y) */
-                                            0, 1, 0, /* top   (+y) */ };
+static const u8 FT_VOX_CUBE_NORMAL[] = { 0, 0, 1, /* north (-z) */
+                                         0, 0, 1, /* south (+z) */
+                                         1, 0, 0, /* west  (-x) */
+                                         1, 0, 0, /* east  (+x) */
+                                         0, 1, 0, /* down  (-y) */
+                                         0, 1, 0, /* top   (+y) */ };
 
-static const ubyte FT_VOX_CUBE_TEXCOORD[] = { 1, 0,
-                                              0, 0,
-                                              0, 1,
-                                              1, 1, };
+static const u8 FT_VOX_CUBE_TEXCOORD[] = { 1, 0,
+                                           0, 0,
+                                           0, 1,
+                                           1, 1, };
 
 
-static int __ft_face_cube(uint *vb, size_t *vbs, uint *ib, size_t *ibs, int face, int x, int y, int z) {
+static int __ft_face_cube(u32 *vb, size_t *vbs, u32 *ib, size_t *ibs, int face, int x, int y, int z) {
     /* 'vb' : send face */
     GLsizei base = *vbs;
     for (size_t j = 0; j < 4; j++) {
-        const ubyte *vp = &FT_VOX_CUBE_POSITION[FT_VOX_CUBE_INDICES[face * 6 + FT_VOX_FACE_UNIQUE[j]] * 3];
-        const ubyte *vn = &FT_VOX_CUBE_NORMAL[face * 3];
-        const ubyte *vt = &FT_VOX_CUBE_TEXCOORD[j * 2];
-        uint vertex = /* pack: 'vp' */
-                      (((vp[0] + (uint) x) & 0xffu) << 0)  |
-                      (((vp[1] + (uint) y) & 0xffu) << 8)  |
-                      (((vp[2] + (uint) z) & 0xffu) << 16) |
+        const u8 *vp = &FT_VOX_CUBE_POSITION[FT_VOX_CUBE_INDICES[face * 6 + FT_VOX_FACE_UNIQUE[j]] * 3];
+        const u8 *vn = &FT_VOX_CUBE_NORMAL[face * 3];
+        const u8 *vt = &FT_VOX_CUBE_TEXCOORD[j * 2];
+        u32 vertex = /* pack: 'vp' */
+                      (((vp[0] + (u32) x) & 0xffu) << 0)  |
+                      (((vp[1] + (u32) y) & 0xffu) << 8)  |
+                      (((vp[2] + (u32) z) & 0xffu) << 16) |
 
                       /* pack: 'vn' */
                       (((vn[0]) & 0x01u) << 24) |
@@ -66,7 +66,7 @@ static int __ft_face_cube(uint *vb, size_t *vbs, uint *ib, size_t *ibs, int face
 
     /* 'ib' : send face */
     for (size_t j = 0; j < 6; j++) {
-        uint index = base + FT_VOX_FACE_INDICES[j];
+        u32 index = base + FT_VOX_FACE_INDICES[j];
         ib[(*ibs)++] = index;
     }
 
@@ -86,7 +86,7 @@ static int __ft_chunk_generate(struct chunk_s *self) {
     }
 
     /* get 'data' */
-    uint *id = self->data.id;
+    u32 *id = self->data.id;
     if (!id) {
         return (0);
     }
@@ -138,9 +138,9 @@ static int __ft_chunk_mesh_cpu(struct chunk_s *self) {
     }
 
     /* get 'data' */
-    uint *vb = self->data.vb; size_t *vbc = &self->data.vbc;
-    uint *sb = self->data.sb; size_t *sbc = &self->data.sbc;
-    uint *tb = self->data.tb; size_t *tbc = &self->data.tbc;
+    u32 *vb = self->data.vb; size_t *vbc = &self->data.vbc;
+    u32 *sb = self->data.sb; size_t *sbc = &self->data.sbc;
+    u32 *tb = self->data.tb; size_t *tbc = &self->data.tbc;
     for (int y = 0; y < FT_VOX_CHUNK_SIZE_Y; y++) {
     for (int x = 0; x < FT_VOX_CHUNK_SIZE_X; x++) {
     for (int z = 0; z < FT_VOX_CHUNK_SIZE_Z; z++) {
@@ -153,7 +153,7 @@ static int __ft_chunk_mesh_cpu(struct chunk_s *self) {
         /* get the neighbors */
         int ids[6] = { 0 };
         for (size_t i = 0; i < 6; i++) {
-            const byte *direction = &FT_VOX_FACE_DIRECTION[i * 3];
+            const i8 *direction = &FT_VOX_FACE_DIRECTION[i * 3];
             ids[i] = ft_chunk_get(self, x + direction[0],
                                         y + direction[1],
                                         z + direction[2]);
@@ -214,9 +214,9 @@ static int __ft_chunk_mesh_gpu(struct chunk_s *self) {
     }
 
     /* get 'data' */
-    uint *vb = self->data.vb; size_t vbc = self->data.vbc;
-    uint *sb = self->data.sb; size_t sbc = self->data.sbc;
-    uint *tb = self->data.tb; size_t tbc = self->data.tbc;
+    u32 *vb = self->data.vb; size_t vbc = self->data.vbc;
+    u32 *sb = self->data.sb; size_t sbc = self->data.sbc;
+    u32 *tb = self->data.tb; size_t tbc = self->data.tbc;
 
     /* get 'mesh' */
     struct
@@ -225,19 +225,19 @@ static int __ft_chunk_mesh_gpu(struct chunk_s *self) {
     /* set 'vertex' data */
     if (vbc > 0) {
         self->mesh.vbo.ids = self->data.vbc;
-        glNamedBufferData(mesh->vbo.id, vbc * sizeof(uint), vb, GL_DYNAMIC_DRAW);
+        glNamedBufferData(mesh->vbo.id, vbc * sizeof(u32), vb, GL_DYNAMIC_DRAW);
     }
 
     /* set 'solid' data */
     if (sbc) {
         self->mesh.sbo.ids = self->data.sbc;
-        glNamedBufferData(mesh->sbo.id, sbc * sizeof(uint), sb, GL_DYNAMIC_DRAW);
+        glNamedBufferData(mesh->sbo.id, sbc * sizeof(u32), sb, GL_DYNAMIC_DRAW);
     }
     
     /* set 'trans' data */
     if (tbc) {
         self->mesh.tbo.ids = self->data.tbc;
-        glNamedBufferData(mesh->tbo.id, tbc * sizeof(uint), tb, GL_DYNAMIC_DRAW);
+        glNamedBufferData(mesh->tbo.id, tbc * sizeof(u32), tb, GL_DYNAMIC_DRAW);
     }
 
     /* set 'state' */
@@ -248,14 +248,14 @@ static int __ft_chunk_mesh_gpu(struct chunk_s *self) {
 }
 
 
-static int __ft_chunk_queue_job(struct chunk_s *self, struct ThreadPool *pool, thread_pool_func_t job) {
+static int __ft_chunk_queue_job(struct chunk_s *self, struct thpool_s *pool, thread_pool_func_t job) {
     /* null-check */
     if (!self) { return (0); }
     if (!pool) { return (0); }
 
     /* pin */
     SDL_AtomicAdd(&self->atoms.refer, 1);
-    if (!ftThreadPoolQueue(pool, self, job)) {
+    if (!ft_thpool_queue(pool, self, job)) {
         /* unpin on error */
         SDL_AtomicAdd(&self->atoms.refer, -1);
 
@@ -316,8 +316,7 @@ extern int ft_chunk_update(struct chunk_s *self) {
     if (!self) { return (0); }
     
     /* 'pool' reference  */    
-    struct
-    ThreadPool *pool = self->parent->pool;
+    struct thpool_s *pool = self->parent->pool;
     if (!pool) { return (0); }
     
     /* check 'state' */
@@ -361,7 +360,7 @@ extern int ft_chunk_update(struct chunk_s *self) {
 }
 
 
-extern int ft_chunk_render(struct chunk_s *self, struct VertexArray *vao, struct Shader *shader) {
+extern int ft_chunk_render(struct chunk_s *self, struct vao_s *vao, struct shader_s *shader) {
     /* null-check */
     if (!self) { return (0); }
 
@@ -370,22 +369,22 @@ extern int ft_chunk_render(struct chunk_s *self, struct VertexArray *vao, struct
        
     /* 'u_model' matrix */
     mat4 u_model = alg_mat4translate(self->offset);
-    ftShaderUniformSet(shader, "u_model", FT_UNIFORM_MATRIX4X4, &u_model);
+    ft_shader_uniform(shader, "u_model", FT_UNIFORM_MATRIX4X4, &u_model);
 
     /* render 'solid' */
     if (self->data.vbc > 0 &&
         self->data.sbc
     ) {
         /* set 'mesh' */
-        ftVertexArrayIndexBuffer(vao, self->mesh.sbo.id);
-        ftVertexArrayVertexBuffer(vao, self->mesh.vbo.id);
+        ft_vao_vbo(vao, self->mesh.vbo.id);
+        ft_vao_ibo(vao, self->mesh.sbo.id);
 
         /* draw-call */
         glDrawElements(GL_TRIANGLES, self->mesh.sbo.ids, GL_UNSIGNED_INT, (GLvoid *) (0));
     
         /* un-set 'mesh' */
-        ftVertexArrayVertexBuffer(vao, 0);
-        ftVertexArrayIndexBuffer(vao, 0);
+        ft_vao_ibo(vao, 0);
+        ft_vao_vbo(vao, 0);
     }
 
     /* success */
@@ -405,25 +404,25 @@ extern int ft_chunk_alloc(struct chunk_s *self) {
     memset(&self->data, 0, sizeof(struct chunk_data_s));
 
     /* alloc. 'id' */
-    uint *id = (uint *) malloc(size * sizeof(uint));
+    u32 *id = (u32 *) malloc(size * sizeof(u32));
     if (!id) { ft_chunk_delete(self); return (0); }
     self->data.id = id; self->data.ids = size; self->data.idc = 0;
 
     /* alloc. 'vb' */
-    uint vbs = size * 8;
-    uint *vb = (uint *) calloc(vbs, sizeof(uint));
+    u32 vbs = size * 8;
+    u32 *vb = (u32 *) calloc(vbs, sizeof(u32));
     if (!vb) { ft_chunk_delete(self); return (0); }
     self->data.vb = vb; self->data.vbs = size; self->data.vbc = 0;
 
     /* alloc. 'sb' */
-    uint sbs = size * 6;
-    uint *sb = (uint *) calloc(sbs, sizeof(uint));
+    u32 sbs = size * 6;
+    u32 *sb = (u32 *) calloc(sbs, sizeof(u32));
     if (!sb) { ft_chunk_delete(self); return (0); }
     self->data.sb = sb; self->data.sbs = size; self->data.sbc = 0;
 
     /* alloc. 'tb' */
-    uint tbs = size * 6;
-    uint *tb = (uint *) calloc(tbs, sizeof(uint));
+    u32 tbs = size * 6;
+    u32 *tb = (u32 *) calloc(tbs, sizeof(u32));
     if (!tb) { ft_chunk_delete(self); return (0); }
     self->data.tb = tb; self->data.tbs = size; self->data.tbc = 0;
     
@@ -445,30 +444,30 @@ extern int ft_chunk_clear(struct chunk_s *self) {
     if (!self) { return (0); }
     
     /* clear 'id' */
-    uint *id = self->data.id;
+    u32 *id = self->data.id;
     if (id) {
-        memset(id, 0, self->data.ids * sizeof(uint));
+        memset(id, 0, self->data.ids * sizeof(u32));
         self->data.idc = 0;
     }
     
     /* clear 'vb' */
-    uint *vb = self->data.vb;
+    u32 *vb = self->data.vb;
     if (vb) {
-        memset(vb, 0, self->data.vbs * sizeof(uint));
+        memset(vb, 0, self->data.vbs * sizeof(u32));
         self->data.vbc = 0;
     }
     
     /* clear 'sb' */
-    uint *sb = self->data.sb;
+    u32 *sb = self->data.sb;
     if (sb) {
-        memset(sb, 0, self->data.sbs * sizeof(uint));
+        memset(sb, 0, self->data.sbs * sizeof(u32));
         self->data.sbc = 0;
     }
     
     /* clear 'tb' */
-    uint *tb = self->data.tb;
+    u32 *tb = self->data.tb;
     if (tb) {
-        memset(tb, 0, self->data.tbs * sizeof(uint));
+        memset(tb, 0, self->data.tbs * sizeof(u32));
         self->data.tbc = 0;
     }
 
@@ -490,19 +489,19 @@ extern int ft_chunk_free(struct chunk_s *self) {
     memset(&self->mesh, 0, sizeof(struct chunk_mesh_s));
 
     /* release 'id' */
-    uint *id = self->data.id;
+    u32 *id = self->data.id;
     if (id) { free(id); }
     
     /* release 'vb' */
-    uint *vb = self->data.vb;
+    u32 *vb = self->data.vb;
     if (vb) { free(vb); }
     
     /* release 'sb' */
-    uint *sb = self->data.sb;
+    u32 *sb = self->data.sb;
     if (sb) { free(sb); }
     
     /* release 'tb' */
-    uint *tb = self->data.tb;
+    u32 *tb = self->data.tb;
     if (tb) { free(tb); }
     
     /* clear 'data' */

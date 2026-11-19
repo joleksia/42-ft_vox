@@ -9,26 +9,26 @@ extern int ft_world_create(struct world_s *self, const int seed) {
 
     /* alloc. 'ecs' */
     struct
-    EntitySystem *ecs = (struct EntitySystem *) calloc(1, sizeof(struct EntitySystem));
+    ecs_s *ecs = (struct ecs_s *) calloc(1, sizeof(struct ecs_s));
     if (!ecs) {
         ft_world_delete(self);
         return (0);
     }
 
     /* create 'ecs' */
-    ftEntitySystemCreate(ecs, self);
+    ft_ecs_create(ecs, self);
     self->ecs = ecs;
 
     /* alloc 'pool' */
     struct
-    ThreadPool *pool = (struct ThreadPool *) calloc(1, sizeof(struct ThreadPool));
+    thpool_s *pool = (struct thpool_s *) calloc(1, sizeof(struct thpool_s));
     if (!pool) {
         ft_world_delete(self);
         return (0);
     }
 
     /* create 'pool' */
-    ftThreadPoolCreate(pool);
+    ft_thpool_create(pool);
     self->pool = pool;
     
     size_t count = FT_VOX_RENDER_DIAMETER_X *
@@ -59,16 +59,16 @@ extern int ft_world_delete(struct world_s *self) {
 
     /* release 'pool' */
     struct
-    ThreadPool *pool = self->pool;
+    thpool_s *pool = self->pool;
     if (pool) {
-        ftThreadPoolDelete(pool); free(pool);
+        ft_thpool_delete(pool); free(pool);
     }
 
     /* release 'ecs' */
     struct
-    EntitySystem *ecs = self->ecs;
+    ecs_s *ecs = self->ecs;
     if (ecs) {
-        ftEntitySystemDelete(ecs); free(ecs);
+        ft_ecs_delete(ecs); free(ecs);
     }
    
     /* release 'chunks' */
@@ -103,9 +103,9 @@ extern int ft_world_update(struct world_s *self) {
     
     /* update 'ecs' */
     struct
-    EntitySystem *ecs = self->ecs;
+    ecs_s *ecs = self->ecs;
     if (ecs) {
-        ftEntitySystemUpdate(ecs);
+        ft_ecs_update(ecs);
     }
     
     /* iterate on every 'chunk' */
@@ -123,15 +123,15 @@ extern int ft_world_update(struct world_s *self) {
     return (1);
 }
 
-extern int ft_world_render(struct world_s *self, struct VertexArray *vao, struct Shader *shader) {
+extern int ft_world_render(struct world_s *self, struct vao_s *vao, struct shader_s *shader) {
     /* null-check */
     if (!self) { return (0); }
     
     /* render 'ecs' */
     struct
-    EntitySystem *ecs = self->ecs;
+    ecs_s *ecs = self->ecs;
     if (ecs) {
-        ftEntitySystemRender(ecs, vao, shader);
+        ft_ecs_render(ecs, vao, shader);
     }
 
     /* iterate on every 'chunk' */
@@ -229,7 +229,7 @@ extern int ft_world_center(struct world_s *self, const vec3 block) {
             /* case : 'chunk' is out-of-bounds */
             if (ft_world_out_of_bounds(self, cx, cy, cz)) {
                 /* drop all the 'chunk' jobs */
-                int dropped = ftThreadPoolDropJobs(self->pool, chunk);
+                int dropped = ft_thpool_dequeue(self->pool, chunk);
                 SDL_AtomicAdd(&chunk->atoms.refer, -dropped);
 
                 /* wait until all remaining 'chunk' jobs finish */
@@ -257,17 +257,22 @@ extern int ft_world_get(struct world_s *self, struct chunk_s **chunk, int cx, in
     /* null-check */
     if (!self)  { return (0); }
     if (!chunk) { return (0); }
-
+    
+    /* read 'origin' */
+    vec3 origin = self->origin;
+    cx -= (int) origin.x;
+    cy -= (int) origin.y;
+    cz -= (int) origin.z;
+    
     /* check if 'chunk' is out-of-bounds */
-    if (ft_world_out_of_bounds(self, cx, cy, cz)) {
-        *chunk = 0;
-        return (0);
+    if ((u32) cx >= FT_VOX_RENDER_DIAMETER_X ||
+        (u32) cy >= FT_VOX_RENDER_DIAMETER_Y ||
+        (u32) cz >= FT_VOX_RENDER_DIAMETER_Z
+    ) {
+        *chunk = 0; return (0);
     }
 
     /* return 'chunk' */
-    cx -= (int) self->origin.x;
-    cy -= (int) self->origin.y;
-    cz -= (int) self->origin.z;
     *chunk = self->chunks[FT_VOX_WORLD_3D_1D(cx, cy, cz)];
 
     /* success */
@@ -283,9 +288,9 @@ extern int ft_world_out_of_bounds(struct world_s *self, int cx, int cy, int cz) 
     cx -= self->origin.x;
     cy -= self->origin.y;
     cz -= self->origin.z;
-    int status = (uint) cx >= FT_VOX_RENDER_DIAMETER_X ||
-                 (uint) cy >= FT_VOX_RENDER_DIAMETER_Y ||
-                 (uint) cz >= FT_VOX_RENDER_DIAMETER_Z;
+    int status = (u32) cx >= FT_VOX_RENDER_DIAMETER_X ||
+                 (u32) cy >= FT_VOX_RENDER_DIAMETER_Y ||
+                 (u32) cz >= FT_VOX_RENDER_DIAMETER_Z;
 
     /* return 'status' */
     return (status);

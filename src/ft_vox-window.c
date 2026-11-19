@@ -1,16 +1,16 @@
 #include "ft_vox.h"
 
-/* 'Window' global object */
+/* static API */ 
 
-struct Window *Window = { 0 };
+struct window_s *WINDOW = 0;
 
 /* public API */
 
-extern int ftWindowCreate(const char *pTitle, const size_t width, const size_t height) {
-    /* alloc. global 'Window' object */
-    if (!Window) {
-        Window = (struct Window *) malloc(sizeof(struct Window));
-        if (!Window) {
+extern int ft_window_create(const char *title, const size_t width, const size_t height) {
+    /* alloc. global 'WINDOW' object */
+    if (!WINDOW) {
+        WINDOW = (struct window_s *) malloc(sizeof(struct window_s));
+        if (!WINDOW) {
             SDL_Quit();
             return (0);
         }
@@ -25,13 +25,13 @@ extern int ftWindowCreate(const char *pTitle, const size_t width, const size_t h
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
     /* create OpenGL 'window' */
-    void *window = SDL_CreateWindow(pTitle, SDL_WINDOWPOS_CENTERED,
-                                            SDL_WINDOWPOS_CENTERED,
-                                            width, height,
-                                            SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+    void *window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED,
+                                           SDL_WINDOWPOS_CENTERED,
+                                           width, height,
+                                           SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
     if (!window) {
         SDL_Quit();
-        free(Window);
+        free(WINDOW);
         return (0);
     }
 
@@ -40,7 +40,7 @@ extern int ftWindowCreate(const char *pTitle, const size_t width, const size_t h
     if (!context) {
         SDL_DestroyWindow(window);
         SDL_Quit();
-        free(Window);
+        free(WINDOW);
         return (0);
     }
 
@@ -48,7 +48,7 @@ extern int ftWindowCreate(const char *pTitle, const size_t width, const size_t h
         SDL_GL_DeleteContext(context);
         SDL_DestroyWindow(window);
         SDL_Quit();
-        free(Window);
+        free(WINDOW);
         return (0);
     }
 
@@ -57,20 +57,20 @@ extern int ftWindowCreate(const char *pTitle, const size_t width, const size_t h
         SDL_GL_DeleteContext(context);
         SDL_DestroyWindow(window);
         SDL_Quit();
-        free(Window);
+        free(WINDOW);
         return (0);
     }
 
     /* return results */
-    Window->window  = window;
-    Window->context = context;
+    WINDOW->window  = window;
+    WINDOW->context = context;
 
     /* set-up configuration 'flags' */
-    Window->flags.close = 0;
-    Window->flags.vsync = 1;
+    WINDOW->flags.close = 0;
+    WINDOW->flags.vsync = 1;
 
     /* configure OpenGL */
-    SDL_GL_SetSwapInterval(Window->flags.vsync);
+    SDL_GL_SetSwapInterval(WINDOW->flags.vsync);
     
     glEnable(GL_MULTISAMPLE);
     glEnable(GL_DEPTH_TEST);
@@ -81,15 +81,15 @@ extern int ftWindowCreate(const char *pTitle, const size_t width, const size_t h
 }
 
 
-extern int ftWindowDelete(void) {
+extern int ft_window_delete(void) {
     /* null-check */
-    if (!Window) { return (0); }
+    if (!WINDOW) { return (0); }
 
-    /* release 'Window's resources */
-    void *context = Window->context;
+    /* release 'window_s's resources */
+    void *context = WINDOW->context;
     if (context) { SDL_GL_DeleteContext(context); }
 
-    void *window = Window->window;
+    void *window = WINDOW->window;
     if (window) { SDL_DestroyWindow(window); }
     
     /* quit 'glld.h' */
@@ -98,58 +98,57 @@ extern int ftWindowDelete(void) {
     /* quit 'SDL2' */
     SDL_Quit();
 
-    /* release 'Window' */
-    free(Window); Window = 0;
+    /* release 'WINDOW' */
+    free(WINDOW); WINDOW = 0;
 
     /* success */
     return (1);
 }
 
 
-
-extern int ftWindowPollEvents(void) {
+extern int ft_window_poll_events(void) {
     /* null-check */
-    if (!Window) { return (0); }
+    if (!WINDOW) { return (0); }
 
     /* swap window buffers */
-    SDL_GL_SwapWindow(Window->window);
+    SDL_GL_SwapWindow(WINDOW->window);
 
-    /* update 'Window's configuration */
-    SDL_GL_SetSwapInterval(Window->flags.vsync);
+    /* update 'window_s's configuration */
+    SDL_GL_SetSwapInterval(WINDOW->flags.vsync);
 
     /* sync input objects */
-    ftKeyboardSync();
-    ftMouseSync();
-    ftTimeSync();
+    ft_keyboard_sync();
+    ft_mouse_sync();
+    ft_time_sync();
 
     /* poll events */
     SDL_Event event = { 0 };
     while (SDL_PollEvent(&event)) {
         switch (event.type) {
-            case (SDL_QUIT): { Window->flags.close = 1; } break;
+            case (SDL_QUIT): { WINDOW->flags.close = 1; } break;
 
             case (SDL_MOUSEMOTION): {
-                Mouse->position.previous = Mouse->position.current;
-                Mouse->position.current = alg_vec2(event.motion.x,
-                                                  event.motion.y);
+                MOUSE->position.previous = MOUSE->position.current;
+                MOUSE->position.current = alg_vec2(event.motion.x,
+                                                   event.motion.y);
 
-                if (Mouse->locked) {
+                if (MOUSE->locked) {
                     vec2 relative = alg_vec2(event.motion.xrel,
                                              event.motion.yrel);
-                    Mouse->position.delta = alg_vec2add(Mouse->position.delta, relative);
+                    MOUSE->position.delta = alg_vec2add(MOUSE->position.delta, relative);
                 }
             } break;
 
             case (SDL_MOUSEBUTTONUP):
             case (SDL_MOUSEBUTTONDOWN): {
-                uint8_t button = event.button.button;
-                Mouse->input.current[button] = event.button.state;
+                u8 button = event.button.button;
+                MOUSE->input.current[button] = event.button.state;
             } break;
 
             case (SDL_KEYUP):
             case (SDL_KEYDOWN): {
                 SDL_Scancode code = event.key.keysym.scancode;
-                Keyboard->current[code] = event.key.state;
+                KEYBOARD->current[code] = event.key.state;
             } break;
 
             case (SDL_WINDOWEVENT): {
@@ -169,9 +168,9 @@ extern int ftWindowPollEvents(void) {
 }
 
 
-extern int ftWindowSetTitle(const char *format, ...) {
+extern int ft_window_title(const char *format, ...) {
     /* null-check */
-    if (!Window) { return (0); }
+    if (!WINDOW) { return (0); }
 
     /* fixed-size null-terminated c-string */
     char buffer[128] = { 0 };
@@ -187,22 +186,22 @@ extern int ftWindowSetTitle(const char *format, ...) {
         snprintf((buffer + sizeof(buffer)) - 4, 4, "...");
     }
 
-    /* set 'buffer' as 'Window's title */
-    SDL_SetWindowTitle(Window->window, buffer);
+    /* set 'buffer' as 'window_s's title */
+    SDL_SetWindowTitle(WINDOW->window, buffer);
 
     /* success */
     return (1);
 }
 
 
-extern int ftWindowGetSize(int *pX, int *pY) {
+extern int ft_window_size(int *pX, int *pY) {
     /* null-check */
-    if (!Window) { return (0); }
+    if (!WINDOW) { return (0); }
 
-    /* get 'Window's size */
-    int x = 0,
+    /* get 'window_s's size */
+    i32 x = 0,
         y = 0;
-    SDL_GL_GetDrawableSize(Window->window, &x, &y);
+    SDL_GL_GetDrawableSize(WINDOW->window, &x, &y);
 
     /* return results */
     if (pX) { *pX = x; }

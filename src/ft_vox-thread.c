@@ -2,7 +2,7 @@
 
 /* static API */
 
-static int __ftThreadPoolPop(struct ThreadPool *self, struct job_node_s **pNode) {
+static int __ft_thpool_pop(struct thpool_s *self, struct job_node_s **pNode) {
     /* null-check */
     if (!self) { return (0); }
 
@@ -36,9 +36,9 @@ static int __ftThreadPoolPop(struct ThreadPool *self, struct job_node_s **pNode)
 }
 
 
-static int __ftThreadPoolUpdate(void *data) {
+static int __ft_thpool_update(void *data) {
     /* null-check */
-    struct ThreadPool *self = (struct ThreadPool *) data;
+    struct thpool_s *self = (struct thpool_s *) data;
     if (!self) { return (0); }
 
     while (SDL_AtomicGet(&self->alive)) {
@@ -58,7 +58,7 @@ static int __ftThreadPoolUpdate(void *data) {
         /* pop the 'node' */
         struct
         job_node_s *node = 0;
-        __ftThreadPoolPop(self, &node);
+        __ft_thpool_pop(self, &node);
 
         SDL_UnlockMutex(self->mutex);
     
@@ -81,7 +81,7 @@ static int __ftThreadPoolUpdate(void *data) {
 
 /* public API */
 
-extern int ftThreadPoolCreate(struct ThreadPool *self) {
+extern int ft_thpool_create(struct thpool_s *self) {
     /* null-check */
     if (!self) { return (0); }
     memset(self, 0, sizeof(*self));
@@ -95,7 +95,7 @@ extern int ftThreadPoolCreate(struct ThreadPool *self) {
     /* create 'cond' */
     SDL_cond *cond = SDL_CreateCond();
     if (!cond) {
-        ftThreadPoolDelete(self);
+        ft_thpool_delete(self);
         return (0);
     }
 
@@ -111,7 +111,7 @@ extern int ftThreadPoolCreate(struct ThreadPool *self) {
 
     SDL_Thread **threads = (SDL_Thread **) calloc(size, sizeof(SDL_Thread *));
     if (!threads) {
-        ftThreadPoolDelete(self);
+        ft_thpool_delete(self);
         return (0);
     }
     
@@ -121,7 +121,7 @@ extern int ftThreadPoolCreate(struct ThreadPool *self) {
     /* initialize each 'thread' */
     SDL_AtomicSet(&self->alive, 1);
     for (int i = 0; i < size; i++) {
-        threads[i] = SDL_CreateThread((SDL_ThreadFunction) __ftThreadPoolUpdate, "ft_vox-worker", self);
+        threads[i] = SDL_CreateThread((SDL_ThreadFunction) __ft_thpool_update, "ft_vox-worker", self);
     }
 
     /* success */
@@ -129,7 +129,7 @@ extern int ftThreadPoolCreate(struct ThreadPool *self) {
 }
 
 
-extern int ftThreadPoolDelete(struct ThreadPool *self) {
+extern int ft_thpool_delete(struct thpool_s *self) {
     /* null-check */
     if (!self) { return (0); }
     
@@ -172,7 +172,7 @@ extern int ftThreadPoolDelete(struct ThreadPool *self) {
 }
 
 
-extern int ftThreadPoolQueue(struct ThreadPool *self, void *data, int (*func) (void *)) {
+extern int ft_thpool_queue(struct thpool_s *self, void *data, int (*func) (void *)) {
     /* null-check */
     if (!self) { return (0); }
 
@@ -215,7 +215,7 @@ extern int ftThreadPoolQueue(struct ThreadPool *self, void *data, int (*func) (v
 }
 
 
-extern int ftThreadPoolDropJobs(struct ThreadPool *self, void *data) {
+extern int ft_thpool_dequeue(struct thpool_s *self, void *data) {
     /* null-check */
     if (!self) { return (0); }
     if (!data) { return (0); }

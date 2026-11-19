@@ -24,34 +24,42 @@
 
 /* typedefs */
 
-typedef signed char byte;
+typedef uint8_t u8;
 
-typedef unsigned char ubyte;
+typedef int8_t i8;
 
-typedef unsigned int uint;
+typedef int16_t i16;
+
+typedef uint16_t u16;
+
+typedef uint32_t u32;
+
+typedef int32_t i32;
+
+typedef uint64_t u64;
+
+typedef int64_t i64;
 
 
 /* Forward-Declare */
 
-struct GLvertex;
+struct window_s;
 
-struct Window;
+struct keyboard_s;
 
-struct Keyboard;
+struct mouse_s;
 
-struct Mouse;
+struct time_s;
 
-struct Time;
+struct entity_s;
 
-struct Entity;
+struct ecs_s;
 
-struct EntitySystem;
+struct shader_s;
 
-struct Shader;
+struct vao_s;
 
-struct VertexArray;
-
-struct ThreadPool;
+struct thpool_s;
 
 struct chunk_s;
 
@@ -60,107 +68,107 @@ struct world_s;
 
 /* ft_vox-window.c */
 
-struct Window {
+struct window_s {
     void *window;
     void *context;
 
     struct {
-        ubyte close : 1;
-        ubyte vsync : 1;
+        u8 close : 1;
+        u8 vsync : 1;
     } flags;
 };
 
 
-extern struct Window *Window;
+extern struct window_s *WINDOW;
 
-extern int ftWindowCreate(const char *, const size_t, const size_t);
+extern int ft_window_create(const char *, const size_t, const size_t);
 
-extern int ftWindowDelete(void);
+extern int ft_window_delete(void);
 
-extern int ftWindowPollEvents(void);
+extern int ft_window_poll_events(void);
 
-extern int ftWindowSetTitle(const char *, ...);
+extern int ft_window_title(const char *, ...);
 
-extern int ftWindowGetSize(int *, int *);
+extern int ft_window_size(int *, int *);
 
 /* ft_vox-input.c */
     
-/* create 'Keyboard' struct */
-struct Keyboard {
-    ubyte current[SDL_NUM_SCANCODES];
-    ubyte previous[SDL_NUM_SCANCODES];
+/* create 'keyboard_s' struct */
+struct keyboard_s {
+    u8 current[SDL_NUM_SCANCODES];
+    u8 previous[SDL_NUM_SCANCODES];
 };
 
-extern struct Keyboard *Keyboard;
+extern struct keyboard_s *KEYBOARD;
 
 
-extern int ftKeyboardCreate(void);
+extern int ft_keyboard_create(void);
 
-extern int ftKeyboardDelete(void);
+extern int ft_keyboard_delete(void);
 
-extern int ftKeyboardSync(void);
+extern int ft_keyboard_sync(void);
 
 
-/* create 'Mouse' struct */
-struct Mouse {
+/* create 'mouse_s' struct */
+struct mouse_s {
     struct {
         vec2 current;
         vec2 previous;
         vec2 delta;
     } position;
     struct {
-        ubyte current[8];
-        ubyte previous[8];
+        u8 current[8];
+        u8 previous[8];
     } input;
-    ubyte locked;
+    u8 locked;
 };
 
-extern struct Mouse *Mouse;
+extern struct mouse_s *MOUSE;
 
 
-extern int ftMouseCreate(void);
+extern int ft_mouse_create(void);
 
-extern int ftMouseDelete(void);
+extern int ft_mouse_delete(void);
 
-extern int ftMouseSync(void);
+extern int ft_mouse_sync(void);
 
 
-/* create 'Time' struct */
-struct Time {
+/* create 'time_s' struct */
+struct time_s {
     double current;
     double previous;
     double delta;
 };
 
-extern struct Time *Time;
+extern struct time_s *TIME;
 
 
-extern int ftTimeCreate(void);
+extern int ft_time_create(void);
 
-extern int ftTimeDelete(void);
+extern int ft_time_delete(void);
 
-extern int ftTimeSync(void);
+extern int ft_time_sync(void);
 
 
 /* ft_vox-entity.c */
 
-struct Entity {
-    /* 'parent' : EntitySystem-parent object */
+struct entity_s {
+    /* 'parent' : ecs_s-parent object */
     struct
-    EntitySystem *parent;
+    ecs_s *parent;
 
-    /* 'ID' : ID of this entity, used for O(1) look-up into 'parent' */
-    size_t ID;
+    /* 'id' : ID of this entity, used for O(1) look-up into 'parent' */
+    size_t id;
 
     /* methods used by this entity */
-    int (*create) (struct Entity *);
-    int (*delete) (struct Entity *);
-    int (*update) (struct Entity *);
-    int (*render) (struct Entity *, struct VertexArray *, struct Shader *);
+    int (*create) (struct entity_s *);
+    int (*delete) (struct entity_s *);
+    int (*update) (struct entity_s *);
+    int (*render) (struct entity_s *, struct vao_s *, struct shader_s *);
 };
 
 
-struct EntitySystem {
+struct ecs_s {
     /* 'parent' : parent reference */
     struct
     world_s *parent;
@@ -168,27 +176,27 @@ struct EntitySystem {
     /* 'entities' : vector of entities */
     struct {
         struct
-        Entity **data;
+        entity_s **data;
         size_t count;
         size_t capacity;
     } entities;
 };
 
 
-extern int ftEntitySystemCreate(struct EntitySystem *, struct world_s *);
+extern int ft_ecs_create(struct ecs_s *, struct world_s *);
 
-extern int ftEntitySystemDelete(struct EntitySystem *);
+extern int ft_ecs_delete(struct ecs_s *);
 
-extern int ftEntitySystemUpdate(struct EntitySystem *);
+extern int ft_ecs_update(struct ecs_s *);
 
-extern int ftEntitySystemRender(struct EntitySystem *, struct VertexArray *, struct Shader *);
+extern int ft_ecs_render(struct ecs_s *, struct vao_s *, struct shader_s *);
 
-extern int ftEntitySystemInsert(struct EntitySystem *, struct Entity *);
+extern int ft_ecs_insert(struct ecs_s *, struct entity_s *);
 
 
 /* ft_vox-shader.c */
 
-enum ShaderType {
+enum shader_type_e {
     FT_SHADER_VERTEX = 0,
 
     FT_SHADER_TESS_CTRL = 1,
@@ -207,7 +215,7 @@ enum ShaderType {
 };
 
 
-enum ShaderUniformType {
+enum uniform_type_e {
     FT_UNIFORM_NONE = 0,
 
     FT_UNIFORM_MATRIX4X4,
@@ -218,11 +226,11 @@ enum ShaderUniformType {
 };
 
 
-struct Shader {
-    /* Shader 'program' */
-    GLuint program;
+struct shader_s {
+    /* 'id' : shader program's ID */
+    GLuint id;
 
-    /* Shader 'pipeline':
+    /* 'pipeline' : shader's exec. pipeline:
      * - [0] : vertex
      * - [1] : tess. control
      * - [2] : tess. evaluation 
@@ -235,50 +243,47 @@ struct Shader {
 };
 
 
-extern int ftShaderCreate(struct Shader **);
+extern int ft_shader_create(struct shader_s **);
 
-extern int ftShaderDelete(struct Shader *);
+extern int ft_shader_delete(struct shader_s *);
 
-extern int ftShaderLoadGLSL(struct Shader *, FILE *, enum ShaderType);
+extern int ft_shader_load(struct shader_s *, FILE *, enum shader_type_e);
 
-extern int ftShaderUniformSet(struct Shader *, const char *, enum ShaderUniformType, const void *);
+extern int ft_shader_uniform(struct shader_s *, const char *, enum uniform_type_e, const void *);
 
 
 /* ft_vox-vertex-array.c */
 
-struct VertexArray {
-    /* vao' 'ID' */
-    GLuint ID;
+struct vao_s {
+    /* 'id' : vertex array object's ID */
+    GLuint id;
 };
 
 
-extern int ftVertexArrayCreate(struct VertexArray **);
+extern int ft_vao_create(struct vao_s **);
 
-extern int ftVertexArrayDelete(struct VertexArray *);
+extern int ft_vao_delete(struct vao_s *);
 
-extern int ftVertexArrayLayoutFloat(struct VertexArray *, const size_t, const size_t, const size_t);
+extern int ft_vao_layoutf(struct vao_s *, const size_t, const size_t, const size_t);
 
-extern int ftVertexArrayLayoutDouble(struct VertexArray *, const size_t, const size_t, const size_t);
+extern int ft_vao_layoutd(struct vao_s *, const size_t, const size_t, const size_t);
 
-extern int ftVertexArrayLayoutByte(struct VertexArray *, const size_t, const size_t, const size_t);
+extern int ft_vao_layoutb(struct vao_s *, const size_t, const size_t, const size_t);
 
-extern int ftVertexArrayLayoutShort(struct VertexArray *, const size_t, const size_t, const size_t);
+extern int ft_vao_layouts(struct vao_s *, const size_t, const size_t, const size_t);
 
-extern int ftVertexArrayLayoutInt(struct VertexArray *, const size_t, const size_t, const size_t);
+extern int ft_vao_layouti(struct vao_s *, const size_t, const size_t, const size_t);
 
-extern int ftVertexArrayLayoutLong(struct VertexArray *, const size_t, const size_t, const size_t);
+extern int ft_vao_layoutl(struct vao_s *, const size_t, const size_t, const size_t);
 
-extern int ftVertexArrayVertexBuffer(struct VertexArray *, const GLuint);
+extern int ft_vao_vbo(struct vao_s *, const GLuint);
 
-extern int ftVertexArrayIndexBuffer(struct VertexArray *, const GLuint);
+extern int ft_vao_ibo(struct vao_s *, const GLuint);
 
 
 /* ft_vox-camera.c */
 
-/* 'Camera' : perspective 3D projection structure.
- * */
-
-struct Camera {
+struct camera_s {
     /* 'position' : current camera position */
     vec3 position;
 
@@ -299,11 +304,11 @@ struct Camera {
     float fieldOfView;
 };
 
-extern int ftCameraMove(struct Camera *, float);
+extern int ft_camera_move(struct camera_s *, float);
 
-extern int ftCameraRotate(struct Camera *, float);
+extern int ft_camera_rotate(struct camera_s *, float);
 
-extern int ftCameraMatrix(struct Camera *, mat4 *, mat4 *);
+extern int ft_camera_matrix(struct camera_s *, mat4 *, mat4 *);
 
 
 /* ft_vox-thread.c */
@@ -324,7 +329,7 @@ struct job_node_s {
 };
 
 
-struct ThreadPool {
+struct thpool_s {
     /* 'mutex' : main thread pool mutex */
     SDL_mutex *mutex;
 
@@ -350,13 +355,13 @@ struct ThreadPool {
 };
 
 
-extern int ftThreadPoolCreate(struct ThreadPool *);
+extern int ft_thpool_create(struct thpool_s *);
 
-extern int ftThreadPoolDelete(struct ThreadPool *);
+extern int ft_thpool_delete(struct thpool_s *);
 
-extern int ftThreadPoolQueue(struct ThreadPool *, void *, int (*) (void *));
+extern int ft_thpool_queue(struct thpool_s *, void *, int (*) (void *));
 
-extern int ftThreadPoolDropJobs(struct ThreadPool *, void *);
+extern int ft_thpool_dequeue(struct thpool_s *, void *);
 
 
 /* ft_vox-chunk.c */
@@ -390,19 +395,19 @@ struct chunk_mesh_s {
 
 
 struct chunk_data_s {
-    uint  *id;
+    u32 *id;
     size_t ids,
            idc;
     
-    uint  *vb;
+    u32 *vb;
     size_t vbs,
            vbc;
     
-    uint  *sb;
+    u32 *sb;
     size_t sbs,
            sbc;
     
-    uint  *tb;
+    u32 *tb;
     size_t tbs,
            tbc;
 };
@@ -451,7 +456,7 @@ extern int ft_chunk_delete(struct chunk_s *);
 
 extern int ft_chunk_update(struct chunk_s *);
 
-extern int ft_chunk_render(struct chunk_s *, struct VertexArray *, struct Shader *);
+extern int ft_chunk_render(struct chunk_s *, struct vao_s *, struct shader_s *);
 
 extern int ft_chunk_alloc(struct chunk_s *);
 
@@ -500,13 +505,13 @@ extern int ft_chunk_set(struct chunk_s *, int, int, int, int);
                                                   floorf((z))))
 
 struct world_s {
-    /* 'ecs' : 'EntitySystem' object */
+    /* 'ecs' : 'ecs_s' object */
     struct
-    EntitySystem *ecs;
+    ecs_s *ecs;
 
-    /* 'pool' : 'ThreadPool' object */
+    /* 'pool' : 'thpool_s' object */
     struct
-    ThreadPool *pool;
+    thpool_s *pool;
 
     /* 'chunks' : array of chunk pointers */
     struct
@@ -519,7 +524,7 @@ struct world_s {
     vec3 origin;
 
     /* 'seed' : 32-bit seed of the world */
-    int seed;
+    u32 seed;
 };
 
 
@@ -529,7 +534,7 @@ extern int ft_world_delete(struct world_s *);
 
 extern int ft_world_update(struct world_s *);
 
-extern int ft_world_render(struct world_s *, struct VertexArray *, struct Shader *);
+extern int ft_world_render(struct world_s *, struct vao_s *, struct shader_s *);
 
 extern int ft_world_center(struct world_s *, const vec3);
 

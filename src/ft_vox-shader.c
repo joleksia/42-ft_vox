@@ -9,20 +9,51 @@ static const GLenum FT_VOX_SHADER_MAPPING[8] = { GL_VERTEX_SHADER,
                                                  GL_FRAGMENT_SHADER,
                                                  GL_COMPUTE_SHADER, };
 
-static GLint __ftReadFile(FILE *, char **, size_t *);
+
+static GLint __ft_read_file(FILE *file, char **cstr, size_t *size) {
+    /* null-check */
+    if (!file) { return (GL_INVALID_VALUE); }
+
+    /* the the size of the 'file' */
+    fseek(file, 0, SEEK_END);
+    size_t fsize = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    /* create null-terminated c-string pointer of size of 'file' */
+    char *fcstr = (char *) calloc(fsize + 1, sizeof(char));
+    if (!fcstr) { return (0); }
+
+    /* read 'file' to 'cstr' */
+    if (fread(fcstr, sizeof(*fcstr), fsize, file) != fsize) {
+        /* 'fread' didn't match the 'fsize'; something bad happened */
+        free(fcstr); fcstr = 0;
+        return (0);
+    }
+
+    /* return */
+    if (size) { *size = fsize; }
+    if (cstr) { *cstr = fcstr; }
+    else {
+        /* can't return 'cstr'; release 'fcstr' */
+        free(fcstr); fcstr = 0;
+    }
+
+    /* success */
+    return (1);
+}
 
 /* public API */
 
-extern int ftShaderCreate(struct Shader **self) {
+extern int ft_shader_create(struct shader_s **self) {
     /* null-check */
     if (!self) { return (0); }
 
     /* alloc. 'shader' */
-    struct Shader *shader = (struct Shader *) malloc(sizeof(struct Shader));
+    struct shader_s *shader = (struct shader_s *) malloc(sizeof(struct shader_s));
     if (!shader) { return (0); }
 
-    /* create 'shader's 'program' */
-    shader->program = glCreateProgram();
+    /* create 'shader's 'id' */
+    shader->id = glCreateProgram();
 
     /* create 'shader's 'pipeline' */
     for (size_t i = FT_SHADER_VERTEX; i < FT_SHADER_TYPE_COUNT; i++) {
@@ -36,7 +67,7 @@ extern int ftShaderCreate(struct Shader **self) {
     return (1);
 }
 
-extern int ftShaderDelete(struct Shader *self) {
+extern int ft_shader_delete(struct shader_s *self) {
     /* null-check */
     if (!self) { return (0); }
 
@@ -45,8 +76,8 @@ extern int ftShaderDelete(struct Shader *self) {
         glDeleteShader(self->pipeline[i]), self->pipeline[i] = 0;
     }
 
-    /* clear 'program' */
-    glDeleteProgram(self->program), self->program = 0;
+    /* clear 'id' */
+    glDeleteProgram(self->id), self->id = 0;
 
     /* release 'self' */
     free(self);
@@ -55,14 +86,14 @@ extern int ftShaderDelete(struct Shader *self) {
     return (1);
 }
 
-extern int ftShaderLoadGLSL(struct Shader *self, FILE *pFile, enum ShaderType type) {
+extern int ft_shader_load(struct shader_s *self, FILE *file, enum shader_type_e type) {
     /* null-check */
     if (!self) { return (0); }
-    if (!pFile)   { return (0); }
+    if (!file)   { return (0); }
 
-    /* read 'pFile' */
+    /* read 'file' */
     GLchar *code = 0;
-    __ftReadFile(pFile, &code, 0);
+    __ft_read_file(file, &code, 0);
     if (!code) { return (0); }
 
     /* compile */
@@ -84,17 +115,17 @@ extern int ftShaderLoadGLSL(struct Shader *self, FILE *pFile, enum ShaderType ty
     }
 
     /* link */
-    glAttachShader(self->program, self->pipeline[type]);
-    glLinkProgram(self->program);
+    glAttachShader(self->id, self->pipeline[type]);
+    glLinkProgram(self->id);
 
     /* 'link' status */
     GLint link = 0;
-    glGetProgramiv(self->program, GL_LINK_STATUS, &link);
+    glGetProgramiv(self->id, GL_LINK_STATUS, &link);
     if (link != GL_TRUE) {
         /* get error 'log' */
         GLchar log[1024] = { 0 };
         GLsizei length = 0;
-        glGetProgramInfoLog(self->program, sizeof(log), &length, log);
+        glGetProgramInfoLog(self->id, sizeof(log), &length, log);
 
         /* print 'log' */
         printf("link: %s\n", log);
@@ -108,11 +139,11 @@ extern int ftShaderLoadGLSL(struct Shader *self, FILE *pFile, enum ShaderType ty
     return (1);
 }
 
-extern int ftShaderUniformSet(struct Shader *self, const char *pName, enum ShaderUniformType type, const void *pData) {
+extern int ft_shader_uniform(struct shader_s *self, const char *name, enum uniform_type_e type, const void *data) {
     /* null-check */
     if (!self) { return (0); }
-    if (!pName)   { return (0); }
-    if (!pData)   { return (0); }
+    if (!name) { return (0); }
+    if (!data) { return (0); }
 
     /* set 'type' uniform */
     switch (type) {
@@ -121,48 +152,14 @@ extern int ftShaderUniformSet(struct Shader *self, const char *pName, enum Shade
         /* 'type' : 'FT_UNIFORM_MATRIX4X4' */
         case (FT_UNIFORM_MATRIX4X4): {
             /* get uniform 'location' */
-            GLint location = glGetUniformLocation(self->program, pName);
+            GLint location = glGetUniformLocation(self->id, name);
             if (location == -1) {
                 return (0);
             }
 
-            /* set uniform 'pData' */
-            glProgramUniformMatrix4fv(self->program, location, 1, GL_FALSE, pData);
+            /* set uniform 'data' */
+            glProgramUniformMatrix4fv(self->id, location, 1, GL_FALSE, data);
         } break;
-    }
-
-    /* success */
-    return (1);
-}
-
-/* static API */
-
-static GLint __ftReadFile(FILE *pFile, char **pCstr, size_t *pSize) {
-    /* null-check */
-    if (!pFile) { return (GL_INVALID_VALUE); }
-
-    /* the the size of the 'pFile' */
-    fseek(pFile, 0, SEEK_END);
-    size_t fsize = ftell(pFile);
-    fseek(pFile, 0, SEEK_SET);
-
-    /* create null-terminated c-string pointer of size of 'pFile' */
-    char *fcstr = (char *) calloc(fsize + 1, sizeof(char));
-    if (!fcstr) { return (0); }
-
-    /* read 'pFile' to 'cstr' */
-    if (fread(fcstr, sizeof(*fcstr), fsize, pFile) != fsize) {
-        /* 'fread' didn't match the 'fsize'; something bad happened */
-        free(fcstr); fcstr = 0;
-        return (0);
-    }
-
-    /* return */
-    if (pSize) { *pSize = fsize; }
-    if (pCstr) { *pCstr = fcstr; }
-    else {
-        /* can't return 'pCstr'; release 'fcstr' */
-        free(fcstr); fcstr = 0;
     }
 
     /* success */

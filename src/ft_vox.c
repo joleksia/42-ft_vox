@@ -1,24 +1,24 @@
 #include "ft_vox.h"
 
-struct PlayerEntity {
-    /* 'parent' : EntitySystem-parent object */
+struct player_s {
+    /* 'parent' : parent reference */
     struct
-    EntitySystem *parent;
+    ecs_s *parent;
 
-    /* 'ID' : ID of this entity, used for O(1) look-up into 'parent' */
-    size_t ID;
+    /* 'id' : ID of this entity, used for O(1) look-up into 'parent' */
+    size_t id;
 
     /* methods used by this entity */
-    int (*create) (struct Entity *);
-    int (*delete) (struct Entity *);
-    int (*update) (struct Entity *);
-    int (*render) (struct Entity *, struct VertexArray *, struct Shader *);
+    int (*create) (struct entity_s *);
+    int (*delete) (struct entity_s *);
+    int (*update) (struct entity_s *);
+    int (*render) (struct entity_s *, struct vao_s *, struct shader_s *);
 
-    /* 'PlayerEntity' specific */
+    /* 'player_s' specific */
 
     /* 'camera' : 3D perspective projection */
     struct
-    Camera camera;
+    camera_s camera;
 
     /* 'position' : 3D position */
     vec3 position;
@@ -28,17 +28,17 @@ struct PlayerEntity {
 };
 
 
-static int ftPlayerCreate(struct Entity *self) {
+static int ft_player_create(struct entity_s *self) {
     /* null-check */
     if (!self) { return (0); }
 
-    /* get 'PlayerEntity' */
+    /* get 'player_s' */
     struct
-    PlayerEntity *player = (struct PlayerEntity *) self;
+    player_s *player = (struct player_s *) self;
     if (!player) { return (0); }
 
     /* create 'camera' */
-    player->camera = (struct Camera) {
+    player->camera = (struct camera_s) {
         .position = alg_vec3(0.0, 0.0, 0.0),
         .rotation = alg_vec3(0.0, 0.0, -1.0),
         .direction = alg_vec3(0.0, 0.0, -90.0),
@@ -51,13 +51,13 @@ static int ftPlayerCreate(struct Entity *self) {
 }
 
 
-static int ftPlayerDelete(struct Entity *self) {
+static int ft_player_delete(struct entity_s *self) {
     /* null-check */
     if (!self) { return (0); }
 
-    /* get 'PlayerEntity' */
+    /* get 'player_s' */
     struct
-    PlayerEntity *player = (struct PlayerEntity *) self;
+    player_s *player = (struct player_s *) self;
     if (!player) { return (0); }
 
     /* ... */ (void) player;
@@ -67,35 +67,35 @@ static int ftPlayerDelete(struct Entity *self) {
 }
 
 
-static int ftPlayerUpdate(struct Entity *self) {
+static int ft_player_update(struct entity_s *self) {
     /* null-check */
     if (!self) { return (0); }
 
-    /* get 'PlayerEntity' */
+    /* get 'player_s' */
     struct
-    PlayerEntity *player = (struct PlayerEntity *) self;
+    player_s *player = (struct player_s *) self;
     if (!player) { return (0); }
         
     /* enable 'locked' mode */
-    if (Mouse->input.current[1]  == 1 &&
-        Mouse->input.previous[1] == 0
+    if (MOUSE->input.current[1]  == 1 &&
+        MOUSE->input.previous[1] == 0
     ) {
-        Mouse->locked = 1;
-        SDL_SetRelativeMouseMode(Mouse->locked);
+        MOUSE->locked = 1;
+        SDL_SetRelativeMouseMode(MOUSE->locked);
     }
 
     /* disable 'locked' mode */
-    if (Keyboard->current[SDL_SCANCODE_ESCAPE]  == 1 &&
-        Keyboard->previous[SDL_SCANCODE_ESCAPE] == 0
+    if (KEYBOARD->current[SDL_SCANCODE_ESCAPE]  == 1 &&
+        KEYBOARD->previous[SDL_SCANCODE_ESCAPE] == 0
     ) {
-        Mouse->locked = 0;
-        SDL_SetRelativeMouseMode(Mouse->locked);
+        MOUSE->locked = 0;
+        SDL_SetRelativeMouseMode(MOUSE->locked);
     }
 
     /* update 'camera' */
-    if (Mouse->locked) {
-        ftCameraMove(&player->camera, 128.0 * Time->delta);
-        ftCameraRotate(&player->camera, 0.1);
+    if (MOUSE->locked) {
+        ft_camera_move(&player->camera, 128.0 * TIME->delta);
+        ft_camera_rotate(&player->camera, 0.1);
     }
 
     /* update 'player's 'position' */
@@ -118,21 +118,21 @@ static int ftPlayerUpdate(struct Entity *self) {
 }
 
 
-static int ftPlayerRender(struct Entity *self, struct VertexArray *vao, struct Shader *shader) {
+static int ft_player_render(struct entity_s *self, struct vao_s *vao, struct shader_s *shader) {
     /* null-check */
     if (!self) { return (0); }
 
-    /* get 'PlayerEntity' */
+    /* get 'player_s' */
     struct
-    PlayerEntity *player = (struct PlayerEntity *) self;
+    player_s *player = (struct player_s *) self;
     if (!player) { return (0); }
    
     /* create 'u_proj' and 'u_view' projection matrices */
     mat4 u_proj = alg_mat4(1.0),
          u_view = alg_mat4(1.0);
-    ftCameraMatrix(&player->camera, &u_proj, &u_view);
-    ftShaderUniformSet(shader, "u_proj", FT_UNIFORM_MATRIX4X4, &u_proj);
-    ftShaderUniformSet(shader, "u_view", FT_UNIFORM_MATRIX4X4, &u_view);
+    ft_camera_matrix(&player->camera, &u_proj, &u_view);
+    ft_shader_uniform(shader, "u_proj", FT_UNIFORM_MATRIX4X4, &u_proj);
+    ft_shader_uniform(shader, "u_view", FT_UNIFORM_MATRIX4X4, &u_view);
 
     /* 'vao' is unused */
     (void) vao;
@@ -146,57 +146,57 @@ int main(void) {
 
     /* create OpenGL window */
     
-    if (!ftWindowCreate("42warsaw - ft_vox", 800, 600)) { return (1); }
+    if (!ft_window_create("42warsaw - ft_vox", 800, 600)) { return (1); }
    
     /* create input objects */
     
-    ftKeyboardCreate();
-    ftMouseCreate();
-    ftTimeCreate();
+    ft_keyboard_create();
+    ft_mouse_create();
+    ft_time_create();
 
     /* create 'shader' */
 
     struct
-    Shader *shader = 0;
-    ftShaderCreate(&shader);
+    shader_s *shader = 0;
+    ft_shader_create(&shader);
 
     /* load 'vertex.glsl' */
     FILE *fp_vertex_glsl = fopen("src/glsl/vertex.glsl", "rb");
     if (fp_vertex_glsl) {
-        ftShaderLoadGLSL(shader, fp_vertex_glsl, FT_SHADER_VERTEX);
+        ft_shader_load(shader, fp_vertex_glsl, FT_SHADER_VERTEX);
         fclose(fp_vertex_glsl);
     }
 
     /* load 'fragment.glsl' */
     FILE *fp_fragment_glsl = fopen("src/glsl/fragment.glsl", "rb");
     if (fp_fragment_glsl) {
-        ftShaderLoadGLSL(shader, fp_fragment_glsl, FT_SHADER_FRAGMENT);
+        ft_shader_load(shader, fp_fragment_glsl, FT_SHADER_FRAGMENT);
         fclose(fp_fragment_glsl);
     }
 
     /* create vertex array */
 
     struct
-    VertexArray *vao = 0;
-    ftVertexArrayCreate(&vao);
-    ftVertexArrayLayoutInt(vao, 0, 1, 0);
+    vao_s *vao = 0;
+    ft_vao_create(&vao);
+    ft_vao_layouti(vao, 0, 1, 0);
 
     /* create 'world' */
 
     srand(time(0));
     
     struct
-    world_s *world = (struct world_s *) malloc(sizeof(struct world_s));
+    world_s *world = (struct world_s *) calloc(1, sizeof(struct world_s));
     ft_world_create(world, rand());
 
     /* create 'player' entity */
     struct
-    PlayerEntity *player = calloc(1, sizeof(struct PlayerEntity));
-    player->create = ftPlayerCreate;
-    player->delete = ftPlayerDelete;
-    player->update = ftPlayerUpdate;
-    player->render = ftPlayerRender;
-    ftEntitySystemInsert(world->ecs, (struct Entity *) player);
+    player_s *player = calloc(1, sizeof(struct player_s));
+    player->create = ft_player_create;
+    player->delete = ft_player_delete;
+    player->update = ft_player_update;
+    player->render = ft_player_render;
+    ft_ecs_insert(world->ecs, (struct entity_s *) player);
 
     /* update-render loop */
 
@@ -205,7 +205,8 @@ int main(void) {
         /* update */
 
         /* set new 'window' title */
-        ftWindowSetTitle("42warsaw - ft_vox (FPS.: %d)", (int) (1.0 / Time->delta));
+        u32 fps = round(1.0 / TIME->delta);
+        ft_window_title("42warsaw - ft_vox (FPS.: %d)", fps);
 
         /* update 'world' */
         ft_world_update(world);
@@ -218,8 +219,8 @@ int main(void) {
                 GL_DEPTH_BUFFER_BIT);
 
         /* render current vertex array */
-        glUseProgram(shader->program);
-        glBindVertexArray(vao->ID);
+        glUseProgram(shader->id);
+        glBindVertexArray(vao->id);
 
         /* render 'world' */
         ft_world_render(world, vao, shader);
@@ -228,27 +229,27 @@ int main(void) {
         glUseProgram(0);
 
         /* poll-events */
-        ftWindowPollEvents();
+        ft_window_poll_events();
 
-    } while (!Window->flags.close);
+    } while (!WINDOW->flags.close);
 
     /* unload 'world' */
     ft_world_delete(world);
 
     /* unload OpenGL */
 
-    ftShaderDelete(shader);
-    ftVertexArrayDelete(vao);
+    ft_shader_delete(shader);
+    ft_vao_delete(vao);
     
     /* unload input objects */
     
-    ftTimeDelete();
-    ftMouseDelete();
-    ftKeyboardDelete();
+    ft_time_delete();
+    ft_mouse_delete();
+    ft_keyboard_delete();
 
     /* quit */
 
-    ftWindowDelete();
+    ft_window_delete();
 
     return (0);
 }
