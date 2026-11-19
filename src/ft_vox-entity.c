@@ -1,12 +1,12 @@
 #include "ft_vox.h"
 
-extern int ftEntitySystemCreate(struct EntitySystem *self, struct World *pWorld) {
+extern int ftEntitySystemCreate(struct EntitySystem *self, struct world_s *parent) {
     /* null-check */
     if (!self)   { return (0); }
-    if (!pWorld) { return (0); }
+    if (!parent) { return (0); }
 
-    /* reference 'pWorld' parent */ 
-    self->parent = pWorld;
+    /* reference 'parent' */ 
+    self->parent = parent;
 
     /* create 'entities' vector */
     size_t count = 0;

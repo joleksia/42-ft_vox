@@ -9,7 +9,7 @@ MK_ROOT	= $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 CC = cc
 
 # compiler flags
-CFLAGS = -Wall -Wextra -Werror -std=c99 -ggdb3 -g -O1 -fsanitize=address
+CFLAGS = -Wall -Wextra -Werror -std=c99 -ggdb3 -O0 -fsanitize=address
 
 # linker files
 LFLAGS = -l:libSDL2.so 		\
@@ -22,7 +22,7 @@ LDFLAGS = # ...
 IFLAGS = -I $(MK_ROOT)glld.h	\
 		 -I $(MK_ROOT)algebra.h	\
 		 -I $(MK_ROOT)noise.h	\
-		 -I $(MK_ROOT)/inc		\
+		 -I $(MK_ROOT)inc		\
 
 # preprocessor definitions
 DFLAGS = # ... 

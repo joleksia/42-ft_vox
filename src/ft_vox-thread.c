@@ -59,11 +59,18 @@ static int __ftThreadPoolUpdate(void *data) {
         struct
         job_node_s *node = 0;
         __ftThreadPoolPop(self, &node);
+
         SDL_UnlockMutex(self->mutex);
     
         /* exec. 'node' */
         if (node) {
-            node->func(node->data);
+            void *func = node->func;
+            void *data = node->data;
+            if (func) {
+                ((thread_pool_func_t) func) (data);
+            }
+            
+            /* release 'node' */
             free(node);
         }
     }
@@ -95,10 +102,11 @@ extern int ftThreadPoolCreate(struct ThreadPool *self) {
     self->cond = cond;
 
     /* create 'threads' */
-    int cpu_count = SDL_GetCPUCount();
-    int size = FT_VOX_THREAD_POOL_SIZE;
-    if (size > cpu_count) {
-        size = cpu_count - 1;
+    int size = SDL_GetCPUCount();
+    if (size > 0) {
+        size -= 1;
+    } else {
+        size = 1;
     }
 
     SDL_Thread **threads = (SDL_Thread **) calloc(size, sizeof(SDL_Thread *));
@@ -217,17 +225,39 @@ extern int ftThreadPoolDropJobs(struct ThreadPool *self, void *data) {
     /* lock 'mutex' */
     SDL_LockMutex(self->mutex);
 
-    /* iterate over each 'node' in 'pool' */
+    /* iterate over each node in 'pool' */
     struct
-    job_node_s *curr = self->jobs.head;
+    job_node_s *curr = self->jobs.head,
+               *next = 0,
+               *prev = 0;
     while (curr) {
+        next = curr->next;
+
         /* case : 'data' found */
         if (curr->data == data) {
-            /* set 'curr's 'data' to null */
-            curr->data = 0;
+            /* re-position 'head' */
+            if (prev) {
+                prev->next = next;
+            } else {
+                self->jobs.head = next;
+            }
+
+            /* re-position 'tail' */
+            if (self->jobs.tail == curr) {
+                self->jobs.tail = prev;
+            }
+
+            /* release 'curr' job */
+            free(curr);
+            self->jobs.size--; drop++;
         }
 
-        curr = curr->next;
+        /* case : 'data' not found */
+        else {
+            prev = curr;
+        }
+
+        curr = next;
     }
 
     /* unlock 'mutex' */

@@ -94,7 +94,7 @@ static int ftPlayerUpdate(struct Entity *self) {
 
     /* update 'camera' */
     if (Mouse->locked) {
-        ftCameraMove(&player->camera, 8.0 * Time->delta);
+        ftCameraMove(&player->camera, 128.0 * Time->delta);
         ftCameraRotate(&player->camera, 0.1);
     }
 
@@ -106,16 +106,12 @@ static int ftPlayerUpdate(struct Entity *self) {
                                        position.y,
                                        position.z);
 
-    /* re-center the 'world' center to 'block' if needed */
-    if (alg_vec3ne(block, player->block)) {
-        /* update 'player's 'block' position */
-        player->block = block;
+    /* update 'player's positions */
+    player->block = block;
+    player->position = position;
 
-        /* get 'world' reference */
-        struct
-        World *world = self->parent->parent;
-        ftWorldSetCenter(world, block);
-    }
+    /* change 'parent's origin */
+    ft_world_center(self->parent->parent, block);
 
     /* success */
     return (1);
@@ -190,8 +186,8 @@ int main(void) {
     srand(time(0));
     
     struct
-    World world = { 0 };
-    ftWorldCreate(&world, rand());
+    world_s *world = (struct world_s *) malloc(sizeof(struct world_s));
+    ft_world_create(world, rand());
 
     /* create 'player' entity */
     struct
@@ -200,7 +196,7 @@ int main(void) {
     player->delete = ftPlayerDelete;
     player->update = ftPlayerUpdate;
     player->render = ftPlayerRender;
-    ftEntitySystemInsert(world.ecs, (struct Entity *) player);
+    ftEntitySystemInsert(world->ecs, (struct Entity *) player);
 
     /* update-render loop */
 
@@ -212,7 +208,7 @@ int main(void) {
         ftWindowSetTitle("42warsaw - ft_vox (FPS.: %d)", (int) (1.0 / Time->delta));
 
         /* update 'world' */
-        ftWorldUpdate(&world);
+        ft_world_update(world);
 
         /* render */
 
@@ -226,7 +222,7 @@ int main(void) {
         glBindVertexArray(vao->ID);
 
         /* render 'world' */
-        ftWorldRender(&world, vao, shader);
+        ft_world_render(world, vao, shader);
 
         glBindVertexArray(0);
         glUseProgram(0);
@@ -237,7 +233,7 @@ int main(void) {
     } while (!Window->flags.close);
 
     /* unload 'world' */
-    ftWorldDelete(&world);
+    ft_world_delete(world);
 
     /* unload OpenGL */
 
