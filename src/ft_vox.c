@@ -12,7 +12,7 @@ struct player_s {
     int (*create) (struct entity_s *);
     int (*delete) (struct entity_s *);
     int (*update) (struct entity_s *);
-    int (*render) (struct entity_s *, struct vao_s *, struct shader_s *);
+    int (*render) (struct entity_s *, struct shader_s *);
 
     /* 'player_s' specific */
 
@@ -94,7 +94,7 @@ static int ft_player_update(struct entity_s *self) {
 
     /* update 'camera' */
     if (MOUSE->locked) {
-        ft_camera_move(&player->camera, 128.0 * TIME->delta);
+        ft_camera_move(&player->camera, 8.0 * TIME->delta);
         ft_camera_rotate(&player->camera, 0.1);
     }
 
@@ -118,7 +118,7 @@ static int ft_player_update(struct entity_s *self) {
 }
 
 
-static int ft_player_render(struct entity_s *self, struct vao_s *vao, struct shader_s *shader) {
+static int ft_player_render(struct entity_s *self, struct shader_s *shader) {
     /* null-check */
     if (!self) { return (0); }
 
@@ -133,9 +133,6 @@ static int ft_player_render(struct entity_s *self, struct vao_s *vao, struct sha
     ft_camera_matrix(&player->camera, &u_proj, &u_view);
     ft_shader_uniform(shader, "u_proj", FT_UNIFORM_MATRIX4X4, &u_proj);
     ft_shader_uniform(shader, "u_view", FT_UNIFORM_MATRIX4X4, &u_view);
-
-    /* 'vao' is unused */
-    (void) vao;
 
     /* success */
     return (1);
@@ -174,13 +171,6 @@ int main(void) {
         fclose(fp_fragment_glsl);
     }
 
-    /* create vertex array */
-
-    struct
-    vao_s *vao = 0;
-    ft_vao_create(&vao);
-    ft_vao_layouti(vao, 0, 1, 0);
-
     /* create 'world' */
 
     srand(time(0));
@@ -218,14 +208,11 @@ int main(void) {
         glClear(GL_COLOR_BUFFER_BIT |
                 GL_DEPTH_BUFFER_BIT);
 
-        /* render current vertex array */
         glUseProgram(shader->id);
-        glBindVertexArray(vao->id);
-
+        
         /* render 'world' */
-        ft_world_render(world, vao, shader);
-
-        glBindVertexArray(0);
+        ft_world_render(world, shader);
+        
         glUseProgram(0);
 
         /* poll-events */
@@ -234,12 +221,12 @@ int main(void) {
     } while (!WINDOW->flags.close);
 
     /* unload 'world' */
+   
     ft_world_delete(world);
 
     /* unload OpenGL */
 
     ft_shader_delete(shader);
-    ft_vao_delete(vao);
     
     /* unload input objects */
     

@@ -2,283 +2,38 @@
 
 /* static API */
 
-static const i8 FT_VOX_FACE_DIRECTION[] = {  0,  0, -1, /* north (-z) */
-                                             0,  0,  1, /* south (+z) */
-                                            -1,  0,  0, /* west  (-x) */
-                                             1,  0,  0, /* east  (+x) */
-                                             0, -1,  0, /* down  (-y) */
-                                             0,  1,  0, /* top   (+y) */ };
+static int __ft_push(u32 **, u32 *, u32 *, u32 *, u32);
 
-static const u8 FT_VOX_FACE_UNIQUE[]  = { 1, 0, 5, 2 };
-static const u8 FT_VOX_FACE_INDICES[] = { 1, 0, 3, 1, 3, 2, };
-static const u8 FT_VOX_CUBE_INDICES[] = { 1, 0, 3, 1, 3, 2, /* north (-z) */
-                                          4, 5, 6, 4, 6, 7, /* south (+z) */
-                                          0, 4, 7, 0, 7, 3, /* west  (-x) */
-                                          5, 1, 2, 5, 2, 6, /* east  (+x) */
-                                          5, 4, 0, 5, 0, 1, /* down  (-y) */
-                                          2, 3, 7, 2, 7, 6, /* top   (+y) */ };
+static u32 __ft_vertex(int, int, int, int, int);
 
-static const u8 FT_VOX_CUBE_POSITION[] = { 0, 0, 0,
-                                           1, 0, 0,
-                                           1, 1, 0,
-                                           0, 1, 0,
-                                           0, 0, 1,
-                                           1, 0, 1,
-                                           1, 1, 1,
-                                           0, 1, 1, };
+static int __ft_face_cube(u32, int, int, int, int, u32 *, u32 *, u32 *);
 
-static const u8 FT_VOX_CUBE_NORMAL[] = { 0, 0, 1, /* north (-z) */
-                                         0, 0, 1, /* south (+z) */
-                                         1, 0, 0, /* west  (-x) */
-                                         1, 0, 0, /* east  (+x) */
-                                         0, 1, 0, /* down  (-y) */
-                                         0, 1, 0, /* top   (+y) */ };
+static int __ft_chunk_data_alloc(struct chunk_data_s *);
 
-static const u8 FT_VOX_CUBE_TEXCOORD[] = { 1, 0,
-                                           0, 0,
-                                           0, 1,
-                                           1, 1, };
+static int __ft_chunk_data_free(struct chunk_data_s *);
 
+static int __ft_chunk_mesh_alloc(struct chunk_mesh_s *);
 
-static int __ft_face_cube(u32 *vb, size_t *vbs, u32 *ib, size_t *ibs, int face, int x, int y, int z) {
-    /* 'vb' : send face */
-    GLsizei base = *vbs;
-    for (size_t j = 0; j < 4; j++) {
-        const u8 *vp = &FT_VOX_CUBE_POSITION[FT_VOX_CUBE_INDICES[face * 6 + FT_VOX_FACE_UNIQUE[j]] * 3];
-        const u8 *vn = &FT_VOX_CUBE_NORMAL[face * 3];
-        const u8 *vt = &FT_VOX_CUBE_TEXCOORD[j * 2];
-        u32 vertex = /* pack: 'vp' */
-                      (((vp[0] + (u32) x) & 0xffu) << 0)  |
-                      (((vp[1] + (u32) y) & 0xffu) << 8)  |
-                      (((vp[2] + (u32) z) & 0xffu) << 16) |
+static int __ft_chunk_mesh_free(struct chunk_mesh_s *);
 
-                      /* pack: 'vn' */
-                      (((vn[0]) & 0x01u) << 24) |
-                      (((vn[1]) & 0x01u) << 25) |
-                      (((vn[2]) & 0x01u) << 26) |
-                        
-                      /* pack: 'vt' */
-                      ((vt[0] & 0x01u) << 27) |
-                      ((vt[1] & 0x01u) << 28);
+static int __ft_chunk_mesh_render_s(struct chunk_mesh_s *, struct chunk_s *, struct shader_s *);
 
-        vb[(*vbs)++] = vertex;
-    }
+static int __ft_chunk_mesh_render_t(struct chunk_mesh_s *, struct chunk_s *, struct shader_s *);
 
-    /* 'ib' : send face */
-    for (size_t j = 0; j < 6; j++) {
-        u32 index = base + FT_VOX_FACE_INDICES[j];
-        ib[(*ibs)++] = index;
-    }
+static int __ft_chunk_populate(struct chunk_s *);
 
-    /* success */
-    return (1);
-}
+static int __ft_chunk_mesh_bake(struct chunk_data_s *, struct chunk_s *);
 
-
-static int __ft_chunk_generate(struct chunk_s *self) {
-    /* null-check */
-    if (!self) { return (0); }
-
-    /* check 'state' */
-    SDL_atomic_t *state = &self->atoms.state;
-    if (SDL_AtomicGet(&self->atoms.state) != FT_CHUNK_CPU_QUEUED) {
-        return (0);
-    }
-
-    /* get 'data' */
-    u32 *id = self->data.id;
-    if (!id) {
-        return (0);
-    }
-
-    /* get 'offset' */
-    vec3 offset = self->offset;
-
-    /* get 'seed' from 'parent' */
-    int seed = self->parent->seed;
-   
-    /* fill 'data' with some procedural ID's */
-    for (int y = 0; y < FT_VOX_CHUNK_SIZE_Y; y++) {
-    for (int x = 0; x < FT_VOX_CHUNK_SIZE_X; x++) {
-    for (int z = 0; z < FT_VOX_CHUNK_SIZE_Z; z++) {
-        double noise = perlin3d((offset.x + x) * 0.01,
-                                (offset.y + y) * 0.01,
-                                (offset.z + z) * 0.01,
-                                 seed);
-
-        /* > 'noise' <= '0.0' : air
-         * > 'noise' >  '0.0' : no-air
-         * */
-        if (noise > 0.0) {
-            ft_chunk_set(self, x, y, z, 1);
-        }
-
-        /* set 'air' */
-        else {
-            ft_chunk_set(self, x, y, z, 0);
-        }
-    }}}
-
-    /* set 'state' */
-    SDL_AtomicSet(state, FT_CHUNK_CPU_FINISH);
-
-    /* success */
-    return (1);
-}
-
-
-static int __ft_chunk_mesh_cpu(struct chunk_s *self) {
-    /* null-check */
-    if (!self) { return (0); }
-
-    /* check 'state' */
-    SDL_atomic_t *state = &self->atoms.state;
-    if (SDL_AtomicGet(state) != FT_CHUNK_GPU_QUEUED) {
-        return (0);
-    }
-
-    /* get 'data' */
-    u32 *vb = self->data.vb; size_t *vbc = &self->data.vbc;
-    u32 *sb = self->data.sb; size_t *sbc = &self->data.sbc;
-    u32 *tb = self->data.tb; size_t *tbc = &self->data.tbc;
-    for (int y = 0; y < FT_VOX_CHUNK_SIZE_Y; y++) {
-    for (int x = 0; x < FT_VOX_CHUNK_SIZE_X; x++) {
-    for (int z = 0; z < FT_VOX_CHUNK_SIZE_Z; z++) {
-        /* get the 'block' */
-        int id = ft_chunk_get(self, x, y, z);
-
-        /* case : 'air' */
-        if (!id) { continue; }
-            
-        /* get the neighbors */
-        int ids[6] = { 0 };
-        for (size_t i = 0; i < 6; i++) {
-            const i8 *direction = &FT_VOX_FACE_DIRECTION[i * 3];
-            ids[i] = ft_chunk_get(self, x + direction[0],
-                                        y + direction[1],
-                                        z + direction[2]);
-        }
-
-        /* case : 'issolid' */
-        if (id == 1) {
-            /* assemble faces */
-            for (size_t i = 0; i < 6; i++) {
-                int id = ids[i];
-
-                /* skip if not 'trans.' */
-                if (id != 0) { continue; }
-
-                __ft_face_cube(vb, vbc,
-                               sb, sbc,
-                               i, x, y, z);
-            }
-        }
-
-        /* case : 'istrans' */
-        else if (id == 2) {
-            /* assemble faces */
-            for (size_t i = 0; i < 6; i++) {
-                int id = ids[i];
-
-                /* skip if not 'solid', nor 'air' */
-                if (id != 0 &&
-                    id != 1
-                ) {
-                    continue;
-                }
-
-                __ft_face_cube(vb, vbc,
-                               tb, tbc,
-                               i, x, y, z);
-            }
-        }
-
-    }}}
-
-    /* set 'state' */
-    SDL_AtomicSet(state, FT_CHUNK_GPU_FINISH);
-
-    /* success */
-    return (1);
-}
-
-
-static int __ft_chunk_mesh_gpu(struct chunk_s *self) {
-    /* null-check */
-    if (!self) { return (0); }
-
-    /* check 'state' */
-    SDL_atomic_t *state = &self->atoms.state;
-    if (SDL_AtomicGet(state) != FT_CHUNK_GPU_FINISH) {
-        return (0);
-    }
-
-    /* get 'data' */
-    u32 *vb = self->data.vb; size_t vbc = self->data.vbc;
-    u32 *sb = self->data.sb; size_t sbc = self->data.sbc;
-    u32 *tb = self->data.tb; size_t tbc = self->data.tbc;
-
-    /* get 'mesh' */
-    struct
-    chunk_mesh_s *mesh = &self->mesh;
-
-    /* set 'vertex' data */
-    if (vbc > 0) {
-        self->mesh.vbo.ids = self->data.vbc;
-        glNamedBufferData(mesh->vbo.id, vbc * sizeof(u32), vb, GL_DYNAMIC_DRAW);
-    }
-
-    /* set 'solid' data */
-    if (sbc) {
-        self->mesh.sbo.ids = self->data.sbc;
-        glNamedBufferData(mesh->sbo.id, sbc * sizeof(u32), sb, GL_DYNAMIC_DRAW);
-    }
-    
-    /* set 'trans' data */
-    if (tbc) {
-        self->mesh.tbo.ids = self->data.tbc;
-        glNamedBufferData(mesh->tbo.id, tbc * sizeof(u32), tb, GL_DYNAMIC_DRAW);
-    }
-
-    /* set 'state' */
-    SDL_AtomicSet(state, FT_CHUNK_RENDER);
-
-    /* return 'status' */
-    return (1);
-}
-
-
-static int __ft_chunk_queue_job(struct chunk_s *self, struct thpool_s *pool, thread_pool_func_t job) {
-    /* null-check */
-    if (!self) { return (0); }
-    if (!pool) { return (0); }
-
-    /* pin */
-    SDL_AtomicAdd(&self->atoms.refer, 1);
-    if (!ft_thpool_queue(pool, self, job)) {
-        /* unpin on error */
-        SDL_AtomicAdd(&self->atoms.refer, -1);
-
-        /* failure */
-        return (0);
-    }
-
-    /* success */
-    return (1);
-}
+static int __ft_chunk_mesh_upload(struct chunk_mesh_s *, struct chunk_data_s *, struct chunk_s *);
 
 /* public API */
 
 extern int ft_chunk_create(struct chunk_s *self, struct world_s *parent, int x, int y, int z) {
     /* null-check */
-    if (!self)   { return (0); }
-    if (!parent) { return (0); }
+    if (!self) { return (0); }
 
     /* set 'chunk's 'parent' */
     self->parent = parent;
-
-    /* set 'atoms' */
-    SDL_AtomicSet(&self->atoms.state, FT_CHUNK_CREATE);
 
     /* set 'origin' */
     self->origin = alg_vec3(x, y, z);
@@ -288,8 +43,8 @@ extern int ft_chunk_create(struct chunk_s *self, struct world_s *parent, int x, 
                             y * FT_VOX_CHUNK_SIZE_Y,
                             z * FT_VOX_CHUNK_SIZE_Z);
 
-    /* set 'state' */
-    SDL_AtomicSet(&self->atoms.state, FT_CHUNK_CREATE);
+    /* set 'atoms' */
+    SDL_AtomicSet(&self->atoms.is_created, 1);
 
     /* success */
     return (1);
@@ -318,41 +73,25 @@ extern int ft_chunk_update(struct chunk_s *self) {
     /* 'pool' reference  */    
     struct thpool_s *pool = self->parent->pool;
     if (!pool) { return (0); }
-    
-    /* check 'state' */
-    switch (SDL_AtomicGet(&self->atoms.state)) {
-        case (FT_CHUNK_CREATE): {
-            if (SDL_AtomicCAS(&self->atoms.state, FT_CHUNK_CREATE,
-                                                  FT_CHUNK_CPU_QUEUED)
-            ) {
-                __ft_chunk_queue_job(self, pool, (thread_pool_func_t) ft_chunk_generate);
-            }
-        } break;
-        
-        case (FT_CHUNK_CPU_FINISH): {
-            if (SDL_AtomicCAS(&self->atoms.state, FT_CHUNK_CPU_FINISH,
-                                                  FT_CHUNK_GPU_QUEUED)
-            ) {
-                __ft_chunk_queue_job(self, pool, (thread_pool_func_t) ft_chunk_mesh_cpu);
-            }
-        } break;
-        
-        case (FT_CHUNK_GPU_FINISH): {
-            ft_chunk_mesh_gpu(self);
-        } break;
 
-        case (FT_CHUNK_RENDER): {
-            /* check if chunk was modified ('dirty' flag set) */
-            if (SDL_AtomicGet(&self->atoms.dirty)) {
-                if (SDL_AtomicCAS(&self->atoms.state, FT_CHUNK_RENDER,
-                                                      FT_CHUNK_GPU_QUEUED)
-                ) {
-                    /* re-mesh 'self' */
-                    SDL_AtomicSet(&self->atoms.dirty, 0);
-                    __ft_chunk_queue_job(self, pool, (thread_pool_func_t) ft_chunk_mesh_cpu);
-                }
-            }
-        } break;
+    /* case : 'is_created' */
+    if (SDL_AtomicGet(&self->atoms.is_created)) {
+        ft_thpool_queue(pool, self, (thread_pool_func_t) ft_chunk_populate);
+    }
+
+    /* case : 'is_populated' */
+    if (SDL_AtomicGet(&self->atoms.is_populated)) {
+        ft_thpool_queue(pool, self, (thread_pool_func_t) ft_chunk_mesh_bake);
+    }
+
+    /* case : 'is_modified' */
+    if (SDL_AtomicGet(&self->atoms.is_modified)) {
+        ft_thpool_queue(pool, self, (thread_pool_func_t) ft_chunk_mesh_bake);
+    }
+
+    /* case : 'is_meshed' */
+    if (SDL_AtomicGet(&self->atoms.is_meshed)) {
+        ft_chunk_mesh_upload(self);
     }
 
     /* success */
@@ -360,31 +99,25 @@ extern int ft_chunk_update(struct chunk_s *self) {
 }
 
 
-extern int ft_chunk_render(struct chunk_s *self, struct vao_s *vao, struct shader_s *shader) {
+extern int ft_chunk_render(struct chunk_s *self, struct shader_s *shader) {
     /* null-check */
     if (!self) { return (0); }
 
     /* atom-check */
-    if (SDL_AtomicGet(&self->atoms.state) != FT_CHUNK_RENDER) { return (1); }
-       
-    /* 'u_model' matrix */
-    mat4 u_model = alg_mat4translate(self->offset);
-    ft_shader_uniform(shader, "u_model", FT_UNIFORM_MATRIX4X4, &u_model);
+    if (SDL_AtomicGet(&self->atoms.is_uploaded)) {
+        /* get 'mesh' */
+        struct
+        chunk_mesh_s *mesh = &self->mesh;
+        
+        /* render 'solid' */
+        if (mesh->count[0] > 0) {
+            __ft_chunk_mesh_render_s(mesh, self, shader);
+        }
 
-    /* render 'solid' */
-    if (self->data.vbc > 0 &&
-        self->data.sbc
-    ) {
-        /* set 'mesh' */
-        ft_vao_vbo(vao, self->mesh.vbo.id);
-        ft_vao_ibo(vao, self->mesh.sbo.id);
-
-        /* draw-call */
-        glDrawElements(GL_TRIANGLES, self->mesh.sbo.ids, GL_UNSIGNED_INT, (GLvoid *) (0));
-    
-        /* un-set 'mesh' */
-        ft_vao_ibo(vao, 0);
-        ft_vao_vbo(vao, 0);
+        /* render 'trans' */
+        if (mesh->count[1] > 0) {
+            __ft_chunk_mesh_render_t(mesh, self, shader);
+        }
     }
 
     /* success */
@@ -395,44 +128,27 @@ extern int ft_chunk_render(struct chunk_s *self, struct vao_s *vao, struct shade
 extern int ft_chunk_alloc(struct chunk_s *self) {
     /* null-check */
     if (!self) { return (0); }
-        
-    size_t size = FT_VOX_CHUNK_SIZE_X *
-                  FT_VOX_CHUNK_SIZE_Y *
-                  FT_VOX_CHUNK_SIZE_Z;
+
+    /* create 'blocks' */
+    u32 *blocks = (u32 *) calloc(FT_VOX_CHUNK_SIZE, sizeof(u32));
+    if (!blocks) {
+        ft_chunk_delete(self);
+        return (0);
+    }
+    
+    self->blocks = blocks;
 
     /* create 'data' */
-    memset(&self->data, 0, sizeof(struct chunk_data_s));
-
-    /* alloc. 'id' */
-    u32 *id = (u32 *) malloc(size * sizeof(u32));
-    if (!id) { ft_chunk_delete(self); return (0); }
-    self->data.id = id; self->data.ids = size; self->data.idc = 0;
-
-    /* alloc. 'vb' */
-    u32 vbs = size * 8;
-    u32 *vb = (u32 *) calloc(vbs, sizeof(u32));
-    if (!vb) { ft_chunk_delete(self); return (0); }
-    self->data.vb = vb; self->data.vbs = size; self->data.vbc = 0;
-
-    /* alloc. 'sb' */
-    u32 sbs = size * 6;
-    u32 *sb = (u32 *) calloc(sbs, sizeof(u32));
-    if (!sb) { ft_chunk_delete(self); return (0); }
-    self->data.sb = sb; self->data.sbs = size; self->data.sbc = 0;
-
-    /* alloc. 'tb' */
-    u32 tbs = size * 6;
-    u32 *tb = (u32 *) calloc(tbs, sizeof(u32));
-    if (!tb) { ft_chunk_delete(self); return (0); }
-    self->data.tb = tb; self->data.tbs = size; self->data.tbc = 0;
+    if (!__ft_chunk_data_alloc(&self->data)) {
+        ft_chunk_delete(self);
+        return (0);
+    }
     
     /* create 'mesh' */
-    memset(&self->mesh, 0, sizeof(struct chunk_mesh_s));
-
-    /* return 'mesh' */
-    glCreateBuffers(1, &self->mesh.vbo.id);
-    glCreateBuffers(1, &self->mesh.sbo.id);
-    glCreateBuffers(1, &self->mesh.tbo.id);
+    if (!__ft_chunk_mesh_alloc(&self->mesh)) {
+        ft_chunk_delete(self);
+        return (0);
+    }
 
     /* success */
     return (1);
@@ -442,34 +158,10 @@ extern int ft_chunk_alloc(struct chunk_s *self) {
 extern int ft_chunk_clear(struct chunk_s *self) {
     /* null-check */
     if (!self) { return (0); }
-    
-    /* clear 'id' */
-    u32 *id = self->data.id;
-    if (id) {
-        memset(id, 0, self->data.ids * sizeof(u32));
-        self->data.idc = 0;
-    }
-    
-    /* clear 'vb' */
-    u32 *vb = self->data.vb;
-    if (vb) {
-        memset(vb, 0, self->data.vbs * sizeof(u32));
-        self->data.vbc = 0;
-    }
-    
-    /* clear 'sb' */
-    u32 *sb = self->data.sb;
-    if (sb) {
-        memset(sb, 0, self->data.sbs * sizeof(u32));
-        self->data.sbc = 0;
-    }
-    
-    /* clear 'tb' */
-    u32 *tb = self->data.tb;
-    if (tb) {
-        memset(tb, 0, self->data.tbs * sizeof(u32));
-        self->data.tbc = 0;
-    }
+
+    /* clear 'blocks' */
+    u32 *blocks = self->blocks;
+    if (blocks) { memset(blocks, 0, FT_VOX_CHUNK_SIZE * sizeof(*blocks)); }
 
     /* success */
     return (1);
@@ -481,72 +173,19 @@ extern int ft_chunk_free(struct chunk_s *self) {
     if (!self) { return (0); }
     
     /* release 'mesh' */
-    glDeleteBuffers(1, &self->mesh.vbo.id);
-    glDeleteBuffers(1, &self->mesh.sbo.id);
-    glDeleteBuffers(1, &self->mesh.tbo.id);
-    
-    /* clear 'mesh' */
-    memset(&self->mesh, 0, sizeof(struct chunk_mesh_s));
+    __ft_chunk_mesh_free(&self->mesh);
 
-    /* release 'id' */
-    u32 *id = self->data.id;
-    if (id) { free(id); }
-    
-    /* release 'vb' */
-    u32 *vb = self->data.vb;
-    if (vb) { free(vb); }
-    
-    /* release 'sb' */
-    u32 *sb = self->data.sb;
-    if (sb) { free(sb); }
-    
-    /* release 'tb' */
-    u32 *tb = self->data.tb;
-    if (tb) { free(tb); }
-    
-    /* clear 'data' */
-    memset(&self->data, 0, sizeof(struct chunk_data_s));
+    /* release 'data' */
+    __ft_chunk_data_free(&self->data);
+
+    /* release 'blocks' */
+    u32 *blocks = self->blocks;
+    if (blocks) {
+        free(blocks);
+    }
 
     /* success */
     return (1);
-}
-
-
-extern int ft_chunk_generate(struct chunk_s *self) {
-    /* null-check */
-    if (!self) { return (0); }
-
-    /* call func. */
-    int status = __ft_chunk_generate(self);
-    SDL_AtomicAdd(&self->atoms.refer, -1);
-
-    /* return 'status' */
-    return (status);
-}
-
-
-extern int ft_chunk_mesh_cpu(struct chunk_s *self) {
-    /* null-check */
-    if (!self) { return (0); }
-
-    /* call func. */
-    int status = __ft_chunk_mesh_cpu(self);
-    SDL_AtomicAdd(&self->atoms.refer, -1);
-
-    /* return 'status' */
-    return (status);
-}
-
-
-extern int ft_chunk_mesh_gpu(struct chunk_s *self) {
-    /* null-check */
-    if (!self) { return (0); }
-
-    /* call func. */
-    int status = __ft_chunk_mesh_gpu(self);
-
-    /* return 'status' */
-    return (status);
 }
 
 
@@ -582,14 +221,14 @@ extern int ft_chunk_get(struct chunk_s *self, int bx, int by, int bz) {
     ) {
         ft_world_get(self->parent, &self, cx, cy, cz);
         if (!self) {
-            return (-1);
+            return (0);
         }
     }
     
     /* return 'id' */
-    int id = -1;
-    if (self->data.id) {
-        id = self->data.id[FT_VOX_CHUNK_3D_1D(bx, by, bz)];
+    int id = 0;
+    if (self->blocks) {
+        id = self->blocks[FT_VOX_CHUNK_3D_1D(bx, by, bz)];
     }
 
     /* success */
@@ -607,8 +246,459 @@ extern int ft_chunk_set(struct chunk_s *self, int bx, int by, int bz, int id) {
     bz = alg_clamp(bz, 0, FT_VOX_CHUNK_SIZE_Z - 1);
 
     /* set 'id' */
-    if (self->data.id) {
-        self->data.id[FT_VOX_CHUNK_3D_1D(bx, by, bz)] = id;
+    if (self->blocks) {
+        self->blocks[FT_VOX_CHUNK_3D_1D(bx, by, bz)] = id;
+    }
+
+    /* success */
+    return (1);
+}
+
+
+extern int ft_chunk_populate(struct chunk_s *self) {
+    /* null-check */
+    if (!self) { return (0); }
+
+    /* inc. 'refer' */
+    SDL_AtomicAdd(&self->atoms.refer, 1);
+
+    /* call func. */
+    int status = __ft_chunk_populate(self);
+    if (status) {
+        SDL_AtomicSet(&self->atoms.is_populated, 1);
+    }
+
+    /* dec. 'refer' */
+    SDL_AtomicAdd(&self->atoms.refer, -1);
+
+    /* return 'status' */
+    return (status);
+}
+
+
+extern int ft_chunk_mesh_bake(struct chunk_s *self) {
+    /* null-check */
+    if (!self) { return (0); }
+    
+    /* inc. 'refer' */
+    SDL_AtomicAdd(&self->atoms.refer, 1);
+
+    /* call func. */
+    int status = __ft_chunk_mesh_bake(&self->data, self);
+    if (status) {
+        SDL_AtomicSet(&self->atoms.is_meshed, 1);
+    }
+
+    /* dec. 'refer' */
+    SDL_AtomicAdd(&self->atoms.refer, -1);
+
+    /* return 'status' */
+    return (status);
+}
+
+
+extern int ft_chunk_mesh_upload(struct chunk_s *self) {
+    /* null-check */
+    if (!self) { return (0); }
+    
+    /* inc. 'refer' */
+    SDL_AtomicAdd(&self->atoms.refer, 1);
+
+    /* call func. */
+    int status = __ft_chunk_mesh_upload(&self->mesh, &self->data, self);
+    if (status) {
+        SDL_AtomicSet(&self->atoms.is_uploaded, 1);
+    }
+
+    /* dec. 'refer' */
+    SDL_AtomicAdd(&self->atoms.refer, -1);
+
+    /* return 'status' */
+    return (status);
+}
+
+/* static API */
+
+static int __ft_push(u32 **arr, u32 *cnt, u32 *cap, u32 *dat, u32 siz) {
+    /* 'cap' check */
+    if (*cnt + siz > *cap) {
+        /* create 'newcap' capacity */
+        u32 newcap = *cap * 2;
+        if (!newcap) { newcap = 1; }
+
+        /* resize 'newcap' until it's greater than 'cnt' + 'siz' */
+        while (newcap < *cnt + siz) {
+            newcap *= 2;
+        }
+
+        /* alloc. 'tmp' */
+        u32 *tmp = (u32 *) realloc(*arr, newcap * sizeof(u32));
+        if (!tmp) {
+            return (0);
+        }
+
+        /* return 'tmp' and 'newcap' */
+        *arr = tmp;
+        *cap = newcap;
+    }
+
+    /* concat. 'dat' to 'arr' */
+    memcpy(*arr + *cnt, dat, siz * sizeof(u32));
+    *cnt += siz;
+
+    /* success */
+    return (1);
+}
+
+
+static u32 __ft_vertex(int x, int y, int z, int u, int v) {
+    u32 vertex = 0;
+
+    /* pack : position */
+    vertex |= x <<  0|
+              y <<  8|
+              z << 16;
+
+    /* pack : texcoord */
+    vertex |= u << 24|
+              v << 28;
+
+    /* return 'vertex' */
+    return (vertex);
+}
+
+
+static int __ft_face_cube(u32 block, int face, int x, int y, int z, u32 *v, u32 *i, u32 *ioff) {
+    (void) block;
+
+    /* vertices... */
+    if (!v) { return (0); }
+    switch (face) {
+        case (FT_CHUNK_FACE_NORTH): {
+            v[0] = __ft_vertex(x + 1, y    , z    , 0, 0);
+            v[1] = __ft_vertex(x    , y    , z    , 1, 0);
+            v[2] = __ft_vertex(x    , y + 1, z    , 1, 1);
+            v[3] = __ft_vertex(x + 1, y + 1, z    , 0, 1);
+        } break;
+
+        case (FT_CHUNK_FACE_SOUTH): {
+            v[0] = __ft_vertex(x    , y    , z + 1, 0, 0);
+            v[1] = __ft_vertex(x + 1, y    , z + 1, 1, 0);
+            v[2] = __ft_vertex(x + 1, y + 1, z + 1, 1, 1);
+            v[3] = __ft_vertex(x    , y + 1, z + 1, 0, 1);
+        } break;
+
+        case (FT_CHUNK_FACE_WEST): {
+            v[0] = __ft_vertex(x    , y    , z    , 0, 0);
+            v[1] = __ft_vertex(x    , y    , z + 1, 1, 0);
+            v[2] = __ft_vertex(x    , y + 1, z + 1, 1, 1);
+            v[3] = __ft_vertex(x    , y + 1, z    , 0, 1);
+        } break;
+
+        case (FT_CHUNK_FACE_EAST): {
+            v[0] = __ft_vertex(x + 1, y    , z + 1, 0, 0);
+            v[1] = __ft_vertex(x + 1, y    , z    , 1, 0);
+            v[2] = __ft_vertex(x + 1, y + 1, z    , 1, 1);
+            v[3] = __ft_vertex(x + 1, y + 1, z + 1, 0, 1);
+        } break;
+
+        case (FT_CHUNK_FACE_DOWN): {
+            v[0] = __ft_vertex(x    , y    , z    , 0, 0);
+            v[1] = __ft_vertex(x + 1, y    , z    , 1, 0);
+            v[2] = __ft_vertex(x + 1, y    , z + 1, 1, 1);
+            v[3] = __ft_vertex(x    , y    , z + 1, 0, 1);
+        } break;
+
+        case (FT_CHUNK_FACE_TOP): {
+            v[0] = __ft_vertex(x    , y + 1, z + 1, 0, 0);
+            v[1] = __ft_vertex(x + 1, y + 1, z + 1, 1, 0);
+            v[2] = __ft_vertex(x + 1, y + 1, z    , 1, 1);
+            v[3] = __ft_vertex(x    , y + 1, z    , 0, 1);
+        } break;
+    }
+
+    /* indices... */
+    if (!i) { return (0); }
+    i[0] = *ioff + 1;
+    i[1] = *ioff + 0;
+    i[2] = *ioff + 3;
+    i[3] = *ioff + 1;
+    i[4] = *ioff + 3;
+    i[5] = *ioff + 2;
+
+    /* success */
+    *ioff += 4;
+    return (1);
+}
+
+
+static int __ft_chunk_data_alloc(struct chunk_data_s *self) {
+    /* null-check */
+    if (!self) { return (0); }
+
+    /* clear 'self' */
+    memset(self, 0, sizeof(struct chunk_data_s));
+
+    /* alloc. 'self' */
+    self->v_solid.cnt = 0;
+    self->v_solid.cap = 1;
+    self->v_solid.arr = (u32 *) calloc(self->v_solid.cap, sizeof(u32));
+
+    self->i_solid.cnt = 0;
+    self->i_solid.cap = 1;
+    self->i_solid.arr = (u32 *) calloc(self->i_solid.cap, sizeof(u32));
+
+    self->v_trans.cnt = 0;
+    self->v_trans.cap = 1;
+    self->v_trans.arr = (u32 *) calloc(self->v_trans.cap, sizeof(u32));
+
+    self->i_trans.cnt = 0;
+    self->i_trans.cap = 1;
+    self->i_trans.arr = (u32 *) calloc(self->i_trans.cap, sizeof(u32));
+
+    /* success */
+    return (1);
+}
+
+
+static int __ft_chunk_data_free(struct chunk_data_s *self) {
+    /* null-check */
+    if (!self) { return (0); }
+
+    /* release 'self' */
+    free(self->v_solid.arr), self->v_solid.cnt = self->v_solid.cap = 0;
+    free(self->v_trans.arr), self->v_trans.cnt = self->v_trans.cap = 0;
+    free(self->i_solid.arr), self->i_solid.cnt = self->i_solid.cap = 0;
+    free(self->i_trans.arr), self->i_trans.cnt = self->i_trans.cap = 0;
+
+    /* success */
+    return (1);
+}
+
+
+static int __ft_chunk_mesh_alloc(struct chunk_mesh_s *self) {
+    /* null-check */
+    if (!self) { return (0); }
+    
+    /* clear 'self' */
+    memset(self, 0, sizeof(struct chunk_mesh_s));
+
+    /* create 'vbo's */
+    glCreateBuffers(2, self->vbo);
+    
+    /* create 'ibo's */
+    glCreateBuffers(2, self->ibo);
+
+    /* create 'vao's */
+    glCreateVertexArrays(2, self->vao);
+    
+    /* config. 'vao's */
+    for (size_t i = 0; i < countof(self->vao); i++) {
+        /* 'vao' layout */
+        glEnableVertexArrayAttrib( self->vao[i], 0);
+        glVertexArrayAttribBinding(self->vao[i], 0, 0);
+        glVertexArrayAttribIFormat(self->vao[i], 0, 1, GL_UNSIGNED_INT, 0);
+
+        /* bind 'vbo' and 'ibo' */
+        glVertexArrayVertexBuffer(self->vao[i], 0,
+                                  self->vbo[i], 0,
+                                  sizeof(u32));
+
+        glVertexArrayElementBuffer(self->vao[i],
+                                   self->ibo[i]);
+    }
+
+    /* success */
+    return (1);
+}
+
+
+static int __ft_chunk_mesh_free(struct chunk_mesh_s *self) {
+    /* null-check */
+    if (!self) { return (0); }
+    
+    /* release 'self' */
+    glDeleteVertexArrays(2, self->vao);
+    glDeleteBuffers(2, self->vbo);
+    glDeleteBuffers(2, self->ibo);
+    
+    /* clear 'self' */
+    memset(self, 0, sizeof(struct chunk_mesh_s));
+
+    /* success */
+    return (1);
+}
+
+
+static int __ft_chunk_mesh_render_s(struct chunk_mesh_s *self, struct chunk_s *chunk, struct shader_s *shader) {
+    /* null-check */
+    if (!self)   { return (0); }
+    if (!chunk)  { return (0); }
+    if (!shader) { return (0); }
+    
+    /* 'u_model' matrix */
+    mat4 u_model = alg_mat4translate(chunk->offset);
+    ft_shader_uniform(shader, "u_model", FT_UNIFORM_MATRIX4X4, &u_model);
+
+    /* bind 'vao' */
+    glBindVertexArray(self->vao[0]);
+
+    /* draw-call */
+    glDrawElements(GL_TRIANGLES, self->count[0], GL_UNSIGNED_INT, (GLvoid *) (0));
+
+    /* success */
+    return (1);
+}
+
+
+static int __ft_chunk_mesh_render_t(struct chunk_mesh_s *self, struct chunk_s *chunk, struct shader_s *shader) {
+    /* null-check */
+    if (!self)   { return (0); }
+    if (!chunk)  { return (0); }
+    if (!shader) { return (0); }
+    
+    /* 'u_model' matrix */
+    mat4 u_model = alg_mat4translate(chunk->offset);
+    ft_shader_uniform(shader, "u_model", FT_UNIFORM_MATRIX4X4, &u_model);
+
+    /* bind 'vao' */
+    glBindVertexArray(self->vao[1]);
+
+    /* draw-call */
+    glDrawElements(GL_TRIANGLES, self->count[1], GL_UNSIGNED_INT, (GLvoid *) (0));
+
+    /* success */
+    return (1);
+}
+
+
+static int __ft_chunk_populate(struct chunk_s *self) {
+    /* null-check */
+    if (!self) { return (0); }
+
+    /* atom-check */
+    if (!SDL_AtomicGet(&self->atoms.is_created)) { return (0); }
+    SDL_AtomicSet(&self->atoms.is_created, 0);
+    
+    printf("0x%lx: %s\n", SDL_GetThreadID(0), __FUNCTION__);
+
+    /* iterate on every 'block' */
+    for (int y = 0; y < FT_VOX_CHUNK_SIZE_Y; y++) {
+    for (int x = 0; x < FT_VOX_CHUNK_SIZE_X; x++) {
+    for (int z = 0; z < FT_VOX_CHUNK_SIZE_Z; z++) {
+        double noise = perlin3d((self->offset.x + x) * 0.01,
+                                (self->offset.y + y) * 0.01,
+                                (self->offset.z + z) * 0.01,
+                                 self->parent->seed);
+
+        /* > 'noise' <= '0.0' : air
+         * > 'noise' >  '0.0' : no-air
+         * */
+        if (noise > 0.0) {
+            ft_chunk_set(self, x, y, z, 1);
+        }
+
+        /* set 'air' */
+        else {
+            ft_chunk_set(self, x, y, z, 0);
+        }
+    }}}
+
+    /* success */
+    SDL_AtomicSet(&self->atoms.has_blocks, 1);
+    return (1);
+}
+
+
+static int __ft_chunk_mesh_bake(struct chunk_data_s *self, struct chunk_s *chunk) {
+    /* null-check */
+    if (!self)  { return (0); }
+    if (!chunk) { return (0); }
+
+    /* atom-check */
+    if (!SDL_AtomicGet(&chunk->atoms.is_populated)) { return (0); }
+    SDL_AtomicSet(&chunk->atoms.is_populated, 0);
+    
+    printf("0x%lx: %s\n", SDL_GetThreadID(0), __FUNCTION__);
+
+    /* offsets */
+    u32 s_off = 0;
+
+    /* iterate on every 'block' */
+    self->v_solid.cnt = self->v_trans.cnt = 0;
+    self->i_solid.cnt = self->i_trans.cnt = 0;
+    for (int y = 0; y < FT_VOX_CHUNK_SIZE_Y; y++) {
+    for (int x = 0; x < FT_VOX_CHUNK_SIZE_X; x++) {
+    for (int z = 0; z < FT_VOX_CHUNK_SIZE_Z; z++) {
+        u32 block = ft_chunk_get(chunk, x, y, z);
+        if (!block) { continue; }
+        
+        /* get 'neighbors' */
+        u32 neighbors[6] = { [FT_CHUNK_FACE_NORTH] = ft_chunk_get(chunk, x,     y,     z - 1),
+                             [FT_CHUNK_FACE_SOUTH] = ft_chunk_get(chunk, x,     y,     z + 1),
+                             [FT_CHUNK_FACE_WEST]  = ft_chunk_get(chunk, x - 1, y,     z    ),
+                             [FT_CHUNK_FACE_EAST]  = ft_chunk_get(chunk, x + 1, y,     z    ),
+                             [FT_CHUNK_FACE_DOWN]  = ft_chunk_get(chunk, x,     y - 1, z    ),
+                             [FT_CHUNK_FACE_TOP]   = ft_chunk_get(chunk, x,     y + 1, z    ), };
+
+        /* case : 'issolid()' */
+        if (block == 1) {
+
+            /* iterate on every 'neighbor' */
+            for (int face = 0; face < FT_CHUNK_FACE_COUNT; face++) {
+                u32 neighbor =  neighbors[face];
+                /* case : 'istrans()'*/
+                if (neighbor == 0) {
+                    /* get 'vertices' and 'indices' */
+                    u32 vertices[4] = { 0 },
+                         indices[6] = { 0 };
+                    __ft_face_cube(block, face, x, y, z, vertices, indices, &s_off);
+
+                    /* push 'vertices' */
+                    __ft_push(&self->v_solid.arr,
+                              &self->v_solid.cnt,
+                              &self->v_solid.cap,
+                              vertices, countof(vertices));
+
+                    /* push 'indices' */
+                    __ft_push(&self->i_solid.arr,
+                              &self->i_solid.cnt,
+                              &self->i_solid.cap,
+                              indices, countof(indices));
+                }
+            }
+        }
+    }}}
+
+    /* success */
+    return (1);
+}
+
+
+static int __ft_chunk_mesh_upload(struct chunk_mesh_s *self, struct chunk_data_s *data, struct chunk_s *chunk) {
+    /* null-check */
+    if (!self)  { return (0); }
+    if (!data)  { return (0); }
+    if (!chunk) { return (0); }
+    
+    /* atom-check */
+    if (!SDL_AtomicGet(&chunk->atoms.is_meshed)) { return (0); }
+    SDL_AtomicSet(&chunk->atoms.is_meshed, 0);
+    
+    printf("0x%lx: %s\n", SDL_GetThreadID(0), __FUNCTION__);
+
+    /* solid */
+    if (data->v_solid.cnt) {
+        glNamedBufferData(self->vbo[0], data->v_solid.cnt * sizeof(u32), data->v_solid.arr, GL_DYNAMIC_DRAW);
+        glNamedBufferData(self->ibo[0], data->i_solid.cnt * sizeof(u32), data->i_solid.arr, GL_DYNAMIC_DRAW);
+        self->count[0] = data->i_solid.cnt;
+    }
+    
+    /* trans */
+    if (data->v_trans.cnt) {
+        glNamedBufferData(self->vbo[1], data->v_trans.cnt * sizeof(u32), data->v_trans.arr, GL_DYNAMIC_DRAW);
+        glNamedBufferData(self->ibo[1], data->i_trans.cnt * sizeof(u32), data->i_trans.arr, GL_DYNAMIC_DRAW);
+        self->count[1] = data->i_trans.cnt;
     }
 
     /* success */

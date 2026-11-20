@@ -167,6 +167,9 @@ extern int ft_thpool_delete(struct thpool_s *self) {
     /* release 'mutex' */
     if (mutex) { SDL_DestroyMutex(mutex); }
 
+    /* release 'self' */
+    free(self);
+
     /* success */
     return (1);
 }
@@ -181,7 +184,7 @@ extern int ft_thpool_queue(struct thpool_s *self, void *data, int (*func) (void 
 
     /* create 'node' */
     struct
-    job_node_s *node = (struct job_node_s *) malloc(sizeof(struct job_node_s));
+    job_node_s *node = (struct job_node_s *) calloc(1, sizeof(struct job_node_s));
     if (!node) {
         SDL_UnlockMutex(self->mutex);
         return (0);
@@ -248,8 +251,8 @@ extern int ft_thpool_dequeue(struct thpool_s *self, void *data) {
             }
 
             /* release 'curr' job */
-            free(curr);
             self->jobs.size--; drop++;
+            free(curr);
         }
 
         /* case : 'data' not found */

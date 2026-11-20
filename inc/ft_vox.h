@@ -21,6 +21,10 @@
 # include <SDL2/SDL_mutex.h>
 # include <SDL2/SDL_thread.h>
 # include <SDL2/SDL_events.h>
+#
+# if !defined (countof)
+#  define countof(arr) ((int) (sizeof((arr)) / sizeof(*(arr))))
+# endif
 
 /* typedefs */
 
@@ -56,8 +60,6 @@ struct entity_s;
 struct ecs_s;
 
 struct shader_s;
-
-struct vao_s;
 
 struct thpool_s;
 
@@ -164,7 +166,7 @@ struct entity_s {
     int (*create) (struct entity_s *);
     int (*delete) (struct entity_s *);
     int (*update) (struct entity_s *);
-    int (*render) (struct entity_s *, struct vao_s *, struct shader_s *);
+    int (*render) (struct entity_s *, struct shader_s *);
 };
 
 
@@ -189,7 +191,7 @@ extern int ft_ecs_delete(struct ecs_s *);
 
 extern int ft_ecs_update(struct ecs_s *);
 
-extern int ft_ecs_render(struct ecs_s *, struct vao_s *, struct shader_s *);
+extern int ft_ecs_render(struct ecs_s *, struct shader_s *);
 
 extern int ft_ecs_insert(struct ecs_s *, struct entity_s *);
 
@@ -250,35 +252,6 @@ extern int ft_shader_delete(struct shader_s *);
 extern int ft_shader_load(struct shader_s *, FILE *, enum shader_type_e);
 
 extern int ft_shader_uniform(struct shader_s *, const char *, enum uniform_type_e, const void *);
-
-
-/* ft_vox-vertex-array.c */
-
-struct vao_s {
-    /* 'id' : vertex array object's ID */
-    GLuint id;
-};
-
-
-extern int ft_vao_create(struct vao_s **);
-
-extern int ft_vao_delete(struct vao_s *);
-
-extern int ft_vao_layoutf(struct vao_s *, const size_t, const size_t, const size_t);
-
-extern int ft_vao_layoutd(struct vao_s *, const size_t, const size_t, const size_t);
-
-extern int ft_vao_layoutb(struct vao_s *, const size_t, const size_t, const size_t);
-
-extern int ft_vao_layouts(struct vao_s *, const size_t, const size_t, const size_t);
-
-extern int ft_vao_layouti(struct vao_s *, const size_t, const size_t, const size_t);
-
-extern int ft_vao_layoutl(struct vao_s *, const size_t, const size_t, const size_t);
-
-extern int ft_vao_vbo(struct vao_s *, const GLuint);
-
-extern int ft_vao_ibo(struct vao_s *, const GLuint);
 
 
 /* ft_vox-camera.c */
@@ -364,6 +337,18 @@ extern int ft_thpool_queue(struct thpool_s *, void *, int (*) (void *));
 extern int ft_thpool_dequeue(struct thpool_s *, void *);
 
 
+/* ft_vox-block.c */
+
+enum block_type_e {
+    FT_BLOCK_TYPE_SOLID = 1,
+    FT_BLOCK_TYPE_TRANS = 2,
+
+    /* ... */
+
+    FT_BLOCK_TYPE_COUNT
+};
+
+
 /* ft_vox-chunk.c */
 
 # if !defined (FT_VOX_CHUNK_SIZE_X)
@@ -386,42 +371,41 @@ extern int ft_thpool_dequeue(struct thpool_s *, void *);
                                       (y) * FT_VOX_CHUNK_SIZE_X + \
                                       (z) * FT_VOX_CHUNK_SIZE_X * FT_VOX_CHUNK_SIZE_Y)
 
+enum chunk_face_e {
+    FT_CHUNK_FACE_NORTH = 0,
+    FT_CHUNK_FACE_SOUTH = 1,
+    FT_CHUNK_FACE_WEST = 2,
+    FT_CHUNK_FACE_EAST = 3,
+    FT_CHUNK_FACE_DOWN = 4,
+    FT_CHUNK_FACE_TOP = 5,
+
+    /* ... */
+
+    FT_CHUNK_FACE_COUNT
+};
+
+
 struct chunk_mesh_s {
-    struct {
-        GLuint  id;
-        GLsizei ids;
-    } vbo, sbo, tbo;
+    /* chunk object's layout:
+     * - [0] : solid,
+     * - [1] : trans,
+     * */
+    GLuint vao[2],
+           vbo[2],
+           ibo[2],
+           count[2];
 };
 
 
 struct chunk_data_s {
-    u32 *id;
-    size_t ids,
-           idc;
-    
-    u32 *vb;
-    size_t vbs,
-           vbc;
-    
-    u32 *sb;
-    size_t sbs,
-           sbc;
-    
-    u32 *tb;
-    size_t tbs,
-           tbc;
-};
-
-
-enum chunk_state_e {
-    FT_CHUNK_CREATE,
-    FT_CHUNK_RENDER,
-
-    FT_CHUNK_CPU_QUEUED,
-    FT_CHUNK_CPU_FINISH,
-
-    FT_CHUNK_GPU_QUEUED,
-    FT_CHUNK_GPU_FINISH,
+    struct {
+        u32 *arr;
+        u32  cnt,
+             cap;
+    } v_solid, /* 'v_solid' : 'solid' vertices vector */
+      v_trans, /* 'v_trans' : 'trans' vertices vector */
+      i_solid, /* 'i_solid' : 'solid' indices vector */
+      i_trans; /* 'i_trans' : 'trans' indices vector */
 };
 
 
@@ -430,18 +414,40 @@ struct chunk_s {
     struct
     world_s *parent;
 
+    /* 'blocks' : array of blocks */
+    u32 *blocks;
+
     /* 'atoms' : chunk atoms */
     struct {
-        SDL_atomic_t state; /* 'state' : chunk's state atom */
-        SDL_atomic_t dirty; /* 'dirty' : chunk's change atom */
-        SDL_atomic_t refer; /* 'refer' : chunk's reference count */
+        /* 'is_created' : fresh chunk (run 'ft_chunk_populate()') */
+        SDL_atomic_t is_created;
+        
+        /* 'is_populated' : populated chunk (run 'ft_chunk_mesh_create()') */
+        SDL_atomic_t is_populated;
+        
+        /* 'is_meshed' : chunk mesh baked (run 'ft_chunk_mesh_upload()') */
+        SDL_atomic_t is_meshed;
+
+        /* 'is_uploaded' : chunk mesh uploaded to GPU (run 'ft_chunk_render()') */
+        SDL_atomic_t is_uploaded;
+
+        /* 'is_modified' : chunk changed (run 'ft_chunk_mesh_create()') */
+        SDL_atomic_t is_modified;
+
+        /* 'has_blocks' : chunk has blocks */
+        SDL_atomic_t has_blocks;
+
+        /* 'refer' : chunk's reference count */
+        SDL_atomic_t refer;
     } atoms;
 
-    struct
-    chunk_data_s data;
-
+    /* 'mesh' : GPU chunk data */
     struct
     chunk_mesh_s mesh;
+
+    /* 'data' : CPU chunk data */
+    struct
+    chunk_data_s data;
 
     /* 'origin' : 'parent' position (in chunks) */
     vec3 origin;
@@ -450,13 +456,17 @@ struct chunk_s {
     vec3 offset;
 };
 
+/* basic func. */
+
 extern int ft_chunk_create(struct chunk_s *, struct world_s *, int, int, int);
 
 extern int ft_chunk_delete(struct chunk_s *);
 
 extern int ft_chunk_update(struct chunk_s *);
 
-extern int ft_chunk_render(struct chunk_s *, struct vao_s *, struct shader_s *);
+extern int ft_chunk_render(struct chunk_s *, struct shader_s *);
+
+/* memory func. */
 
 extern int ft_chunk_alloc(struct chunk_s *);
 
@@ -464,15 +474,19 @@ extern int ft_chunk_clear(struct chunk_s *);
 
 extern int ft_chunk_free(struct chunk_s *);
 
-extern int ft_chunk_generate(struct chunk_s *);
-
-extern int ft_chunk_mesh_cpu(struct chunk_s *);
-
-extern int ft_chunk_mesh_gpu(struct chunk_s *);
+/* getters/setters func. */
 
 extern int ft_chunk_get(struct chunk_s *, int, int, int);
 
 extern int ft_chunk_set(struct chunk_s *, int, int, int, int);
+
+/* pipeline func. */
+
+extern int ft_chunk_populate(struct chunk_s *);
+
+extern int ft_chunk_mesh_bake(struct chunk_s *);
+
+extern int ft_chunk_mesh_upload(struct chunk_s *);
 
 
 /* ft_vox-world.c */
@@ -527,6 +541,7 @@ struct world_s {
     u32 seed;
 };
 
+/* basic func. */
 
 extern int ft_world_create(struct world_s *, const int);
 
@@ -534,11 +549,15 @@ extern int ft_world_delete(struct world_s *);
 
 extern int ft_world_update(struct world_s *);
 
-extern int ft_world_render(struct world_s *, struct vao_s *, struct shader_s *);
+extern int ft_world_render(struct world_s *, struct shader_s *);
+
+/* getter/setter func. */
+
+extern int ft_world_get(struct world_s *, struct chunk_s **, int, int, int);
 
 extern int ft_world_center(struct world_s *, const vec3);
 
-extern int ft_world_get(struct world_s *, struct chunk_s **, int, int, int);
+/* other func. */
 
 extern int ft_world_out_of_bounds(struct world_s *, int, int, int);
 

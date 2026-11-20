@@ -61,14 +61,14 @@ extern int ft_world_delete(struct world_s *self) {
     struct
     thpool_s *pool = self->pool;
     if (pool) {
-        ft_thpool_delete(pool); free(pool);
+        ft_thpool_delete(pool);
     }
 
     /* release 'ecs' */
     struct
     ecs_s *ecs = self->ecs;
     if (ecs) {
-        ft_ecs_delete(ecs); free(ecs);
+        ft_ecs_delete(ecs);
     }
    
     /* release 'chunks' */
@@ -123,7 +123,7 @@ extern int ft_world_update(struct world_s *self) {
     return (1);
 }
 
-extern int ft_world_render(struct world_s *self, struct vao_s *vao, struct shader_s *shader) {
+extern int ft_world_render(struct world_s *self, struct shader_s *shader) {
     /* null-check */
     if (!self) { return (0); }
     
@@ -131,7 +131,7 @@ extern int ft_world_render(struct world_s *self, struct vao_s *vao, struct shade
     struct
     ecs_s *ecs = self->ecs;
     if (ecs) {
-        ft_ecs_render(ecs, vao, shader);
+        ft_ecs_render(ecs, shader);
     }
 
     /* iterate on every 'chunk' */
@@ -142,7 +142,7 @@ extern int ft_world_render(struct world_s *self, struct vao_s *vao, struct shade
         chunk_s *chunk = self->chunks[FT_VOX_WORLD_3D_1D(x, y, z)];
         if (!chunk) { continue; }
 
-        ft_chunk_render(chunk, vao, shader);
+        ft_chunk_render(chunk, shader);
     }}}
 
     /* success */

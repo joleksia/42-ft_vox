@@ -46,6 +46,9 @@ extern int ft_ecs_delete(struct ecs_s *self) {
     /* release 'entities' */
     free(self->entities.data);
 
+    /* release 'self' */
+    free(self);
+
     /* success */
     return (1);
 }
@@ -72,10 +75,9 @@ extern int ft_ecs_update(struct ecs_s *self) {
 }
 
 
-extern int ft_ecs_render(struct ecs_s *self, struct vao_s *vao, struct shader_s *shader) {
+extern int ft_ecs_render(struct ecs_s *self, struct shader_s *shader) {
     /* null-check */
     if (!self)   { return (0); }
-    if (!vao)    { return (0); }
     if (!shader) { return (0); }
     
     /* iterate over every 'entity' */
@@ -86,7 +88,7 @@ extern int ft_ecs_render(struct ecs_s *self, struct vao_s *vao, struct shader_s 
 
         /* run 'render' */
         if (entity->render) {
-            entity->render(entity, vao, shader);
+            entity->render(entity, shader);
         }
     }
 
