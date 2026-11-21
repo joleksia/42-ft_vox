@@ -2,7 +2,7 @@
 
 /* static API */
 
-static u32 __ft_vertex(int, int, int, int, int);
+static u32 __ft_vertex(i8, i8, i8, i8, i8);
 
 static int __ft_face_cube(u32, int, int, int, int, u32 *, u32 *, u32 *);
 
@@ -370,18 +370,20 @@ extern int ft_chunk_mesh_upload(struct chunk_s *self) {
 
 /* static API */
 
-static u32 __ft_vertex(int x, int y, int z, int u, int v) {
+static u32 __ft_vertex(i8 x, i8 y, i8 z, i8 t, i8 d) {
     /* 'vertex' : 32-bit GPU-verticy representation of a single block. */
     u32 vertex = 0;
 
     /* pack : position */
-    vertex |= x <<  0|
-              y <<  8|
-              z << 16;
+    vertex |= (x & 0x3fu) <<  0|
+              (y & 0x3fu) <<  6|
+              (z & 0x3fu) << 12;
 
     /* pack : texcoord */
-    vertex |= u << 24|
-              v << 28;
+    vertex |= (t & 0x3fu)  << 18;
+
+    /* pack : 'direction' */
+    vertex |= (d & 0x3u)  << 24;
 
     /* return 'vertex' */
     return (vertex);
@@ -395,45 +397,45 @@ static int __ft_face_cube(u32 block, int face, int x, int y, int z, u32 *v, u32 
     if (!v) { return (0); }
     switch (face) {
         case (FT_FACE_NORTH): {
-            v[0] = __ft_vertex(x + 1, y    , z    , 0, 0);
-            v[1] = __ft_vertex(x    , y    , z    , 1, 0);
+            v[0] = __ft_vertex(x + 1, y    , z    , 1, 1);
+            v[1] = __ft_vertex(x    , y    , z    , 1, 1);
             v[2] = __ft_vertex(x    , y + 1, z    , 1, 1);
-            v[3] = __ft_vertex(x + 1, y + 1, z    , 0, 1);
+            v[3] = __ft_vertex(x + 1, y + 1, z    , 1, 1);
         } break;
 
         case (FT_FACE_SOUTH): {
-            v[0] = __ft_vertex(x    , y    , z + 1, 0, 0);
-            v[1] = __ft_vertex(x + 1, y    , z + 1, 1, 0);
+            v[0] = __ft_vertex(x    , y    , z + 1, 1, 1);
+            v[1] = __ft_vertex(x + 1, y    , z + 1, 1, 1);
             v[2] = __ft_vertex(x + 1, y + 1, z + 1, 1, 1);
-            v[3] = __ft_vertex(x    , y + 1, z + 1, 0, 1);
+            v[3] = __ft_vertex(x    , y + 1, z + 1, 1, 1);
         } break;
 
         case (FT_FACE_WEST): {
-            v[0] = __ft_vertex(x    , y    , z    , 0, 0);
-            v[1] = __ft_vertex(x    , y    , z + 1, 1, 0);
-            v[2] = __ft_vertex(x    , y + 1, z + 1, 1, 1);
-            v[3] = __ft_vertex(x    , y + 1, z    , 0, 1);
+            v[0] = __ft_vertex(x    , y    , z    , 1, 2);
+            v[1] = __ft_vertex(x    , y    , z + 1, 1, 2);
+            v[2] = __ft_vertex(x    , y + 1, z + 1, 1, 2);
+            v[3] = __ft_vertex(x    , y + 1, z    , 1, 2);
         } break;
 
         case (FT_FACE_EAST): {
-            v[0] = __ft_vertex(x + 1, y    , z + 1, 0, 0);
-            v[1] = __ft_vertex(x + 1, y    , z    , 1, 0);
-            v[2] = __ft_vertex(x + 1, y + 1, z    , 1, 1);
-            v[3] = __ft_vertex(x + 1, y + 1, z + 1, 0, 1);
+            v[0] = __ft_vertex(x + 1, y    , z + 1, 1, 2);
+            v[1] = __ft_vertex(x + 1, y    , z    , 1, 2);
+            v[2] = __ft_vertex(x + 1, y + 1, z    , 1, 2);
+            v[3] = __ft_vertex(x + 1, y + 1, z + 1, 1, 2);
         } break;
 
         case (FT_FACE_DOWN): {
-            v[0] = __ft_vertex(x    , y    , z    , 0, 0);
+            v[0] = __ft_vertex(x    , y    , z    , 1, 0);
             v[1] = __ft_vertex(x + 1, y    , z    , 1, 0);
-            v[2] = __ft_vertex(x + 1, y    , z + 1, 1, 1);
-            v[3] = __ft_vertex(x    , y    , z + 1, 0, 1);
+            v[2] = __ft_vertex(x + 1, y    , z + 1, 1, 0);
+            v[3] = __ft_vertex(x    , y    , z + 1, 1, 0);
         } break;
 
         case (FT_FACE_TOP): {
-            v[0] = __ft_vertex(x    , y + 1, z + 1, 0, 0);
-            v[1] = __ft_vertex(x + 1, y + 1, z + 1, 1, 0);
-            v[2] = __ft_vertex(x + 1, y + 1, z    , 1, 1);
-            v[3] = __ft_vertex(x    , y + 1, z    , 0, 1);
+            v[0] = __ft_vertex(x    , y + 1, z + 1, 1, 3);
+            v[1] = __ft_vertex(x + 1, y + 1, z + 1, 1, 3);
+            v[2] = __ft_vertex(x + 1, y + 1, z    , 1, 3);
+            v[3] = __ft_vertex(x    , y + 1, z    , 1, 3);
         } break;
     }
 

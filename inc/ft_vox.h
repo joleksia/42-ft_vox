@@ -499,17 +499,17 @@ extern int ft_chunk_mesh_upload(struct chunk_s *);
 /* ft_vox-world.c */
 
 # if !defined (FT_VOX_RENDER_DISTANCE_X)
-#  define FT_VOX_RENDER_DISTANCE_X 2 /* world X-axis render distance */
+#  define FT_VOX_RENDER_DISTANCE_X 8 /* world X-axis render distance */
 #  define FT_VOX_RENDER_DIAMETER_X (FT_VOX_RENDER_DISTANCE_X * 2)
 # endif
 #
 # if !defined (FT_VOX_RENDER_DISTANCE_Y)
-#  define FT_VOX_RENDER_DISTANCE_Y 2 /* world Y-axis render distance */
+#  define FT_VOX_RENDER_DISTANCE_Y 8 /* world Y-axis render distance */
 #  define FT_VOX_RENDER_DIAMETER_Y (FT_VOX_RENDER_DISTANCE_Y * 2)
 # endif
 #
 # if !defined (FT_VOX_RENDER_DISTANCE_Z)
-#  define FT_VOX_RENDER_DISTANCE_Z 2 /* world Z-axis render distance */
+#  define FT_VOX_RENDER_DISTANCE_Z 8 /* world Z-axis render distance */
 #  define FT_VOX_RENDER_DIAMETER_Z (FT_VOX_RENDER_DISTANCE_Z * 2)
 # endif
 #

@@ -4,26 +4,51 @@ layout (location=0)
 in uint a_vertex;
 
 layout (location=0)
-out vec3 v_normal;
+out vec2 v_texcoord;
 
 layout (location=1)
-out vec2 v_texcoord;
+out float v_shading;
 
 uniform mat4 u_model;
 uniform mat4 u_proj;
 uniform mat4 u_view;
 
 void main() {
-    vec3 v_position = vec3(float((a_vertex >>  0) & 0xffu),
-                           float((a_vertex >>  8) & 0xffu),
-                           float((a_vertex >> 16) & 0xffu));
-    
-    v_normal = vec3(float((a_vertex >> 24) & 0x01u),
-                    float((a_vertex >> 25) & 0x01u),
-                    float((a_vertex >> 26) & 0x01u));
+    /* unpack: 'position' */
+    uint x = (a_vertex >>  0) & 0x3fu,
+         y = (a_vertex >>  6) & 0x3fu,
+         z = (a_vertex >> 12) & 0x3fu;
+    vec3 position = vec3(float(x),
+                         float(y),
+                         float(z));
 
-    v_texcoord = vec2(float((a_vertex >> 27) & 0x01u),
-                      float((a_vertex >> 28) & 0x01u));
+    /* unpack: 'texcoord' */
+    uint t = (a_vertex >> 18) & 0x3fu;
+    uint ix = t % 16,
+         iy = t / 16;
+    vec2 texcoord = vec2(float(ix) / 16.0,
+                         float(iy) / 16.0);
     
-    gl_Position = u_proj * u_view * u_model * vec4(v_position, 1.0);
+    /* unpack: 'direction' */
+    uint d = (a_vertex >> 24) & 0x3u;
+    /* this will probably suck but whatever */
+    float shading = 0.0;
+    switch (d) {
+        case (0): { shading = 1.00; } break;
+        case (1): { shading = 0.90; } break;
+        case (2): { shading = 0.85; } break;
+        case (3): { shading = 0.75; } break;
+    }
+    
+    /* set 'gl_Position' */
+    gl_Position = u_proj  *
+                  u_view  *
+                  u_model *
+                  vec4(position, 1.0);
+
+    /* set 'v_texcoord' */
+    v_texcoord = texcoord;
+
+    /* set 'v_shading' */
+    v_shading = shading;
 }
