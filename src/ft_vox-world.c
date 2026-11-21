@@ -253,10 +253,9 @@ extern int ft_world_center(struct world_s *self, const vec3 block) {
 }
 
 
-extern int ft_world_get(struct world_s *self, struct chunk_s **chunk, int cx, int cy, int cz) {
+extern int ft_world_get(struct world_s *self, int cx, int cy, int cz, struct chunk_s **result) {
     /* null-check */
     if (!self)  { return (0); }
-    if (!chunk) { return (0); }
     
     /* read 'origin' */
     vec3 origin = self->origin;
@@ -269,11 +268,33 @@ extern int ft_world_get(struct world_s *self, struct chunk_s **chunk, int cx, in
         (u32) cy >= FT_VOX_RENDER_DIAMETER_Y ||
         (u32) cz >= FT_VOX_RENDER_DIAMETER_Z
     ) {
-        *chunk = 0; return (0);
+        *result = 0; return (0);
     }
 
-    /* return 'chunk' */
-    *chunk = self->chunks[FT_VOX_WORLD_3D_1D(cx, cy, cz)];
+    /* return 'result' */
+    if (result) { *result = self->chunks[FT_VOX_WORLD_3D_1D(cx, cy, cz)]; }
+
+    /* success */
+    return (1);
+}
+
+
+extern int ft_world_get_near(struct world_s *self, int x, int y, int z, struct chunk_s **result) {
+    /* null-check */
+    if (!self) { return (0); }
+
+    /* get the list of 'chunks' */
+    struct
+    chunk_s *chunks[6] = { 0 };
+    ft_world_get(self, x,     y,     z - 1, &chunks[FT_FACE_NORTH]);
+    ft_world_get(self, x,     y,     z + 1, &chunks[FT_FACE_SOUTH]);
+    ft_world_get(self, x - 1, y,     z,     &chunks[FT_FACE_WEST]);
+    ft_world_get(self, x + 1, y,     z,     &chunks[FT_FACE_EAST]);
+    ft_world_get(self, x,     y - 1, z,     &chunks[FT_FACE_DOWN]);
+    ft_world_get(self, x,     y + 1, z,     &chunks[FT_FACE_TOP]);
+
+    /* copy 'chunks' to 'result' */
+    if (result) { memcpy(result, chunks, sizeof(chunks)); }
 
     /* success */
     return (1);

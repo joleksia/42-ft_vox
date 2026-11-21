@@ -41,15 +41,20 @@ static int __ft_thpool_update(void *data) {
     struct thpool_s *self = (struct thpool_s *) data;
     if (!self) { return (0); }
 
-    while (SDL_AtomicGet(&self->alive)) {
+    while (1) {
         SDL_LockMutex(self->mutex);
         
-        /* wait until any 'node' */
-        if (!self->jobs.head) {
+        /* wait for upcoming jobs... */
+        while (!self->jobs.head) {
+            /* break if no longer 'alive' */
+            if (!SDL_AtomicGet(&self->alive)) {
+                break;
+            }
+
             SDL_CondWait(self->cond, self->mutex);
         }
 
-        /* check if still 'alive' */
+        /* break if no longer 'alive' */
         if (!SDL_AtomicGet(&self->alive)) {
             SDL_UnlockMutex(self->mutex);
             break;
@@ -139,14 +144,14 @@ extern int ft_thpool_delete(struct thpool_s *self) {
 
     /* announce 'shutdown' */
     if (mutex) {
-        SDL_LockMutex(self->mutex);
+        SDL_LockMutex(mutex);
         
         SDL_AtomicSet(&self->alive, 0);
         if (cond) {
             SDL_CondBroadcast(cond);
         }
         
-        SDL_UnlockMutex(self->mutex);
+        SDL_UnlockMutex(mutex);
     }
 
     /* release 'threads' */
@@ -160,6 +165,19 @@ extern int ft_thpool_delete(struct thpool_s *self) {
         }
         free(threads);
     }
+
+    /* release leftover 'jobs' */
+    SDL_LockMutex(mutex);
+    while (self->jobs.size > 0) {
+        /* get job 'node' */
+        struct
+        job_node_s *node = 0;
+        __ft_thpool_pop(self, &node);
+
+        /* release 'node' */
+        free(node);
+    }
+    SDL_UnlockMutex(mutex);
 
     /* release 'cond' */
     if (cond) { SDL_DestroyCond(cond); }

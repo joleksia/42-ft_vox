@@ -339,6 +339,25 @@ extern int ft_thpool_dequeue(struct thpool_s *, void *);
 
 /* ft_vox-block.c */
 
+# if !defined (FT_BLOCK_OUT_OF_BOUNDS)
+#  define FT_BLOCK_OUT_OF_BOUNDS 0xffffffffu
+# endif
+
+enum face_e {
+    FT_FACE_NORTH = 0,
+    FT_FACE_SOUTH = 1,
+    FT_FACE_WEST = 2,
+    FT_FACE_EAST = 3,
+    FT_FACE_DOWN = 4,
+    FT_FACE_TOP = 5,
+
+    /* ... */
+
+    FT_FACE_COUNT
+};
+
+
+
 enum block_type_e {
     FT_BLOCK_TYPE_SOLID = 1,
     FT_BLOCK_TYPE_TRANS = 2,
@@ -370,20 +389,6 @@ enum block_type_e {
 # define FT_VOX_CHUNK_3D_1D(x, y, z) ((x) + \
                                       (y) * FT_VOX_CHUNK_SIZE_X + \
                                       (z) * FT_VOX_CHUNK_SIZE_X * FT_VOX_CHUNK_SIZE_Y)
-
-enum chunk_face_e {
-    FT_CHUNK_FACE_NORTH = 0,
-    FT_CHUNK_FACE_SOUTH = 1,
-    FT_CHUNK_FACE_WEST = 2,
-    FT_CHUNK_FACE_EAST = 3,
-    FT_CHUNK_FACE_DOWN = 4,
-    FT_CHUNK_FACE_TOP = 5,
-
-    /* ... */
-
-    FT_CHUNK_FACE_COUNT
-};
-
 
 struct chunk_mesh_s {
     /* chunk object's layout:
@@ -476,7 +481,9 @@ extern int ft_chunk_free(struct chunk_s *);
 
 /* getters/setters func. */
 
-extern int ft_chunk_get(struct chunk_s *, int, int, int);
+extern int ft_chunk_get(struct chunk_s *, int, int, int, u32 *);
+
+extern int ft_chunk_get_near(struct chunk_s *, int, int, int, u32 *);
 
 extern int ft_chunk_set(struct chunk_s *, int, int, int, int);
 
@@ -492,17 +499,17 @@ extern int ft_chunk_mesh_upload(struct chunk_s *);
 /* ft_vox-world.c */
 
 # if !defined (FT_VOX_RENDER_DISTANCE_X)
-#  define FT_VOX_RENDER_DISTANCE_X 8 /* world X-axis render distance */
+#  define FT_VOX_RENDER_DISTANCE_X 2 /* world X-axis render distance */
 #  define FT_VOX_RENDER_DIAMETER_X (FT_VOX_RENDER_DISTANCE_X * 2)
 # endif
 #
 # if !defined (FT_VOX_RENDER_DISTANCE_Y)
-#  define FT_VOX_RENDER_DISTANCE_Y 8 /* world Y-axis render distance */
+#  define FT_VOX_RENDER_DISTANCE_Y 2 /* world Y-axis render distance */
 #  define FT_VOX_RENDER_DIAMETER_Y (FT_VOX_RENDER_DISTANCE_Y * 2)
 # endif
 #
 # if !defined (FT_VOX_RENDER_DISTANCE_Z)
-#  define FT_VOX_RENDER_DISTANCE_Z 8 /* world Z-axis render distance */
+#  define FT_VOX_RENDER_DISTANCE_Z 2 /* world Z-axis render distance */
 #  define FT_VOX_RENDER_DIAMETER_Z (FT_VOX_RENDER_DISTANCE_Z * 2)
 # endif
 #
@@ -553,7 +560,9 @@ extern int ft_world_render(struct world_s *, struct shader_s *);
 
 /* getter/setter func. */
 
-extern int ft_world_get(struct world_s *, struct chunk_s **, int, int, int);
+extern int ft_world_get(struct world_s *, int, int, int, struct chunk_s **);
+
+extern int ft_world_get_near(struct world_s *, int, int, int, struct chunk_s **);
 
 extern int ft_world_center(struct world_s *, const vec3);
 
