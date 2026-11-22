@@ -2,7 +2,7 @@
 
 /* static API */
 
-static u32 __ft_vertex(i8, i8, i8, i8, i8);
+static u32 __ft_vertex(i8, i8, i8, i8, i8, i8);
 
 static int __ft_face_cube(u32, int, int, int, int, u32 *, u32 *, u32 *);
 
@@ -28,23 +28,30 @@ static int __ft_chunk_mesh_upload(struct chunk_mesh_s *, struct chunk_data_s *, 
 
 /* public API */
 
-extern int ft_chunk_create(struct chunk_s *self, struct world_s *parent, int x, int y, int z) {
+extern int ft_chunk_create(struct chunk_s **self, struct world_s *parent, int x, int y, int z) {
     /* null-check */
     if (!self) { return (0); }
 
+    /* alloc. 'chunk' */
+    struct chunk_s *chunk = (struct chunk_s *) calloc(1, sizeof(struct chunk_s));
+    if (!chunk) { return (0); }
+
     /* set 'chunk's 'parent' */
-    self->parent = parent;
+    chunk->parent = parent;
 
     /* set 'origin' */
-    self->origin = alg_vec3(x, y, z);
+    chunk->origin = alg_vec3(x, y, z);
 
     /* set 'offset' */
-    self->offset = alg_vec3(x * FT_VOX_CHUNK_SIZE_X,
-                            y * FT_VOX_CHUNK_SIZE_Y,
-                            z * FT_VOX_CHUNK_SIZE_Z);
+    chunk->offset = alg_vec3(x * FT_VOX_CHUNK_SIZE_X,
+                             y * FT_VOX_CHUNK_SIZE_Y,
+                             z * FT_VOX_CHUNK_SIZE_Z);
 
     /* set 'atoms' */
-    SDL_AtomicSet(&self->atoms.is_created, 1);
+    SDL_AtomicSet(&chunk->atoms.is_created, 1);
+
+    /* return 'self' */
+    *self = chunk;
 
     /* success */
     return (1);
@@ -195,10 +202,11 @@ extern int ft_chunk_clear(struct chunk_s *self) {
 
     /* clear 'atoms' */
     SDL_AtomicSet(&self->atoms.has_blocks,   0);
+    SDL_AtomicSet(&self->atoms.is_created,   0);
     SDL_AtomicSet(&self->atoms.is_populated, 0);
     SDL_AtomicSet(&self->atoms.is_meshed,    0);
-    SDL_AtomicSet(&self->atoms.is_modified,  0);
     SDL_AtomicSet(&self->atoms.is_uploaded,  0);
+    SDL_AtomicSet(&self->atoms.is_modified,  0);
 
     /* clear 'blocks' */
     u32 *blocks = self->blocks;
@@ -280,7 +288,10 @@ extern int ft_chunk_get(struct chunk_s *self, int bx, int by, int bz, u32 *resul
     }
    
     /* get 'block' */
-    int block = self->blocks[FT_VOX_CHUNK_3D_1D(bx, by, bz)];
+    u32 block = 0;
+    if (self->blocks) {
+        block = self->blocks[FT_VOX_CHUNK_3D_1D(bx, by, bz)];
+    }
 
     /* return 'result' */
     if (result) { *result = block; }
@@ -330,6 +341,23 @@ extern int ft_chunk_set(struct chunk_s *self, int bx, int by, int bz, int id) {
 }
 
 
+extern int ft_chunk_set_origin(struct chunk_s *self, int cx, int cy, int cz) {
+    /* null-check */
+    if (!self) { return (0); }
+
+    /* set 'origin' */
+    self->origin = alg_vec3(cx, cy, cz);
+
+    /* set 'offset' */
+    self->offset = alg_vec3(cx * FT_VOX_CHUNK_SIZE_X,
+                            cy * FT_VOX_CHUNK_SIZE_Y,
+                            cz * FT_VOX_CHUNK_SIZE_Z);
+
+    /* success */
+    return (1);
+}
+
+
 extern int ft_chunk_populate(struct chunk_s *self) {
     /* null-check */
     if (!self) { return (0); }
@@ -370,20 +398,23 @@ extern int ft_chunk_mesh_upload(struct chunk_s *self) {
 
 /* static API */
 
-static u32 __ft_vertex(i8 x, i8 y, i8 z, i8 t, i8 d) {
+static u32 __ft_vertex(i8 x, i8 y, i8 z, i8 tex_index, i8 tex_corner, i8 direction) {
     /* 'vertex' : 32-bit GPU-verticy representation of a single block. */
     u32 vertex = 0;
 
-    /* pack : position */
+    /* pack : position (18-bit) */
     vertex |= (x & 0x3fu) <<  0|
               (y & 0x3fu) <<  6|
               (z & 0x3fu) << 12;
 
-    /* pack : texcoord */
-    vertex |= (t & 0x3fu)  << 18;
+    /* pack : tex-index (6-bit) */
+    vertex |= (tex_index & 0x3fu) << 18;
 
-    /* pack : 'direction' */
-    vertex |= (d & 0x3u)  << 24;
+    /* pack : 'tex-corner' (2-bit) */
+    vertex |= (tex_corner & 0x3u) << 24;
+
+    /* pack : 'direction' (2-bit) */
+    vertex |= (direction & 0x3u) << 26;
 
     /* return 'vertex' */
     return (vertex);
@@ -397,45 +428,45 @@ static int __ft_face_cube(u32 block, int face, int x, int y, int z, u32 *v, u32 
     if (!v) { return (0); }
     switch (face) {
         case (FT_FACE_NORTH): {
-            v[0] = __ft_vertex(x + 1, y    , z    , 1, 1);
-            v[1] = __ft_vertex(x    , y    , z    , 1, 1);
-            v[2] = __ft_vertex(x    , y + 1, z    , 1, 1);
-            v[3] = __ft_vertex(x + 1, y + 1, z    , 1, 1);
+            v[0] = __ft_vertex(x + 1, y,     z,     3, 0, 1);
+            v[1] = __ft_vertex(x,     y,     z,     3, 2, 1);
+            v[2] = __ft_vertex(x,     y + 1, z,     3, 3, 1);
+            v[3] = __ft_vertex(x + 1, y + 1, z,     3, 1, 1);
         } break;
 
         case (FT_FACE_SOUTH): {
-            v[0] = __ft_vertex(x    , y    , z + 1, 1, 1);
-            v[1] = __ft_vertex(x + 1, y    , z + 1, 1, 1);
-            v[2] = __ft_vertex(x + 1, y + 1, z + 1, 1, 1);
-            v[3] = __ft_vertex(x    , y + 1, z + 1, 1, 1);
+            v[0] = __ft_vertex(x,     y,     z + 1, 3, 0, 1);
+            v[1] = __ft_vertex(x + 1, y,     z + 1, 3, 2, 1);
+            v[2] = __ft_vertex(x + 1, y + 1, z + 1, 3, 3, 1);
+            v[3] = __ft_vertex(x,     y + 1, z + 1, 3, 1, 1);
         } break;
 
         case (FT_FACE_WEST): {
-            v[0] = __ft_vertex(x    , y    , z    , 1, 2);
-            v[1] = __ft_vertex(x    , y    , z + 1, 1, 2);
-            v[2] = __ft_vertex(x    , y + 1, z + 1, 1, 2);
-            v[3] = __ft_vertex(x    , y + 1, z    , 1, 2);
+            v[0] = __ft_vertex(x,     y,     z,     3, 0, 2);
+            v[1] = __ft_vertex(x,     y,     z + 1, 3, 2, 2);
+            v[2] = __ft_vertex(x,     y + 1, z + 1, 3, 3, 2);
+            v[3] = __ft_vertex(x,     y + 1, z,     3, 1, 2);
         } break;
 
         case (FT_FACE_EAST): {
-            v[0] = __ft_vertex(x + 1, y    , z + 1, 1, 2);
-            v[1] = __ft_vertex(x + 1, y    , z    , 1, 2);
-            v[2] = __ft_vertex(x + 1, y + 1, z    , 1, 2);
-            v[3] = __ft_vertex(x + 1, y + 1, z + 1, 1, 2);
+            v[0] = __ft_vertex(x + 1, y,     z + 1, 3, 0, 2);
+            v[1] = __ft_vertex(x + 1, y,     z,     3, 2, 2);
+            v[2] = __ft_vertex(x + 1, y + 1, z,     3, 3, 2);
+            v[3] = __ft_vertex(x + 1, y + 1, z + 1, 3, 1, 2);
         } break;
 
         case (FT_FACE_DOWN): {
-            v[0] = __ft_vertex(x    , y    , z    , 1, 0);
-            v[1] = __ft_vertex(x + 1, y    , z    , 1, 0);
-            v[2] = __ft_vertex(x + 1, y    , z + 1, 1, 0);
-            v[3] = __ft_vertex(x    , y    , z + 1, 1, 0);
+            v[0] = __ft_vertex(x,     y,     z,     3, 0, 0);
+            v[1] = __ft_vertex(x + 1, y,     z,     3, 2, 0);
+            v[2] = __ft_vertex(x + 1, y,     z + 1, 3, 3, 0);
+            v[3] = __ft_vertex(x,     y,     z + 1, 3, 1, 0);
         } break;
 
         case (FT_FACE_TOP): {
-            v[0] = __ft_vertex(x    , y + 1, z + 1, 1, 3);
-            v[1] = __ft_vertex(x + 1, y + 1, z + 1, 1, 3);
-            v[2] = __ft_vertex(x + 1, y + 1, z    , 1, 3);
-            v[3] = __ft_vertex(x    , y + 1, z    , 1, 3);
+            v[0] = __ft_vertex(x,     y + 1, z + 1, 3, 0, 3);
+            v[1] = __ft_vertex(x + 1, y + 1, z + 1, 3, 2, 3);
+            v[2] = __ft_vertex(x + 1, y + 1, z,     3, 3, 3);
+            v[3] = __ft_vertex(x,     y + 1, z,     3, 1, 3);
         } break;
     }
 
@@ -592,7 +623,7 @@ static int __ft_chunk_mesh_render_s(struct chunk_mesh_s *self, struct chunk_s *c
     
     /* 'u_model' matrix */
     mat4 u_model = alg_mat4translate(chunk->offset);
-    ft_shader_uniform(shader, "u_model", FT_UNIFORM_MATRIX4X4, &u_model);
+    ft_shader_uniform(shader, "u_model", FT_UNIFORM_MATRIX4, &u_model);
 
     /* bind 'vao' */
     glBindVertexArray(self->vao[0]);
@@ -613,7 +644,7 @@ static int __ft_chunk_mesh_render_t(struct chunk_mesh_s *self, struct chunk_s *c
     
     /* 'u_model' matrix */
     mat4 u_model = alg_mat4translate(chunk->offset);
-    ft_shader_uniform(shader, "u_model", FT_UNIFORM_MATRIX4X4, &u_model);
+    ft_shader_uniform(shader, "u_model", FT_UNIFORM_MATRIX4, &u_model);
 
     /* bind 'vao' */
     glBindVertexArray(self->vao[1]);

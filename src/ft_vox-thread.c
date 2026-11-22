@@ -86,25 +86,28 @@ static int __ft_thpool_update(void *data) {
 
 /* public API */
 
-extern int ft_thpool_create(struct thpool_s *self) {
+extern int ft_thpool_create(struct thpool_s **self) {
     /* null-check */
     if (!self) { return (0); }
-    memset(self, 0, sizeof(*self));
+
+    /* alloc. 'thpool' */
+    struct thpool_s *thpool = (struct thpool_s *) calloc(1, sizeof(struct thpool_s));
+    if (!thpool) { return (0); }
 
     /* create 'mutex' */
     SDL_mutex *mutex = SDL_CreateMutex();
     if (!mutex) { return (0); }
 
-    self->mutex = mutex;
+    thpool->mutex = mutex;
 
     /* create 'cond' */
     SDL_cond *cond = SDL_CreateCond();
     if (!cond) {
-        ft_thpool_delete(self);
+        ft_thpool_delete(thpool);
         return (0);
     }
 
-    self->cond = cond;
+    thpool->cond = cond;
 
     /* create 'threads' */
     int size = SDL_GetCPUCount();
@@ -116,18 +119,21 @@ extern int ft_thpool_create(struct thpool_s *self) {
 
     SDL_Thread **threads = (SDL_Thread **) calloc(size, sizeof(SDL_Thread *));
     if (!threads) {
-        ft_thpool_delete(self);
+        ft_thpool_delete(thpool);
         return (0);
     }
     
-    self->threads.data = threads;
-    self->threads.size = size;
+    thpool->threads.data = threads;
+    thpool->threads.size = size;
 
     /* initialize each 'thread' */
-    SDL_AtomicSet(&self->alive, 1);
+    SDL_AtomicSet(&thpool->alive, 1);
     for (int i = 0; i < size; i++) {
-        threads[i] = SDL_CreateThread((SDL_ThreadFunction) __ft_thpool_update, "ft_vox-worker", self);
+        threads[i] = SDL_CreateThread((SDL_ThreadFunction) __ft_thpool_update, "ft_vox-worker", thpool);
     }
+
+    /* return 'self' */
+    *self = thpool;
 
     /* success */
     return (1);

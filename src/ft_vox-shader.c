@@ -77,7 +77,7 @@ extern int ft_shader_delete(struct shader_s *self) {
     }
 
     /* clear 'id' */
-    glDeleteProgram(self->id), self->id = 0;
+    glDeleteProgram(self->id);
 
     /* release 'self' */
     free(self);
@@ -144,22 +144,60 @@ extern int ft_shader_uniform(struct shader_s *self, const char *name, enum unifo
     if (!self) { return (0); }
     if (!name) { return (0); }
     if (!data) { return (0); }
+    
+    /* get uniform 'location' */
+    GLint location = ft_shader_uniform_get(self, name);
+    if (location == -1) {
+        return (0);
+    }
 
     /* set 'type' uniform */
     switch (type) {
         default: { return (0); }
 
-        /* 'type' : 'FT_UNIFORM_MATRIX4X4' */
-        case (FT_UNIFORM_MATRIX4X4): {
-            /* get uniform 'location' */
-            GLint location = ft_shader_uniform_get(self, name);
-            if (location == -1) {
-                return (0);
-            }
-
-            /* set uniform 'data' */
-            glProgramUniformMatrix4fv(self->id, location, 1, GL_FALSE, data);
+        case (FT_UNIFORM_INT1D): {
+            i32 *values = (i32 *) data;
+            glProgramUniform1i(self->id, location, values[0]);
         } break;
+
+        case (FT_UNIFORM_INT2D): {
+            i32 *values = (i32 *) data;
+            glProgramUniform2i(self->id, location, values[0], values[1]);
+        } break;                                                        
+
+        case (FT_UNIFORM_INT3D): {                                      
+            i32 *values = (i32 *) data;                               
+            glProgramUniform3i(self->id, location, values[0], values[1], values[0]);
+        } break;
+
+        case (FT_UNIFORM_INT4D): {                                                 
+            i32 *values = (i32 *) data;                                          
+            glProgramUniform4i(self->id, location, values[0], values[1], values[2], values[3]);
+        } break;
+
+        case (FT_UNIFORM_UINT1D): {
+            u32 *values = (u32 *) data;
+            glProgramUniform1ui(self->id, location, values[0]);
+        } break;
+
+        case (FT_UNIFORM_UINT2D): {
+            u32 *values = (u32 *) data;
+            glProgramUniform2ui(self->id, location, values[0], values[1]);
+        } break;                                                        
+
+        case (FT_UNIFORM_UINT3D): {                                      
+            u32 *values = (u32 *) data;                               
+            glProgramUniform3ui(self->id, location, values[0], values[1], values[0]);
+        } break;
+
+        case (FT_UNIFORM_UINT4D): {                                                 
+            u32 *values = (u32 *) data;                                          
+            glProgramUniform4ui(self->id, location, values[0], values[1], values[2], values[3]);
+        } break;
+
+        case (FT_UNIFORM_MATRIX2): { glProgramUniformMatrix2fv(self->id, location, 1, GL_FALSE, data); } break;
+        case (FT_UNIFORM_MATRIX3): { glProgramUniformMatrix3fv(self->id, location, 1, GL_FALSE, data); } break;
+        case (FT_UNIFORM_MATRIX4): { glProgramUniformMatrix4fv(self->id, location, 1, GL_FALSE, data); } break;
     }
 
     /* success */

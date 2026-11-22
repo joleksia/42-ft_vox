@@ -131,8 +131,8 @@ static int ft_player_render(struct entity_s *self, struct shader_s *shader) {
     mat4 u_proj = alg_mat4(1.0),
          u_view = alg_mat4(1.0);
     ft_camera_matrix(&player->camera, &u_proj, &u_view);
-    ft_shader_uniform(shader, "u_proj", FT_UNIFORM_MATRIX4X4, &u_proj);
-    ft_shader_uniform(shader, "u_view", FT_UNIFORM_MATRIX4X4, &u_view);
+    ft_shader_uniform(shader, "u_proj", FT_UNIFORM_MATRIX4, &u_proj);
+    ft_shader_uniform(shader, "u_view", FT_UNIFORM_MATRIX4, &u_view);
 
     /* success */
     return (1);
@@ -171,20 +171,19 @@ int main(void) {
         fclose(fp_fragment_glsl);
     }
 
+    /* load 'atlas1.png' sampler */
+   
+    struct
+    sampler_s *sampler = 0;
+    ft_sampler_create(&sampler, "res/atlas/atlas1.png");
+
     /* create 'world' */
 
     srand(time(0));
     
     struct
-    world_s *world = (struct world_s *) calloc(1, sizeof(struct world_s));
-    ft_world_create(world, rand());
-
-    /* test-load texture */
-    i32 width = 0,
-        height = 0,
-        channel = 0;
-    u8 *image = stbi_load("res/atlas/atlas1.png", &width, &height, &channel, 0);
-    free(image);
+    world_s *world = 0; 
+    ft_world_create(&world, rand());
 
     /* create 'player' entity */
     struct
@@ -216,10 +215,15 @@ int main(void) {
                 GL_DEPTH_BUFFER_BIT);
 
         glUseProgram(shader->id);
+        glBindTextureUnit(0, sampler->id);
+
+        int slot = 0;
+        ft_shader_uniform(shader, "u_atlas", FT_UNIFORM_INT1D, &slot);
         
         /* render 'world' */
         ft_world_render(world, shader);
         
+        glBindTextureUnit(0, 0);
         glUseProgram(0);
 
         /* poll-events */
@@ -233,6 +237,7 @@ int main(void) {
 
     /* unload OpenGL */
 
+    ft_sampler_delete(sampler);
     ft_shader_delete(shader);
     
     /* unload input objects */

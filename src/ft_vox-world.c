@@ -2,54 +2,49 @@
 
 /* public API */
 
-extern int ft_world_create(struct world_s *self, const int seed) {
+extern int ft_world_create(struct world_s **self, const int seed) {
     /* null-check */
     if (!self) { return (0); }
-    memset(self, 0, sizeof(*self));
+
+    /* alloc. 'world' */
+    struct world_s *world = (struct world_s *) calloc(1, sizeof(struct world_s));
+    if (!world) { return (0); }
 
     /* alloc. 'ecs' */
     struct
-    ecs_s *ecs = (struct ecs_s *) calloc(1, sizeof(struct ecs_s));
-    if (!ecs) {
-        ft_world_delete(self);
+    ecs_s *ecs = 0; 
+    if (!ft_ecs_create(&ecs, world)) {
+        ft_world_delete(world);
         return (0);
     }
-
-    /* create 'ecs' */
-    ft_ecs_create(ecs, self);
-    self->ecs = ecs;
+    world->ecs = ecs;
 
     /* alloc 'pool' */
     struct
-    thpool_s *pool = (struct thpool_s *) calloc(1, sizeof(struct thpool_s));
-    if (!pool) {
-        ft_world_delete(self);
+    thpool_s *pool = 0; 
+    if (!ft_thpool_create(&pool)) {
+        ft_world_delete(world);
         return (0);
     }
-
-    /* create 'pool' */
-    ft_thpool_create(pool);
-    self->pool = pool;
-    
-    size_t count = FT_VOX_RENDER_DIAMETER_X *
-                   FT_VOX_RENDER_DIAMETER_Y *
-                   FT_VOX_RENDER_DIAMETER_Z;
+    world->pool = pool;
 
     /* alloc. 'chunks' */
     struct
-    chunk_s **chunks = (struct chunk_s **) calloc(count, sizeof(struct chunk_s *)); 
+    chunk_s **chunks = (struct chunk_s **) calloc(FT_VOX_RENDER_DIAMETER, sizeof(struct chunk_s *)); 
     if (!chunks) {
-        ft_world_delete(self);
+        ft_world_delete(world);
         return (0);
     }
-    
-    self->chunks = chunks;
+    world->chunks = chunks;
 
     /* store 'seed' */
-    self->seed = seed;
+    world->seed = seed;
+
+    /* return 'self' */
+    *self = world;
 
     /* re-center the world at [0, 0, 0] */
-    return (ft_world_center(self, alg_vec3(0.0, 0.0, 0.0)));
+    return (ft_world_center(*self, alg_vec3(0.0, 0.0, 0.0)));
 }
 
 
@@ -168,17 +163,13 @@ extern int ft_world_center(struct world_s *self, const vec3 block) {
     }
 
     /* 'tmp' chunks, 'self->chunks' back-up */
-    size_t count = FT_VOX_RENDER_DIAMETER_X *
-                   FT_VOX_RENDER_DIAMETER_Y *
-                   FT_VOX_RENDER_DIAMETER_Z;
-
     struct
-    chunk_s **tmp = (struct chunk_s **) calloc(count, sizeof(struct chunk_s *));
+    chunk_s **tmp = (struct chunk_s **) calloc(FT_VOX_RENDER_DIAMETER, sizeof(struct chunk_s *));
     if (!tmp) {
         return (0);
     }
 
-    memcpy(tmp, self->chunks, count * sizeof(struct chunk_s *));
+    memcpy(tmp, self->chunks, FT_VOX_RENDER_DIAMETER* sizeof(struct chunk_s *));
 
     /* back-up 'old' origin */
     vec3 old = self->origin;
@@ -218,10 +209,8 @@ extern int ft_world_center(struct world_s *self, const vec3 block) {
         /* case : 'chunk' is null */
         if (!chunk) {
             /* alloc. 'chunk' */
-            chunk = (struct chunk_s *) calloc(1, sizeof(struct chunk_s));
-            if (!chunk) { continue; }
+            ft_chunk_create(&chunk, self, nx, ny, nz);
             ft_chunk_alloc(chunk);
-            ft_chunk_create(chunk, self, nx, ny, nz);
         }
 
         /* case : 'chunk' is not null */
@@ -237,7 +226,8 @@ extern int ft_world_center(struct world_s *self, const vec3 block) {
 
                 /* re-create 'chunk' */
                 ft_chunk_clear(chunk);
-                ft_chunk_create(chunk, self, nx, ny, nz);
+                ft_chunk_set_origin(chunk, nx, ny, nz);
+                SDL_AtomicSet(&chunk->atoms.is_created, 1);
             }
         }
 

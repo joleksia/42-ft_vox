@@ -1,12 +1,15 @@
 #include "ft_vox.h"
 
-extern int ft_ecs_create(struct ecs_s *self, struct world_s *parent) {
+extern int ft_ecs_create(struct ecs_s **self, struct world_s *parent) {
     /* null-check */
-    if (!self)   { return (0); }
-    if (!parent) { return (0); }
+    if (!self) { return (0); }
+
+    /* alloc. 'ecs' */
+    struct ecs_s *ecs = (struct ecs_s *) calloc(1, sizeof(struct ecs_s));
+    if (!ecs) { return (0); }
 
     /* reference 'parent' */ 
-    self->parent = parent;
+    ecs->parent = parent;
 
     /* create 'entities' vector */
     size_t count = 0;
@@ -16,9 +19,12 @@ extern int ft_ecs_create(struct ecs_s *self, struct world_s *parent) {
     if (!data) { return (0); }
 
     /* return 'entities' */
-    self->entities.data = data;
-    self->entities.count = count;
-    self->entities.capacity = capacity;
+    ecs->entities.data = data;
+    ecs->entities.count = count;
+    ecs->entities.capacity = capacity;
+
+    /* return 'self' */
+    *self = ecs;
 
     /* success */
     return (1);

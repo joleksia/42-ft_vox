@@ -186,7 +186,7 @@ struct ecs_s {
 };
 
 
-extern int ft_ecs_create(struct ecs_s *, struct world_s *);
+extern int ft_ecs_create(struct ecs_s **, struct world_s *);
 
 extern int ft_ecs_delete(struct ecs_s *);
 
@@ -221,7 +221,19 @@ enum shader_type_e {
 enum uniform_type_e {
     FT_UNIFORM_NONE = 0,
 
-    FT_UNIFORM_MATRIX4X4,
+    FT_UNIFORM_INT1D,
+    FT_UNIFORM_INT2D,
+    FT_UNIFORM_INT3D,
+    FT_UNIFORM_INT4D,
+
+    FT_UNIFORM_UINT1D,
+    FT_UNIFORM_UINT2D,
+    FT_UNIFORM_UINT3D,
+    FT_UNIFORM_UINT4D,
+    
+    FT_UNIFORM_MATRIX2,
+    FT_UNIFORM_MATRIX3,
+    FT_UNIFORM_MATRIX4,
 
     /* ... */
 
@@ -253,6 +265,25 @@ extern int ft_shader_load(struct shader_s *, FILE *, enum shader_type_e);
 extern int ft_shader_uniform(struct shader_s *, const char *, enum uniform_type_e, const void *);
 
 extern int ft_shader_uniform_get(struct shader_s *, const char *);
+
+
+/* ft_vox-sampler.c */
+
+struct sampler_s {
+    /* 'id' : sampler's ID */
+    GLuint id;
+
+    GLsizei width,   /* 'width' : width of a sampler */
+            height,  /* 'height' : height of a sampler */
+            channel; /* 'channel' : count of channels of a sampler */
+};
+
+
+extern int ft_sampler_create(struct sampler_s **, const char *);
+
+extern int ft_sampler_delete(struct sampler_s *);
+
+extern int ft_sampler_bind(struct sampler_s *, const u32);
 
 
 /* ft_vox-camera.c */
@@ -329,7 +360,7 @@ struct thpool_s {
 };
 
 
-extern int ft_thpool_create(struct thpool_s *);
+extern int ft_thpool_create(struct thpool_s **);
 
 extern int ft_thpool_delete(struct thpool_s *);
 
@@ -464,7 +495,7 @@ struct chunk_s {
 
 /* basic func. */
 
-extern int ft_chunk_create(struct chunk_s *, struct world_s *, int, int, int);
+extern int ft_chunk_create(struct chunk_s **, struct world_s *, int, int, int);
 
 extern int ft_chunk_delete(struct chunk_s *);
 
@@ -487,6 +518,8 @@ extern int ft_chunk_get(struct chunk_s *, int, int, int, u32 *);
 extern int ft_chunk_get_near(struct chunk_s *, int, int, int, u32 *);
 
 extern int ft_chunk_set(struct chunk_s *, int, int, int, int);
+
+extern int ft_chunk_set_origin(struct chunk_s *, int, int, int);
 
 /* pipeline func. */
 
@@ -513,6 +546,14 @@ extern int ft_chunk_mesh_upload(struct chunk_s *);
 #  define FT_VOX_RENDER_DISTANCE_Z 8 /* world Z-axis render distance */
 #  define FT_VOX_RENDER_DIAMETER_Z (FT_VOX_RENDER_DISTANCE_Z * 2)
 # endif
+#
+# define FT_VOX_RENDER_DISTANCE (FT_VOX_RENDER_DISTANCE_X * \
+                                 FT_VOX_RENDER_DISTANCE_Y * \
+                                 FT_VOX_RENDER_DISTANCE_Z)
+#
+# define FT_VOX_RENDER_DIAMETER (FT_VOX_RENDER_DIAMETER_X * \
+                                 FT_VOX_RENDER_DIAMETER_Y * \
+                                 FT_VOX_RENDER_DIAMETER_Z)
 #
 # define FT_VOX_WORLD_3D_1D(x, y, z) ((x) + \
                                       (y) * FT_VOX_RENDER_DIAMETER_X + \
@@ -551,7 +592,7 @@ struct world_s {
 
 /* basic func. */
 
-extern int ft_world_create(struct world_s *, const int);
+extern int ft_world_create(struct world_s **, const int);
 
 extern int ft_world_delete(struct world_s *);
 
