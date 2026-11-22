@@ -10,3 +10,7 @@
 	path = noise.h
 	url = https://github.com/joleksia/noise.h
 	branch = master
+[submodule "stb"]
+	path = stb
+	url = https://github.com/nothings/stb.git
+	branch = master

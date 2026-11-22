@@ -22,6 +22,7 @@ LDFLAGS = # ...
 IFLAGS = -I $(MK_ROOT)glld.h	\
 		 -I $(MK_ROOT)algebra.h	\
 		 -I $(MK_ROOT)noise.h	\
+		 -I $(MK_ROOT)stb		\
 		 -I $(MK_ROOT)inc		\
 
 # preprocessor definitions

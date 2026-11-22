@@ -6,3 +6,6 @@
 #
 #define NOISE_IMPLEMENTATION
 #include "perlin.h" /* 'perlin.h' : Perlin-noise generation library */
+#
+#define STB_IMAGE_IMPLEMENTATION 
+#include "stb_image.h" /* 'stb_image.h' : Image processing library */

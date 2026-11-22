@@ -179,6 +179,13 @@ int main(void) {
     world_s *world = (struct world_s *) calloc(1, sizeof(struct world_s));
     ft_world_create(world, rand());
 
+    /* test-load texture */
+    i32 width = 0,
+        height = 0,
+        channel = 0;
+    u8 *image = stbi_load("res/atlas/atlas1.png", &width, &height, &channel, 0);
+    free(image);
+
     /* create 'player' entity */
     struct
     player_s *player = calloc(1, sizeof(struct player_s));

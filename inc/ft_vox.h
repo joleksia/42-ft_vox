@@ -15,6 +15,7 @@
 # include "glld.h"
 # include "perlin.h"
 # include "algebra.h"
+# include "stb_image.h"
 #
 # include <SDL2/SDL.h>
 # include <SDL2/SDL_video.h>
