@@ -49,7 +49,7 @@ extern int ft_shader_create(struct shader_s **self) {
     if (!self) { return (0); }
 
     /* alloc. 'shader' */
-    struct shader_s *shader = (struct shader_s *) malloc(sizeof(struct shader_s));
+    struct shader_s *shader = (struct shader_s *) calloc(1, sizeof(struct shader_s));
     if (!shader) { return (0); }
 
     /* create 'shader's 'id' */
@@ -152,7 +152,7 @@ extern int ft_shader_uniform(struct shader_s *self, const char *name, enum unifo
         /* 'type' : 'FT_UNIFORM_MATRIX4X4' */
         case (FT_UNIFORM_MATRIX4X4): {
             /* get uniform 'location' */
-            GLint location = glGetUniformLocation(self->id, name);
+            GLint location = ft_shader_uniform_get(self, name);
             if (location == -1) {
                 return (0);
             }
@@ -164,4 +164,36 @@ extern int ft_shader_uniform(struct shader_s *self, const char *name, enum unifo
 
     /* success */
     return (1);
+}
+
+
+extern int ft_shader_uniform_get(struct shader_s *self, const char *name) {
+    /* null-check */
+    if (!self) { return (0); }
+    if (!name) { return (0); }
+
+    /* check if 'name' location is cached */
+    for (int i = 0; i < countof(self->uniforms); i++) {
+        if (self->uniforms[i].name) {
+            if (!strcmp(self->uniforms[i].name, name)) {
+                return (self->uniforms[i].location);
+            }
+        }
+    }
+
+    /* get 'location' */
+    GLint location = glGetUniformLocation(self->id, name);
+
+    /* append 'location' to 'uniforms' */
+    for (int i = 0; i < countof(self->uniforms); i++) {
+        /* fill empty slot */
+        if (!self->uniforms[i].location) {
+            self->uniforms[i].location = location;
+            self->uniforms[i].name = name;
+            break;
+        }
+    }
+
+    /* success */
+    return (location);
 }

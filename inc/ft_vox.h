@@ -232,16 +232,14 @@ struct shader_s {
     /* 'id' : shader program's ID */
     GLuint id;
 
-    /* 'pipeline' : shader's exec. pipeline:
-     * - [0] : vertex
-     * - [1] : tess. control
-     * - [2] : tess. evaluation 
-     * - [3] : geometry
-     * - [4] : fragment
-     * - [5] : compute
-     * - ... : padding
-     * */
-    GLuint pipeline[8];
+    /* 'pipeline' : shader's exec. pipeline */
+    GLuint pipeline[FT_SHADER_TYPE_COUNT];
+
+    /* 'uniforms' : shader's uniform location cache */
+    struct {
+        const char *name;
+        GLint       location;
+    } uniforms[64];
 };
 
 
@@ -252,6 +250,8 @@ extern int ft_shader_delete(struct shader_s *);
 extern int ft_shader_load(struct shader_s *, FILE *, enum shader_type_e);
 
 extern int ft_shader_uniform(struct shader_s *, const char *, enum uniform_type_e, const void *);
+
+extern int ft_shader_uniform_get(struct shader_s *, const char *);
 
 
 /* ft_vox-camera.c */
