@@ -51,9 +51,9 @@ void main() {
     /* set 'v_shading' */
     /* this will probably suck but whatever */
     switch (direction) {
-        case (0): { v_shading = 1.00; } break;
-        case (1): { v_shading = 0.90; } break;
-        case (2): { v_shading = 0.80; } break;
-        case (3): { v_shading = 0.70; } break;
+        case (0): { v_shading = 0.60; } break;
+        case (1): { v_shading = 0.85; } break;
+        case (2): { v_shading = 0.75; } break;
+        case (3): { v_shading = 1.00; } break;
     }
 }

@@ -400,6 +400,40 @@ enum block_type_e {
 };
 
 
+enum block_e {
+    FT_BLOCK_AIR = 0,
+
+    FT_BLOCK_STONE = 1,
+    
+    FT_BLOCK_DIRT = 2,
+
+    /* ... */
+
+    FT_BLOCK_COUNT
+};
+
+
+struct block_s {
+    /* 'id' : 32-bit numerical representation of a block */
+    enum block_e id;
+
+    /* 'metadata' : additional block informations */
+    struct {
+        /* 'type' : 'opaque' or 'trans' block type */
+        u8 type;
+
+        /* 'tex_index' : array of six 8-bit numerical indices into texture atlas */
+        u8 tex_index[6];
+    } metadata;
+};
+
+extern struct block_s *BLOCKS;
+
+
+extern int ft_blocks_create(const size_t);
+
+extern int ft_blocks_delete(void);
+
 /* ft_vox-chunk.c */
 
 # if !defined (FT_VOX_CHUNK_SIZE_X)
@@ -533,17 +567,17 @@ extern int ft_chunk_mesh_upload(struct chunk_s *);
 /* ft_vox-world.c */
 
 # if !defined (FT_VOX_RENDER_DISTANCE_X)
-#  define FT_VOX_RENDER_DISTANCE_X 8 /* world X-axis render distance */
+#  define FT_VOX_RENDER_DISTANCE_X 4 /* world X-axis render distance */
 #  define FT_VOX_RENDER_DIAMETER_X (FT_VOX_RENDER_DISTANCE_X * 2)
 # endif
 #
 # if !defined (FT_VOX_RENDER_DISTANCE_Y)
-#  define FT_VOX_RENDER_DISTANCE_Y 8 /* world Y-axis render distance */
+#  define FT_VOX_RENDER_DISTANCE_Y 4 /* world Y-axis render distance */
 #  define FT_VOX_RENDER_DIAMETER_Y (FT_VOX_RENDER_DISTANCE_Y * 2)
 # endif
 #
 # if !defined (FT_VOX_RENDER_DISTANCE_Z)
-#  define FT_VOX_RENDER_DISTANCE_Z 8 /* world Z-axis render distance */
+#  define FT_VOX_RENDER_DISTANCE_Z 4 /* world Z-axis render distance */
 #  define FT_VOX_RENDER_DIAMETER_Z (FT_VOX_RENDER_DISTANCE_Z * 2)
 # endif
 #

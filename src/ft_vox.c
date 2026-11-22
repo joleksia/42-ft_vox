@@ -151,6 +151,10 @@ int main(void) {
     ft_mouse_create();
     ft_time_create();
 
+    /* create blocks */
+
+    ft_blocks_create(8);
+
     /* create 'shader' */
 
     struct
@@ -239,7 +243,11 @@ int main(void) {
 
     ft_sampler_delete(sampler);
     ft_shader_delete(shader);
-    
+
+    /* unload blocks */
+
+    ft_blocks_delete();
+
     /* unload input objects */
     
     ft_time_delete();

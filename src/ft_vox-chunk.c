@@ -421,63 +421,64 @@ static u32 __ft_vertex(i8 x, i8 y, i8 z, i8 tex_index, i8 tex_corner, i8 directi
 }
 
 
-static int __ft_face_cube(u32 block, int face, int x, int y, int z, u32 *v, u32 *i, u32 *ioff) {
-    (void) block;
+static int __ft_face_cube(u32 idx, int face, int x, int y, int z, u32 *v, u32 *i, u32 *ioff) {
+    /* get 'block' */
+    struct block_s block = BLOCKS[idx];
 
     /* vertices... */
     if (!v) { return (0); }
     switch (face) {
         case (FT_FACE_NORTH): {
-            v[0] = __ft_vertex(x + 1, y,     z,     3, 0, 1);
-            v[1] = __ft_vertex(x,     y,     z,     3, 2, 1);
-            v[2] = __ft_vertex(x,     y + 1, z,     3, 3, 1);
-            v[3] = __ft_vertex(x + 1, y + 1, z,     3, 1, 1);
+            v[0] = __ft_vertex(x + 1, y,     z,     block.metadata.tex_index[face], 0, 1);
+            v[1] = __ft_vertex(x,     y,     z,     block.metadata.tex_index[face], 2, 1);
+            v[2] = __ft_vertex(x,     y + 1, z,     block.metadata.tex_index[face], 3, 1);
+            v[3] = __ft_vertex(x + 1, y + 1, z,     block.metadata.tex_index[face], 1, 1);
         } break;
 
         case (FT_FACE_SOUTH): {
-            v[0] = __ft_vertex(x,     y,     z + 1, 3, 0, 1);
-            v[1] = __ft_vertex(x + 1, y,     z + 1, 3, 2, 1);
-            v[2] = __ft_vertex(x + 1, y + 1, z + 1, 3, 3, 1);
-            v[3] = __ft_vertex(x,     y + 1, z + 1, 3, 1, 1);
+            v[0] = __ft_vertex(x,     y,     z + 1, block.metadata.tex_index[face], 0, 1);
+            v[1] = __ft_vertex(x + 1, y,     z + 1, block.metadata.tex_index[face], 2, 1);
+            v[2] = __ft_vertex(x + 1, y + 1, z + 1, block.metadata.tex_index[face], 3, 1);
+            v[3] = __ft_vertex(x,     y + 1, z + 1, block.metadata.tex_index[face], 1, 1);
         } break;
 
         case (FT_FACE_WEST): {
-            v[0] = __ft_vertex(x,     y,     z,     3, 0, 2);
-            v[1] = __ft_vertex(x,     y,     z + 1, 3, 2, 2);
-            v[2] = __ft_vertex(x,     y + 1, z + 1, 3, 3, 2);
-            v[3] = __ft_vertex(x,     y + 1, z,     3, 1, 2);
+            v[0] = __ft_vertex(x,     y,     z,     block.metadata.tex_index[face], 0, 2);
+            v[1] = __ft_vertex(x,     y,     z + 1, block.metadata.tex_index[face], 2, 2);
+            v[2] = __ft_vertex(x,     y + 1, z + 1, block.metadata.tex_index[face], 3, 2);
+            v[3] = __ft_vertex(x,     y + 1, z,     block.metadata.tex_index[face], 1, 2);
         } break;
 
         case (FT_FACE_EAST): {
-            v[0] = __ft_vertex(x + 1, y,     z + 1, 3, 0, 2);
-            v[1] = __ft_vertex(x + 1, y,     z,     3, 2, 2);
-            v[2] = __ft_vertex(x + 1, y + 1, z,     3, 3, 2);
-            v[3] = __ft_vertex(x + 1, y + 1, z + 1, 3, 1, 2);
+            v[0] = __ft_vertex(x + 1, y,     z + 1, block.metadata.tex_index[face], 0, 2);
+            v[1] = __ft_vertex(x + 1, y,     z,     block.metadata.tex_index[face], 2, 2);
+            v[2] = __ft_vertex(x + 1, y + 1, z,     block.metadata.tex_index[face], 3, 2);
+            v[3] = __ft_vertex(x + 1, y + 1, z + 1, block.metadata.tex_index[face], 1, 2);
         } break;
 
         case (FT_FACE_DOWN): {
-            v[0] = __ft_vertex(x,     y,     z,     3, 0, 0);
-            v[1] = __ft_vertex(x + 1, y,     z,     3, 2, 0);
-            v[2] = __ft_vertex(x + 1, y,     z + 1, 3, 3, 0);
-            v[3] = __ft_vertex(x,     y,     z + 1, 3, 1, 0);
+            v[0] = __ft_vertex(x,     y,     z,     block.metadata.tex_index[face], 0, 0);
+            v[1] = __ft_vertex(x + 1, y,     z,     block.metadata.tex_index[face], 2, 0);
+            v[2] = __ft_vertex(x + 1, y,     z + 1, block.metadata.tex_index[face], 3, 0);
+            v[3] = __ft_vertex(x,     y,     z + 1, block.metadata.tex_index[face], 1, 0);
         } break;
 
         case (FT_FACE_TOP): {
-            v[0] = __ft_vertex(x,     y + 1, z + 1, 3, 0, 3);
-            v[1] = __ft_vertex(x + 1, y + 1, z + 1, 3, 2, 3);
-            v[2] = __ft_vertex(x + 1, y + 1, z,     3, 3, 3);
-            v[3] = __ft_vertex(x,     y + 1, z,     3, 1, 3);
+            v[0] = __ft_vertex(x,     y + 1, z + 1, block.metadata.tex_index[face], 0, 3);
+            v[1] = __ft_vertex(x + 1, y + 1, z + 1, block.metadata.tex_index[face], 2, 3);
+            v[2] = __ft_vertex(x + 1, y + 1, z,     block.metadata.tex_index[face], 3, 3);
+            v[3] = __ft_vertex(x,     y + 1, z,     block.metadata.tex_index[face], 1, 3);
         } break;
     }
 
     /* indices... */
     if (!i) { return (0); }
-    i[0] = *ioff + 1;
-    i[1] = *ioff + 0;
-    i[2] = *ioff + 3;
-    i[3] = *ioff + 1;
-    i[4] = *ioff + 3;
-    i[5] = *ioff + 2;
+    i[0] = *ioff + 0;
+    i[1] = *ioff + 1;
+    i[2] = *ioff + 2;
+    i[3] = *ioff + 0;
+    i[4] = *ioff + 2;
+    i[5] = *ioff + 3;
 
     /* success */
     *ioff += 4;
@@ -674,7 +675,7 @@ static int __ft_chunk_populate(struct chunk_s *self) {
          * > 'noise' >  '0.0' : no-air
          * */
         if (noise > 0.0) {
-            ft_chunk_set(self, x, y, z, 1);
+            ft_chunk_set(self, x, y, z, rand() % FT_BLOCK_COUNT);
         }
 
         /* set 'air' */
@@ -705,68 +706,72 @@ static int __ft_chunk_mesh_bake(struct chunk_data_s *self, struct chunk_s *chunk
     for (int y = 0; y < FT_VOX_CHUNK_SIZE_Y; y++) {
     for (int x = 0; x < FT_VOX_CHUNK_SIZE_X; x++) {
     for (int z = 0; z < FT_VOX_CHUNK_SIZE_Z; z++) {
-        u32 block = 0;
-        ft_chunk_get(chunk, x, y, z, &block);
-        if (!block) { continue; }
+        u32 idx = 0;
+        ft_chunk_get(chunk, x, y, z, &idx);
+        if (!idx || idx >= FT_BLOCK_COUNT) { continue; }
         
-        /* get near 'blocks' */
-        u32 blocks[6] = { 0 };
-        ft_chunk_get_near(chunk, x, y, z, blocks);
+        /* get 'near' blocks */
+        u32 near[6] = { 0 };
+        ft_chunk_get_near(chunk, x, y, z, near);
 
-        /* case : 'issolid()' */
-        if (block == 1) {
+        /* 'idx'-to-'block' match */
+        struct block_s block = BLOCKS[idx];
+        switch (block.metadata.type) {
+            case (FT_BLOCK_TYPE_SOLID): {
+                /* iterate on every 'near' */
+                for (int face = 0; face < FT_FACE_COUNT; face++) {
+                    if (near[face] >= FT_BLOCK_COUNT) { continue; }
 
-            /* iterate on every 'neighbor' */
-            for (int face = 0; face < FT_FACE_COUNT; face++) {
-                if (blocks[face] != 0 &&
-                    blocks[face] != 2
-                ) { continue; }
+                    /* 'near'-to-'block' match */
+                    struct block_s block = BLOCKS[near[face]];
+                    if (block.metadata.type != FT_BLOCK_TYPE_TRANS) { continue; }
+                
+                    /* get 'vertices' and 'indices' */
+                    u32 vertices[4] = { 0 },
+                         indices[6] = { 0 };
+                    __ft_face_cube(idx, face, x, y, z, vertices, indices, &s_off);
+
+                    /* push 'vertices' */
+                    __ft_push(&self->v_solid.arr,
+                              &self->v_solid.cnt,
+                              &self->v_solid.cap,
+                              vertices, countof(vertices));
+
+                    /* push 'indices' */
+                    __ft_push(&self->i_solid.arr,
+                              &self->i_solid.cnt,
+                              &self->i_solid.cap,
+                              indices, countof(indices));
+                }
+            } break;
             
-                /* get 'vertices' and 'indices' */
-                u32 vertices[4] = { 0 },
-                     indices[6] = { 0 };
-                __ft_face_cube(block, face, x, y, z, vertices, indices, &s_off);
+            case (FT_BLOCK_TYPE_TRANS): {
+                /* iterate on every 'near' */
+                for (int face = 0; face < FT_FACE_COUNT; face++) {
+                    /* 'near'-to-'block' match */
+                    struct block_s block = BLOCKS[near[face]];
+                    if (block.metadata.type != FT_BLOCK_TYPE_SOLID) {
+                        if (block.id != 0) { continue; }
+                    }
+                
+                    /* get 'vertices' and 'indices' */
+                    u32 vertices[4] = { 0 },
+                         indices[6] = { 0 };
+                    __ft_face_cube(idx, face, x, y, z, vertices, indices, &t_off);
 
-                /* push 'vertices' */
-                __ft_push(&self->v_solid.arr,
-                          &self->v_solid.cnt,
-                          &self->v_solid.cap,
-                          vertices, countof(vertices));
+                    /* push 'vertices' */
+                    __ft_push(&self->v_trans.arr,
+                              &self->v_trans.cnt,
+                              &self->v_trans.cap,
+                              vertices, countof(vertices));
 
-                /* push 'indices' */
-                __ft_push(&self->i_solid.arr,
-                          &self->i_solid.cnt,
-                          &self->i_solid.cap,
-                          indices, countof(indices));
-            }
-        }
-        
-        /* case : 'istrans()' */
-        else if (block == 2) {
-
-            /* iterate on every 'neighbor' */
-            for (int face = 0; face < FT_FACE_COUNT; face++) {
-                if (blocks[face] != 0 &&
-                    blocks[face] != 1
-                ) { continue; }
-
-                /* get 'vertices' and 'indices' */
-                u32 vertices[4] = { 0 },
-                     indices[6] = { 0 };
-                __ft_face_cube(block, face, x, y, z, vertices, indices, &t_off);
-
-                /* push 'vertices' */
-                __ft_push(&self->v_trans.arr,
-                          &self->v_trans.cnt,
-                          &self->v_trans.cap,
-                          vertices, countof(vertices));
-
-                /* push 'indices' */
-                __ft_push(&self->i_trans.arr,
-                          &self->i_trans.cnt,
-                          &self->i_trans.cap,
-                          indices, countof(indices));
-            }
+                    /* push 'indices' */
+                    __ft_push(&self->i_trans.arr,
+                              &self->i_trans.cnt,
+                              &self->i_trans.cap,
+                              indices, countof(indices));
+                }
+            } break;
         }
     }}}
 
