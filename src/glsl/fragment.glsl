@@ -4,6 +4,9 @@ layout (location=0)
 in vec2 v_texcoord;
 
 layout (location=1)
+in vec3 v_normal;
+
+layout (location=2)
 in float v_shading;
 
 layout (location=0)
@@ -19,5 +22,5 @@ void main() {
     }
 
     /* set 'f_color' */
-    f_color = sampler;
+    f_color = vec4(sampler.rgb, 1.0);
 }

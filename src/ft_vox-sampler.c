@@ -9,6 +9,7 @@ extern int ft_sampler_create(struct sampler_s **self, const char *path) {
     if (!sampler) { return (0); }
 
     /* load 'image' from 'path' */
+    stbi_set_flip_vertically_on_load(1);
     u8 *image = stbi_load(path, &sampler->width,
                                 &sampler->height,
                                 &sampler->channel, 4);
@@ -49,18 +50,6 @@ extern int ft_sampler_delete(struct sampler_s *self) {
 
     /* release 'self' */
     free(self);
-
-    /* success */
-    return (1);
-}
-
-
-extern int ft_sampler_bind(struct sampler_s *self, const u32 slot) {
-    /* null-check */
-    if (!self) { return (0); }
-
-    /* bind 'self' at 'slot' */
-    glBindTextureUnit(slot, self->id);
 
     /* success */
     return (1);

@@ -2,7 +2,7 @@
 
 /* static API */
 
-static u32 __ft_vertex(i8, i8, i8, i8, i8, i8);
+static u32 __ft_vertex(u8, u8, u8, u8, u8, u8);
 
 static int __ft_face_cube(u32, int, int, int, int, u32 *, u32 *, u32 *);
 
@@ -398,8 +398,13 @@ extern int ft_chunk_mesh_upload(struct chunk_s *self) {
 
 /* static API */
 
-static u32 __ft_vertex(i8 x, i8 y, i8 z, i8 tex_index, i8 tex_corner, i8 direction) {
-    /* 'vertex' : 32-bit GPU-verticy representation of a single block. */
+static u32 __ft_vertex(u8 x, u8 y, u8 z, u8 tex_index, u8 tex_corner, u8 face) {
+    /* 'vertex' : 32-bit GPU-verticy representation of a single block:
+     *  - position (18-bit)
+     *  - texture index (6-bit)
+     *  - texture corner (2-bit)
+     *  - face (3-bit)
+     * */
     u32 vertex = 0;
 
     /* pack : position (18-bit) */
@@ -413,8 +418,8 @@ static u32 __ft_vertex(i8 x, i8 y, i8 z, i8 tex_index, i8 tex_corner, i8 directi
     /* pack : 'tex-corner' (2-bit) */
     vertex |= (tex_corner & 0x3u) << 24;
 
-    /* pack : 'direction' (2-bit) */
-    vertex |= (direction & 0x3u) << 26;
+    /* pack : 'face' (3-bit) */
+    vertex |= (face & 0x7u) << 26;
 
     /* return 'vertex' */
     return (vertex);
@@ -425,49 +430,52 @@ static int __ft_face_cube(u32 idx, int face, int x, int y, int z, u32 *v, u32 *i
     /* get 'block' */
     struct block_s block = BLOCKS[idx];
 
+    /* get 'tex_index' */
+    u8 tex_index = block.metadata.tex_index[face]; 
+
     /* vertices... */
     if (!v) { return (0); }
     switch (face) {
         case (FT_FACE_NORTH): {
-            v[0] = __ft_vertex(x + 1, y,     z,     block.metadata.tex_index[face], 0, 1);
-            v[1] = __ft_vertex(x,     y,     z,     block.metadata.tex_index[face], 2, 1);
-            v[2] = __ft_vertex(x,     y + 1, z,     block.metadata.tex_index[face], 3, 1);
-            v[3] = __ft_vertex(x + 1, y + 1, z,     block.metadata.tex_index[face], 1, 1);
+            v[0] = __ft_vertex(x + 1, y,     z,     tex_index, 0, face);
+            v[1] = __ft_vertex(x,     y,     z,     tex_index, 2, face);
+            v[2] = __ft_vertex(x,     y + 1, z,     tex_index, 3, face);
+            v[3] = __ft_vertex(x + 1, y + 1, z,     tex_index, 1, face);
         } break;
 
         case (FT_FACE_SOUTH): {
-            v[0] = __ft_vertex(x,     y,     z + 1, block.metadata.tex_index[face], 0, 1);
-            v[1] = __ft_vertex(x + 1, y,     z + 1, block.metadata.tex_index[face], 2, 1);
-            v[2] = __ft_vertex(x + 1, y + 1, z + 1, block.metadata.tex_index[face], 3, 1);
-            v[3] = __ft_vertex(x,     y + 1, z + 1, block.metadata.tex_index[face], 1, 1);
+            v[0] = __ft_vertex(x,     y,     z + 1, tex_index, 0, face);
+            v[1] = __ft_vertex(x + 1, y,     z + 1, tex_index, 2, face);
+            v[2] = __ft_vertex(x + 1, y + 1, z + 1, tex_index, 3, face);
+            v[3] = __ft_vertex(x,     y + 1, z + 1, tex_index, 1, face);
         } break;
 
         case (FT_FACE_WEST): {
-            v[0] = __ft_vertex(x,     y,     z,     block.metadata.tex_index[face], 0, 2);
-            v[1] = __ft_vertex(x,     y,     z + 1, block.metadata.tex_index[face], 2, 2);
-            v[2] = __ft_vertex(x,     y + 1, z + 1, block.metadata.tex_index[face], 3, 2);
-            v[3] = __ft_vertex(x,     y + 1, z,     block.metadata.tex_index[face], 1, 2);
+            v[0] = __ft_vertex(x,     y,     z,     tex_index, 0, face);
+            v[1] = __ft_vertex(x,     y,     z + 1, tex_index, 2, face);
+            v[2] = __ft_vertex(x,     y + 1, z + 1, tex_index, 3, face);
+            v[3] = __ft_vertex(x,     y + 1, z,     tex_index, 1, face);
         } break;
 
         case (FT_FACE_EAST): {
-            v[0] = __ft_vertex(x + 1, y,     z + 1, block.metadata.tex_index[face], 0, 2);
-            v[1] = __ft_vertex(x + 1, y,     z,     block.metadata.tex_index[face], 2, 2);
-            v[2] = __ft_vertex(x + 1, y + 1, z,     block.metadata.tex_index[face], 3, 2);
-            v[3] = __ft_vertex(x + 1, y + 1, z + 1, block.metadata.tex_index[face], 1, 2);
+            v[0] = __ft_vertex(x + 1, y,     z + 1, tex_index, 0, face);
+            v[1] = __ft_vertex(x + 1, y,     z,     tex_index, 2, face);
+            v[2] = __ft_vertex(x + 1, y + 1, z,     tex_index, 3, face);
+            v[3] = __ft_vertex(x + 1, y + 1, z + 1, tex_index, 1, face);
         } break;
 
         case (FT_FACE_DOWN): {
-            v[0] = __ft_vertex(x,     y,     z,     block.metadata.tex_index[face], 0, 0);
-            v[1] = __ft_vertex(x + 1, y,     z,     block.metadata.tex_index[face], 2, 0);
-            v[2] = __ft_vertex(x + 1, y,     z + 1, block.metadata.tex_index[face], 3, 0);
-            v[3] = __ft_vertex(x,     y,     z + 1, block.metadata.tex_index[face], 1, 0);
+            v[0] = __ft_vertex(x,     y,     z,     tex_index, 0, face);
+            v[1] = __ft_vertex(x + 1, y,     z,     tex_index, 2, face);
+            v[2] = __ft_vertex(x + 1, y,     z + 1, tex_index, 3, face);
+            v[3] = __ft_vertex(x,     y,     z + 1, tex_index, 1, face);
         } break;
 
         case (FT_FACE_TOP): {
-            v[0] = __ft_vertex(x,     y + 1, z + 1, block.metadata.tex_index[face], 0, 3);
-            v[1] = __ft_vertex(x + 1, y + 1, z + 1, block.metadata.tex_index[face], 2, 3);
-            v[2] = __ft_vertex(x + 1, y + 1, z,     block.metadata.tex_index[face], 3, 3);
-            v[3] = __ft_vertex(x,     y + 1, z,     block.metadata.tex_index[face], 1, 3);
+            v[0] = __ft_vertex(x,     y + 1, z + 1, tex_index, 0, face);
+            v[1] = __ft_vertex(x + 1, y + 1, z + 1, tex_index, 2, face);
+            v[2] = __ft_vertex(x + 1, y + 1, z,     tex_index, 3, face);
+            v[3] = __ft_vertex(x,     y + 1, z,     tex_index, 1, face);
         } break;
     }
 
@@ -552,10 +560,33 @@ static int __ft_chunk_data_free(struct chunk_data_s *self) {
     if (!self) { return (0); }
 
     /* release 'self' */
-    free(self->v_solid.arr), self->v_solid.cnt = self->v_solid.cap = 0;
-    free(self->v_trans.arr), self->v_trans.cnt = self->v_trans.cap = 0;
-    free(self->i_solid.arr), self->i_solid.cnt = self->i_solid.cap = 0;
-    free(self->i_trans.arr), self->i_trans.cnt = self->i_trans.cap = 0;
+    if (self->v_solid.arr) {
+        free(self->v_solid.arr);
+        self->v_solid.arr = 0;
+        self->v_solid.cnt = 0;
+        self->v_solid.cap = 0;
+    }
+
+    if (self->i_solid.arr) {
+        free(self->i_solid.arr);
+        self->i_solid.arr = 0;
+        self->i_solid.cnt = 0;
+        self->i_solid.cap = 0;
+    }
+
+    if (self->v_trans.arr) {
+        free(self->v_trans.arr);
+        self->v_trans.arr = 0;
+        self->v_trans.cnt = 0;
+        self->v_trans.cap = 0;
+    }
+
+    if (self->i_trans.arr) {
+        free(self->i_trans.arr);
+        self->i_trans.arr = 0;
+        self->i_trans.cnt = 0;
+        self->i_trans.cap = 0;
+    }
 
     /* success */
     return (1);
@@ -675,12 +706,15 @@ static int __ft_chunk_populate(struct chunk_s *self) {
          * > 'noise' >  '0.0' : no-air
          * */
         if (noise > 0.0) {
-            ft_chunk_set(self, x, y, z, rand() % FT_BLOCK_COUNT);
+            u32 idx = rand() % FT_BLOCK_COUNT;
+            if (idx == FT_BLOCK_AIR) { idx++; }
+
+            ft_chunk_set(self, x, y, z, idx);
         }
 
         /* set 'air' */
         else {
-            ft_chunk_set(self, x, y, z, 0);
+            ft_chunk_set(self, x, y, z, FT_BLOCK_AIR);
         }
     }}}
 
@@ -792,6 +826,9 @@ static int __ft_chunk_mesh_upload(struct chunk_mesh_s *self, struct chunk_data_s
         glNamedBufferData(self->vbo[0], data->v_solid.cnt * sizeof(u32), data->v_solid.arr, GL_DYNAMIC_DRAW);
         glNamedBufferData(self->ibo[0], data->i_solid.cnt * sizeof(u32), data->i_solid.arr, GL_DYNAMIC_DRAW);
     }
+
+    /* unconditional 'count's */
+    self->count[0] = data->i_solid.cnt;
     
     /* trans */
     if (data->v_trans.cnt) {
@@ -800,8 +837,10 @@ static int __ft_chunk_mesh_upload(struct chunk_mesh_s *self, struct chunk_data_s
     }
 
     /* unconditional 'count's */
-    self->count[0] = data->i_solid.cnt;
     self->count[1] = data->i_trans.cnt;
+
+    /* release 'data' */
+    __ft_chunk_data_free(data);
 
     /* success */
     SDL_AtomicSet(&chunk->atoms.is_uploaded, 1);

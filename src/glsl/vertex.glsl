@@ -9,6 +9,10 @@ out vec2 v_texcoord;
 
 
 layout (location=1)
+out vec3 v_normal;
+
+
+layout (location=2)
 out float v_shading;
 
 
@@ -29,8 +33,11 @@ void main() {
     /* unpack: 'tex_corner' (2-bit) */
     uint tex_corner = (a_vertex >> 24) & 0x3u;
     
-    /* unpack: 'direction' (2-bit) */
-    uint direction = (a_vertex >> 26) & 0x3u;
+    /* unpack: 'face' (3-bit)
+     * NOTE:
+     *  'face' must match 'enum block_face_e' values
+     * */
+    uint face = (a_vertex >> 26) & 0x7u;
     
     /* set 'gl_Position' */
     gl_Position = u_proj  *
@@ -45,15 +52,33 @@ void main() {
                        (tex_corner >> 0) & 0x1u);
 
     /* set 'v_texcoord' */
-    v_texcoord = (vec2(float(x_idx),
-                       float(y_idx)) + corner) / 16.0;
+    v_texcoord = (vec2(float(      x_idx),
+                       float(15u - y_idx)) + corner) / 16.0;
 
-    /* set 'v_shading' */
-    /* this will probably suck but whatever */
-    switch (direction) {
-        case (0): { v_shading = 0.60; } break;
-        case (1): { v_shading = 0.85; } break;
-        case (2): { v_shading = 0.75; } break;
-        case (3): { v_shading = 1.00; } break;
+    /* set 'v_normal' and 'v_shading' */
+    switch (face) {
+        /* face : NORTH */
+        case (0): { v_shading = 0.90; 
+                    v_normal = vec3(0.0, 0.0, -1.0); } break;
+        
+        /* face : SOUTH */
+        case (1): { v_shading = 0.90; 
+                    v_normal = vec3(0.0, 0.0, 1.0); } break;
+        
+        /* face : WEST */
+        case (2): { v_shading = 0.80; 
+                    v_normal = vec3(-1.0, 0.0, 0.0); } break;
+        
+        /* face : EAST */
+        case (3): { v_shading = 0.80; 
+                    v_normal = vec3(1.0, 0.0, 0.0); } break;
+        
+        /* face : DOWN */
+        case (4): { v_shading = 0.70; 
+                    v_normal = vec3(0.0, -1.0, 0.0); } break;
+        
+        /* face : TOP */
+        case (5): { v_shading = 1.00; 
+                    v_normal = vec3(0.0, 1.0, 0.0); } break;
     }
 }

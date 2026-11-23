@@ -283,8 +283,6 @@ extern int ft_sampler_create(struct sampler_s **, const char *);
 
 extern int ft_sampler_delete(struct sampler_s *);
 
-extern int ft_sampler_bind(struct sampler_s *, const u32);
-
 
 /* ft_vox-camera.c */
 
@@ -371,10 +369,6 @@ extern int ft_thpool_dequeue(struct thpool_s *, void *);
 
 /* ft_vox-block.c */
 
-# if !defined (FT_BLOCK_OUT_OF_BOUNDS)
-#  define FT_BLOCK_OUT_OF_BOUNDS 0xffffffffu
-# endif
-
 enum face_e {
     FT_FACE_NORTH = 0,
     FT_FACE_SOUTH = 1,
@@ -409,7 +403,11 @@ enum block_e {
 
     /* ... */
 
-    FT_BLOCK_COUNT
+    FT_BLOCK_COUNT,
+    
+    /* ancillery values: */
+
+    FT_BLOCK_OUT_OF_BOUNDS = 0xffffffffu
 };
 
 
