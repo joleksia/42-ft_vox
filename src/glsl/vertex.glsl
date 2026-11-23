@@ -19,9 +19,9 @@ out float v_shading;
 uniform mat4 u_model;
 uniform mat4 u_proj;
 uniform mat4 u_view;
-
-uniform vec2 u_block_size; /* 'u_block_size' : texture size of a single block's face (default: 16x16) */
-uniform vec2 u_atlas_size; /* 'u_atlas_size' : texture atlas sizeolutio (example: 'atlas1.png is 512x512) */
+    
+const uvec2 BLOCK_SIZE = uvec2(16, 16);
+const uvec2 ATLAS_SIZE = uvec2(256, 256);
 
 
 void main() {
@@ -49,7 +49,7 @@ void main() {
                   vec4(float(x), float(y), float(z), 1.0);
 
     /* get 'texcoord' */
-    vec2 res = u_atlas_size / u_block_size;
+    vec2 res = ATLAS_SIZE/ BLOCK_SIZE;
     uint x_idx = tex_index % uint(res.x),
          y_idx = tex_index / uint(res.y);
     vec2 corner = vec2((tex_corner >> 1) & 0x1u,

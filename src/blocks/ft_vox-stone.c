@@ -37,7 +37,7 @@ static int __ft_stone_texcoord(struct block_s *self, vec2 *uv, enum face_e face)
 
     /* return 'uv' */
     if (uv) {
-        *uv = alg_vec2(1.0, 0.0);
+        *uv = alg_vec2(0.0, 0.0);
     }
 
     /* success */

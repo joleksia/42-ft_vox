@@ -432,7 +432,7 @@ static int __ft_face_cube(u32 idx, int face, int x, int y, int z, u32 *v, u32 *i
 
     /* get 'texcoord' */
     vec2 texcoord = { 0 };
-    block.texcoord(&block, &texcoord, face);
+    if (block.texcoord) { block.texcoord(&block, &texcoord, face); }
 
     /* get 'tex_index' */
     u8 tex_index = texcoord.y * 32.0 + texcoord.x;

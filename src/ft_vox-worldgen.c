@@ -30,7 +30,7 @@ extern int ft_worldgen_generate(struct world_s *world, struct chunk_s *chunk, in
             else {
                 /* ...if on water level */
                 if (cy < 0) {
-                    idx = FT_BLOCK_WATER;
+                    // idx = FT_BLOCK_WATER;
                 }
             }
             
