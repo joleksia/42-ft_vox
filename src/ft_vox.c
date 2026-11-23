@@ -75,26 +75,40 @@ static int ft_player_update(struct entity_s *self) {
     struct
     player_s *player = (struct player_s *) self;
     if (!player) { return (0); }
+
+    /* get 'input's */
+    struct
+    keyboard_s *keyboard = STATE.input.keyboard;
+    if (!keyboard) { return (0); }
+
+    struct
+    mouse_s *mouse = STATE.input.mouse;
+    if (!mouse) { return (0); }
+
+    /* get 'time' */
+    struct
+    time_s *time = STATE.time;
+    if (!time) { return (0); }
         
     /* enable 'locked' mode */
-    if (MOUSE->input.current[1]  == 1 &&
-        MOUSE->input.previous[1] == 0
+    if (mouse->input.current[1]  == 1 &&
+        mouse->input.previous[1] == 0
     ) {
-        MOUSE->locked = 1;
-        SDL_SetRelativeMouseMode(MOUSE->locked);
+        mouse->locked = 1;
+        SDL_SetRelativeMouseMode(mouse->locked);
     }
 
     /* disable 'locked' mode */
-    if (KEYBOARD->current[SDL_SCANCODE_ESCAPE]  == 1 &&
-        KEYBOARD->previous[SDL_SCANCODE_ESCAPE] == 0
+    if (keyboard->current[SDL_SCANCODE_ESCAPE]  == 1 &&
+        keyboard->previous[SDL_SCANCODE_ESCAPE] == 0
     ) {
-        MOUSE->locked = 0;
-        SDL_SetRelativeMouseMode(MOUSE->locked);
+        mouse->locked = 0;
+        SDL_SetRelativeMouseMode(mouse->locked);
     }
 
     /* update 'camera' */
-    if (MOUSE->locked) {
-        ft_camera_move(&player->camera, 8.0 * TIME->delta);
+    if (mouse->locked) {
+        ft_camera_move(&player->camera, 8.0 * time->delta);
         ft_camera_rotate(&player->camera, 0.1);
     }
 
@@ -131,25 +145,26 @@ static int ft_player_render(struct entity_s *self, struct shader_s *shader) {
     mat4 u_proj = alg_mat4(1.0),
          u_view = alg_mat4(1.0);
     ft_camera_matrix(&player->camera, &u_proj, &u_view);
-    ft_shader_uniform(shader, "u_proj", FT_UNIFORM_MATRIX4, &u_proj);
-    ft_shader_uniform(shader, "u_view", FT_UNIFORM_MATRIX4, &u_view);
+    STATE.proj = u_proj;
+    STATE.view = u_view;
+    (void) shader;
 
     /* success */
     return (1);
 }
 
 
-int main(void) {
+int main(int ac, char **av) {
 
     /* create OpenGL window */
     
-    if (!ft_window_create("42warsaw - ft_vox", 800, 600)) { return (1); }
+    ft_window_create(&STATE.window, "42warsaw - ft_vox", 800, 600);
    
     /* create input objects */
     
-    ft_keyboard_create();
-    ft_mouse_create();
-    ft_time_create();
+    ft_time_create(&STATE.time);
+    ft_keyboard_create(&STATE.input.keyboard);
+    ft_mouse_create(&STATE.input.mouse);
 
     /* create blocks */
 
@@ -193,11 +208,14 @@ int main(void) {
 
     /* create 'world' */
 
-    srand(time(0));
-    
-    struct
-    world_s *world = 0; 
-    ft_world_create(&world, rand());
+    i32 seed = 0;
+    if (ac > 1) {
+        seed = atoi(av[1]);
+    } else {
+        srand(time(0));
+        seed = rand();
+    }
+    ft_world_create(&STATE.world, seed);
 
     /* create 'player' entity */
     struct
@@ -206,7 +224,7 @@ int main(void) {
     player->delete = ft_player_delete;
     player->update = ft_player_update;
     player->render = ft_player_render;
-    ft_ecs_insert(world->ecs, (struct entity_s *) player);
+    ft_ecs_insert(STATE.world->ecs, (struct entity_s *) player);
 
     /* update-render loop */
 
@@ -214,12 +232,8 @@ int main(void) {
 
         /* update */
 
-        /* set new 'window' title */
-        u32 fps = round(1.0 / TIME->delta);
-        ft_window_title("42warsaw - ft_vox (FPS.: %d)", fps);
-
         /* update 'world' */
-        ft_world_update(world);
+        ft_world_update(STATE.world);
 
         /* render */
 
@@ -235,19 +249,19 @@ int main(void) {
         ft_shader_uniform(shader, "u_atlas", FT_UNIFORM_INT1D, &slot);
         
         /* render 'world' */
-        ft_world_render(world, shader);
+        ft_world_render(STATE.world, shader);
         
         glBindTextureUnit(0, 0);
         glUseProgram(0);
 
         /* poll-events */
-        ft_window_poll_events();
+        ft_window_poll_events(STATE.window);
 
-    } while (!WINDOW->flags.close);
+    } while (!STATE.window->flags.close);
 
     /* unload 'world' */
    
-    ft_world_delete(world);
+    ft_world_delete(STATE.world);
 
     /* unload OpenGL */
 
@@ -255,14 +269,13 @@ int main(void) {
     ft_shader_delete(shader);
 
     /* unload input objects */
-    
-    ft_time_delete();
-    ft_mouse_delete();
-    ft_keyboard_delete();
+    ft_mouse_delete(STATE.input.mouse);
+    ft_keyboard_delete(STATE.input.keyboard);
+    ft_time_delete(STATE.time);
 
     /* quit */
 
-    ft_window_delete();
+    ft_window_delete(STATE.window);
 
     return (0);
 }

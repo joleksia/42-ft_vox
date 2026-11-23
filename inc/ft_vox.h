@@ -48,6 +48,8 @@ typedef int64_t i64;
 
 /* Forward-Declare */
 
+struct state_s;
+
 struct window_s;
 
 struct keyboard_s;
@@ -69,6 +71,40 @@ struct chunk_s;
 struct world_s;
 
 
+/* ft_vox-state.c */
+
+struct state_s {
+    /* 'window' : global window object */
+    struct
+    window_s *window;
+
+    /* 'time' : global timing object */
+    struct
+    time_s *time;
+
+    /* 'input' : global input objects */
+    struct {
+        struct
+        keyboard_s *keyboard;
+        
+        struct
+        mouse_s *mouse;
+    } input;
+
+    /* 'world' : current world */
+    struct
+    world_s *world;
+
+    /* projection matrices */
+
+    mat4 proj;
+    mat4 view;
+};
+
+
+extern struct state_s STATE;
+
+
 /* ft_vox-window.c */
 
 struct window_s {
@@ -82,17 +118,13 @@ struct window_s {
 };
 
 
-extern struct window_s *WINDOW;
+extern int ft_window_create(struct window_s **, const char *, const size_t, const size_t);
 
-extern int ft_window_create(const char *, const size_t, const size_t);
+extern int ft_window_delete(struct window_s *);
 
-extern int ft_window_delete(void);
+extern int ft_window_poll_events(struct window_s *);
 
-extern int ft_window_poll_events(void);
-
-extern int ft_window_title(const char *, ...);
-
-extern int ft_window_size(int *, int *);
+extern int ft_window_get_size(struct window_s *, int *, int *);
 
 /* ft_vox-input.c */
     
@@ -102,14 +134,12 @@ struct keyboard_s {
     u8 previous[SDL_NUM_SCANCODES];
 };
 
-extern struct keyboard_s *KEYBOARD;
 
+extern int ft_keyboard_create(struct keyboard_s **);
 
-extern int ft_keyboard_create(void);
+extern int ft_keyboard_delete(struct keyboard_s *);
 
-extern int ft_keyboard_delete(void);
-
-extern int ft_keyboard_sync(void);
+extern int ft_keyboard_sync(struct keyboard_s *);
 
 
 /* create 'mouse_s' struct */
@@ -126,14 +156,12 @@ struct mouse_s {
     u8 locked;
 };
 
-extern struct mouse_s *MOUSE;
 
+extern int ft_mouse_create(struct mouse_s **);
 
-extern int ft_mouse_create(void);
+extern int ft_mouse_delete(struct mouse_s *);
 
-extern int ft_mouse_delete(void);
-
-extern int ft_mouse_sync(void);
+extern int ft_mouse_sync(struct mouse_s *);
 
 
 /* create 'time_s' struct */
@@ -143,14 +171,12 @@ struct time_s {
     double delta;
 };
 
-extern struct time_s *TIME;
 
+extern int ft_time_create(struct time_s **);
 
-extern int ft_time_create(void);
+extern int ft_time_delete(struct time_s *);
 
-extern int ft_time_delete(void);
-
-extern int ft_time_sync(void);
+extern int ft_time_sync(struct time_s *);
 
 
 /* ft_vox-entity.c */
@@ -582,17 +608,17 @@ extern int ft_chunk_mesh_upload(struct chunk_s *);
 /* ft_vox-world.c */
 
 # if !defined (FT_VOX_RENDER_DISTANCE_X)
-#  define FT_VOX_RENDER_DISTANCE_X 8 /* world X-axis render distance */
+#  define FT_VOX_RENDER_DISTANCE_X 2 /* world X-axis render distance */
 #  define FT_VOX_RENDER_DIAMETER_X (FT_VOX_RENDER_DISTANCE_X * 2)
 # endif
 #
 # if !defined (FT_VOX_RENDER_DISTANCE_Y)
-#  define FT_VOX_RENDER_DISTANCE_Y 8 /* world Y-axis render distance */
+#  define FT_VOX_RENDER_DISTANCE_Y 2 /* world Y-axis render distance */
 #  define FT_VOX_RENDER_DIAMETER_Y (FT_VOX_RENDER_DISTANCE_Y * 2)
 # endif
 #
 # if !defined (FT_VOX_RENDER_DISTANCE_Z)
-#  define FT_VOX_RENDER_DISTANCE_Z 8 /* world Z-axis render distance */
+#  define FT_VOX_RENDER_DISTANCE_Z 2 /* world Z-axis render distance */
 #  define FT_VOX_RENDER_DIAMETER_Z (FT_VOX_RENDER_DISTANCE_Z * 2)
 # endif
 #

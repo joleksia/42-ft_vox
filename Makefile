@@ -9,7 +9,7 @@ MK_ROOT	= $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 CC = cc
 
 # compiler flags
-CFLAGS = -Wall -Wextra -Werror -std=c99 -ggdb3 -O0 -fsanitize=address
+CFLAGS = -Wall -Wextra -Werror -std=c99 -ggdb3 -O0 # -fsanitize=address
 
 # linker files
 LFLAGS = -l:libSDL2.so 		\
@@ -33,6 +33,7 @@ DFLAGS = # ...
 OBJS = $(SRCS:.c=.o)
 SRCS = $(MK_ROOT)src/deps.c				\
 	   $(MK_ROOT)src/ft_vox.c			\
+	   $(MK_ROOT)src/ft_vox-state.c		\
 	   $(MK_ROOT)src/ft_vox-window.c	\
 	   $(MK_ROOT)src/ft_vox-input.c		\
 	   $(MK_ROOT)src/ft_vox-shader.c	\

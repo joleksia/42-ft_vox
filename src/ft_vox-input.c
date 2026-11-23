@@ -1,144 +1,131 @@
 #include "ft_vox.h"
 
-/* static API */
-
-struct keyboard_s *KEYBOARD = 0;
-
-struct mouse_s *MOUSE = 0;
-
-struct time_s *TIME = 0;
-
 /* public API */
 
-extern int ft_keyboard_create(void) {
+extern int ft_keyboard_create(struct keyboard_s **self) {
+    /* null-check */
+    if (!self) { return (0); }
+
     /* alloc. 'keyboard' */
-    if (!KEYBOARD) {
-        struct keyboard_s *keyboard = (struct keyboard_s *) calloc(1, sizeof(struct keyboard_s));
-        if (!keyboard) { return (0); }
+    struct keyboard_s *keyboard = (struct keyboard_s *) calloc(1, sizeof(struct keyboard_s));
+    if (!keyboard) { return (0); }
 
-        /* return 'keyboard' */
-        KEYBOARD = keyboard;
-    }
+    /* return 'self' */
+    *self = keyboard;
 
     /* run 'sync' */
-    return (ft_keyboard_sync());
+    return (ft_keyboard_sync(keyboard));
 }
 
 
-extern int ft_keyboard_delete(void) {
+extern int ft_keyboard_delete(struct keyboard_s *self) {
     /* null-check */
-    if (!KEYBOARD) { return (0); }
+    if (!self) { return (0); }
 
-    /* release 'KEYBOARD' */
-    free(KEYBOARD); KEYBOARD = 0;
+    /* release 'self' */
+    free(self);
 
     /* success */
     return (1);
 }
 
 
-extern int ft_keyboard_sync(void) {
+extern int ft_keyboard_sync(struct keyboard_s *self) {
     /* null-check */
-    if (!KEYBOARD) { return (0); }
+    if (!self) { return (0); }
 
     /* copy 'current' inputs to 'previous' inputs */
-    memcpy(KEYBOARD->previous,
-           KEYBOARD->current,
-           sizeof(KEYBOARD->current));
+    memcpy(self->previous,
+           self->current,
+           sizeof(self->current));
 
     /* success */
     return (1);
 }
 
 
-/* 'MOUSE' struct */
+extern int ft_mouse_create(struct mouse_s **self) {
+    /* null-check */
+    if (!self) { return (0); }
 
-extern int ft_mouse_create(void) {
-    /* alloc. 'mouse' object */
-    if (!MOUSE) {
-        struct mouse_s *mouse = (struct mouse_s *) calloc(1, sizeof(struct mouse_s));
-        if (!mouse) { return (0); }
+    /* alloc. 'mouse' */
+    struct mouse_s *mouse = (struct mouse_s *) calloc(1, sizeof(struct mouse_s));
+    if (!mouse) { return (0); }
 
-        /* return 'mouse' */
-        MOUSE = mouse;
-    }
+    /* return 'self' */
+    *self = mouse;
 
     /* run 'sync' */
-    return (ft_mouse_sync());
+    return (ft_mouse_sync(mouse));
 }
 
 
-extern int ft_mouse_delete(void) {
+extern int ft_mouse_delete(struct mouse_s *self) {
     /* null-check */
-    if (!MOUSE) { return (0); }
+    if (!self) { return (0); }
 
-    /* release 'MOUSE' */
-    free(MOUSE); MOUSE = 0;
+    /* release 'self' */
+    free(self);
 
     /* success */
     return (1);
 }
 
 
-extern int ft_mouse_sync(void) {
+extern int ft_mouse_sync(struct mouse_s *self) {
     /* null-check */
-    if (!MOUSE) { return (0); }
+    if (!self) { return (0); }
 
     /* copy 'current' inputs to 'previous' inputs */
-    memcpy(MOUSE->input.previous,
-           MOUSE->input.current,
-           sizeof(MOUSE->input.current));
+    memcpy(self->input.previous,
+           self->input.current,
+           sizeof(self->input.current));
 
     /* success */
     return (1);
 }
 
 
-/* 'TIME' struct */
-
-extern int ft_time_create(void) {
+extern int ft_time_create(struct time_s **self) {
     /* null-check */
-    if (TIME) { return (0); }
+    if (!self) { return (0); }
 
-    /* alloc. 'time' object */
-    if (!TIME) {
-        struct time_s *time = (struct time_s *) calloc(1, sizeof(struct time_s));
-        if (!time) { return (0); }
-
-        /* return 'time' */
-        TIME = time;
-    }
-
+    /* alloc. 'time' */
+    struct time_s *time = (struct time_s *) calloc(1, sizeof(struct time_s));
+    if (!time) { return (0); }
+    
     /* read 'time' */
-    TIME->previous = SDL_GetPerformanceCounter();
-    TIME->current = SDL_GetPerformanceCounter();
-    TIME->delta = (TIME->current - TIME->previous) / (double) SDL_GetPerformanceFrequency();
+    time->previous = SDL_GetPerformanceCounter();
+    time->current = SDL_GetPerformanceCounter();
+    time->delta = (time->current - time->previous) / (double) SDL_GetPerformanceFrequency();
+
+    /* return 'self' */
+    *self = time;
+
+    /* run 'sync' */
+    return (ft_time_sync(time));
+}
+
+
+extern int ft_time_delete(struct time_s *self) {
+    /* null-check */
+    if (!self) { return (0); }
+
+    /* release 'self' */
+    free(self);
 
     /* success */
     return (1);
 }
 
 
-extern int ft_time_delete(void) {
+extern int ft_time_sync(struct time_s *self) {
     /* null-check */
-    if (!TIME) { return (0); }
+    if (!self) { return (0); }
 
-    /* release 'TIME' */
-    free(TIME); TIME = 0;
-
-    /* success */
-    return (1);
-}
-
-
-extern int ft_time_sync(void) {
-    /* null-check */
-    if (!TIME) { return (0); }
-
-    /* update 'TIME' components */
-    TIME->previous = TIME->current;
-    TIME->current = SDL_GetPerformanceCounter();
-    TIME->delta = (TIME->current - TIME->previous) / (double) SDL_GetPerformanceFrequency();
+    self->previous = self->current;
+    self->current = SDL_GetPerformanceCounter();
+    self->delta = (self->current - self->previous) / (double) SDL_GetPerformanceFrequency();
 
     /* success */
     return (1);

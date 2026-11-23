@@ -659,6 +659,10 @@ static int __ft_chunk_mesh_render_s(struct chunk_mesh_s *self, struct chunk_s *c
     
     /* 'u_model' matrix */
     mat4 u_model = alg_mat4translate(chunk->offset);
+
+    /* set projection matrices */
+    ft_shader_uniform(shader, "u_proj", FT_UNIFORM_MATRIX4, &STATE.proj);
+    ft_shader_uniform(shader, "u_view", FT_UNIFORM_MATRIX4, &STATE.view);
     ft_shader_uniform(shader, "u_model", FT_UNIFORM_MATRIX4, &u_model);
 
     /* bind 'vao' */
@@ -680,6 +684,10 @@ static int __ft_chunk_mesh_render_t(struct chunk_mesh_s *self, struct chunk_s *c
     
     /* 'u_model' matrix */
     mat4 u_model = alg_mat4translate(chunk->offset);
+
+    /* set projection matrices */
+    ft_shader_uniform(shader, "u_proj", FT_UNIFORM_MATRIX4, &STATE.proj);
+    ft_shader_uniform(shader, "u_view", FT_UNIFORM_MATRIX4, &STATE.view);
     ft_shader_uniform(shader, "u_model", FT_UNIFORM_MATRIX4, &u_model);
 
     /* bind 'vao' */
