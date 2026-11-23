@@ -35,14 +35,21 @@ SRCS = $(MK_ROOT)src/deps.c				\
 	   $(MK_ROOT)src/ft_vox.c			\
 	   $(MK_ROOT)src/ft_vox-window.c	\
 	   $(MK_ROOT)src/ft_vox-input.c		\
-	   $(MK_ROOT)src/ft_vox-entity.c	\
-	   $(MK_ROOT)src/ft_vox-thread.c	\
 	   $(MK_ROOT)src/ft_vox-shader.c	\
 	   $(MK_ROOT)src/ft_vox-sampler.c	\
-	   $(MK_ROOT)src/ft_vox-block.c		\
+	   $(MK_ROOT)src/ft_vox-entity.c	\
+	   $(MK_ROOT)src/ft_vox-thread.c	\
+	   $(MK_ROOT)src/ft_vox-camera.c	\
 	   $(MK_ROOT)src/ft_vox-chunk.c		\
 	   $(MK_ROOT)src/ft_vox-world.c		\
-	   $(MK_ROOT)src/ft_vox-camera.c	\
+	   $(MK_ROOT)src/ft_vox-worldgen.c	\
+	   $(MK_ROOT)src/ft_vox-block.c		\
+
+SRCS += $(MK_ROOT)src/blocks/ft_vox-air.c	\
+		$(MK_ROOT)src/blocks/ft_vox-stone.c	\
+		$(MK_ROOT)src/blocks/ft_vox-grass.c	\
+		$(MK_ROOT)src/blocks/ft_vox-dirt.c	\
+		$(MK_ROOT)src/blocks/ft_vox-water.c	\
 
 # ========
 

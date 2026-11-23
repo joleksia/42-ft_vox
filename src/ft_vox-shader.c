@@ -195,6 +195,26 @@ extern int ft_shader_uniform(struct shader_s *self, const char *name, enum unifo
             glProgramUniform4ui(self->id, location, values[0], values[1], values[2], values[3]);
         } break;
 
+        case (FT_UNIFORM_FLOAT1D): {
+            GLfloat *values = (GLfloat *) data;
+            glProgramUniform1f(self->id, location, values[0]);
+        } break;
+
+        case (FT_UNIFORM_FLOAT2D): {
+            GLfloat *values = (GLfloat *) data;
+            glProgramUniform2f(self->id, location, values[0], values[1]);
+        } break;                                                        
+
+        case (FT_UNIFORM_FLOAT3D): {                                      
+            GLfloat *values = (GLfloat *) data;                               
+            glProgramUniform3f(self->id, location, values[0], values[1], values[0]);
+        } break;
+
+        case (FT_UNIFORM_FLOAT4D): {                                                 
+            GLfloat *values = (GLfloat *) data;                                          
+            glProgramUniform4f(self->id, location, values[0], values[1], values[2], values[3]);
+        } break;
+
         case (FT_UNIFORM_MATRIX2): { glProgramUniformMatrix2fv(self->id, location, 1, GL_FALSE, data); } break;
         case (FT_UNIFORM_MATRIX3): { glProgramUniformMatrix3fv(self->id, location, 1, GL_FALSE, data); } break;
         case (FT_UNIFORM_MATRIX4): { glProgramUniformMatrix4fv(self->id, location, 1, GL_FALSE, data); } break;

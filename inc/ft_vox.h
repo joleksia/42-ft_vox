@@ -230,6 +230,11 @@ enum uniform_type_e {
     FT_UNIFORM_UINT2D,
     FT_UNIFORM_UINT3D,
     FT_UNIFORM_UINT4D,
+
+    FT_UNIFORM_FLOAT1D,
+    FT_UNIFORM_FLOAT2D,
+    FT_UNIFORM_FLOAT3D,
+    FT_UNIFORM_FLOAT4D,
     
     FT_UNIFORM_MATRIX2,
     FT_UNIFORM_MATRIX3,
@@ -369,6 +374,14 @@ extern int ft_thpool_dequeue(struct thpool_s *, void *);
 
 /* ft_vox-block.c */
 
+# if !defined (FT_VOX_BLOCK_SIZE_X)
+#  define FT_VOX_BLOCK_SIZE_X 16 /* block X-axis size in pixels */
+# endif
+# 
+# if !defined (FT_VOX_BLOCK_SIZE_Y)
+#  define FT_VOX_BLOCK_SIZE_Y 16 /* block Y-axis size in pixels */
+# endif
+
 enum face_e {
     FT_FACE_NORTH = 0,
     FT_FACE_SOUTH = 1,
@@ -385,8 +398,9 @@ enum face_e {
 
 
 enum block_type_e {
+    FT_BLOCK_TYPE_TRANS = 0,
     FT_BLOCK_TYPE_SOLID = 1,
-    FT_BLOCK_TYPE_TRANS = 2,
+    FT_BLOCK_TYPE_IMAGE = 2,
 
     /* ... */
 
@@ -397,40 +411,43 @@ enum block_type_e {
 enum block_e {
     FT_BLOCK_AIR = 0,
 
-    FT_BLOCK_STONE = 1,
-    
-    FT_BLOCK_DIRT = 2,
+    FT_BLOCK_STONE,
+
+    FT_BLOCK_GRASS,
+
+    FT_BLOCK_DIRT,
+
+    FT_BLOCK_WATER,
 
     /* ... */
 
     FT_BLOCK_COUNT,
-    
-    /* ancillery values: */
 
-    FT_BLOCK_OUT_OF_BOUNDS = 0xffffffffu
+    /* ancillary blocks */
+
+    FT_BLOCK_DEBUG,
+
+    FT_BLOCK_OUT_OF_BOUNDS
+
 };
 
 
 struct block_s {
-    /* 'id' : 32-bit numerical representation of a block */
-    enum block_e id;
+    /* 'id' : 16-bit numerical representation of a block */
+    enum
+    block_e id : 16;
 
-    /* 'metadata' : additional block informations */
-    struct {
-        /* 'type' : 'opaque' or 'trans' block type */
-        u8 type;
+    /* 'type' : 8-bit block type ('solid', 'trans', 'sprite', etc.) */
+    enum
+    block_type_e type : 8;
 
-        /* 'tex_index' : array of six 8-bit numerical indices into texture atlas */
-        u8 tex_index[6];
-    } metadata;
+    int (*texcoord) (struct block_s *, vec2 *, enum face_e);
 };
 
-extern struct block_s *BLOCKS;
+extern struct block_s BLOCKS[INT16_MAX];
 
 
-extern int ft_blocks_create(const size_t);
-
-extern int ft_blocks_delete(void);
+extern int ft_blocks_create(void);
 
 /* ft_vox-chunk.c */
 
@@ -484,15 +501,15 @@ struct chunk_s {
     world_s *parent;
 
     /* 'blocks' : array of blocks */
-    u32 *blocks;
+    u64 *blocks;
 
     /* 'atoms' : chunk atoms */
     struct {
-        /* 'is_created' : fresh chunk (run 'ft_chunk_populate()') */
+        /* 'is_created' : fresh chunk (run 'ft_chunk_generate()') */
         SDL_atomic_t is_created;
         
-        /* 'is_populated' : populated chunk (run 'ft_chunk_mesh_create()') */
-        SDL_atomic_t is_populated;
+        /* 'is_generated' : generated chunk (run 'ft_chunk_mesh_create()') */
+        SDL_atomic_t is_generated;
         
         /* 'is_meshed' : chunk mesh baked (run 'ft_chunk_mesh_upload()') */
         SDL_atomic_t is_meshed;
@@ -555,7 +572,7 @@ extern int ft_chunk_set_origin(struct chunk_s *, int, int, int);
 
 /* pipeline func. */
 
-extern int ft_chunk_populate(struct chunk_s *);
+extern int ft_chunk_generate(struct chunk_s *);
 
 extern int ft_chunk_mesh_bake(struct chunk_s *);
 
@@ -565,17 +582,17 @@ extern int ft_chunk_mesh_upload(struct chunk_s *);
 /* ft_vox-world.c */
 
 # if !defined (FT_VOX_RENDER_DISTANCE_X)
-#  define FT_VOX_RENDER_DISTANCE_X 4 /* world X-axis render distance */
+#  define FT_VOX_RENDER_DISTANCE_X 8 /* world X-axis render distance */
 #  define FT_VOX_RENDER_DIAMETER_X (FT_VOX_RENDER_DISTANCE_X * 2)
 # endif
 #
 # if !defined (FT_VOX_RENDER_DISTANCE_Y)
-#  define FT_VOX_RENDER_DISTANCE_Y 4 /* world Y-axis render distance */
+#  define FT_VOX_RENDER_DISTANCE_Y 8 /* world Y-axis render distance */
 #  define FT_VOX_RENDER_DIAMETER_Y (FT_VOX_RENDER_DISTANCE_Y * 2)
 # endif
 #
 # if !defined (FT_VOX_RENDER_DISTANCE_Z)
-#  define FT_VOX_RENDER_DISTANCE_Z 4 /* world Z-axis render distance */
+#  define FT_VOX_RENDER_DISTANCE_Z 8 /* world Z-axis render distance */
 #  define FT_VOX_RENDER_DIAMETER_Z (FT_VOX_RENDER_DISTANCE_Z * 2)
 # endif
 #
@@ -643,6 +660,11 @@ extern int ft_world_center(struct world_s *, const vec3);
 /* other func. */
 
 extern int ft_world_out_of_bounds(struct world_s *, int, int, int);
+
+
+/* ft_vox-worldgen.c */
+
+extern int ft_worldgen_generate(struct world_s *, struct chunk_s *, int, int, int);
 
 /* ... */
 

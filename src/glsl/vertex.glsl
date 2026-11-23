@@ -20,6 +20,9 @@ uniform mat4 u_model;
 uniform mat4 u_proj;
 uniform mat4 u_view;
 
+uniform vec2 u_block_size; /* 'u_block_size' : texture size of a single block's face (default: 16x16) */
+uniform vec2 u_atlas_size; /* 'u_atlas_size' : texture atlas sizeolutio (example: 'atlas1.png is 512x512) */
+
 
 void main() {
     /* unpack: 'position' (18-bit) */
@@ -35,7 +38,7 @@ void main() {
     
     /* unpack: 'face' (3-bit)
      * NOTE:
-     *  'face' must match 'enum block_face_e' values
+     *  'face' must match 'enum face_e' values
      * */
     uint face = (a_vertex >> 26) & 0x7u;
     
@@ -46,14 +49,14 @@ void main() {
                   vec4(float(x), float(y), float(z), 1.0);
 
     /* get 'texcoord' */
-    uint x_idx = tex_index % uint(16),
-         y_idx = tex_index / uint(16);
+    vec2 res = u_atlas_size / u_block_size;
+    uint x_idx = tex_index % uint(res.x),
+         y_idx = tex_index / uint(res.y);
     vec2 corner = vec2((tex_corner >> 1) & 0x1u,
                        (tex_corner >> 0) & 0x1u);
 
     /* set 'v_texcoord' */
-    v_texcoord = (vec2(float(      x_idx),
-                       float(15u - y_idx)) + corner) / 16.0;
+    v_texcoord = (vec2(float(x_idx), float(res.y - 1 - y_idx)) + corner) / res;
 
     /* set 'v_normal' and 'v_shading' */
     switch (face) {

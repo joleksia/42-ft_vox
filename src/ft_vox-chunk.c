@@ -20,7 +20,7 @@ static int __ft_chunk_mesh_render_s(struct chunk_mesh_s *, struct chunk_s *, str
 
 static int __ft_chunk_mesh_render_t(struct chunk_mesh_s *, struct chunk_s *, struct shader_s *);
 
-static int __ft_chunk_populate(struct chunk_s *);
+static int __ft_chunk_generate(struct chunk_s *);
 
 static int __ft_chunk_mesh_bake(struct chunk_data_s *, struct chunk_s *);
 
@@ -91,16 +91,16 @@ extern int ft_chunk_update(struct chunk_s *self) {
     /* case : 'is_created' */
     if (SDL_AtomicCAS(&self->atoms.is_created, 1, 0)) {
         SDL_AtomicAdd(&self->atoms.refer, 1);
-        if (!ft_thpool_queue(pool, self, (thread_pool_func_t) ft_chunk_populate)) {
+        if (!ft_thpool_queue(pool, self, (thread_pool_func_t) ft_chunk_generate)) {
             SDL_AtomicAdd(&self->atoms.refer, -1);
             SDL_AtomicSet(&self->atoms.is_created, 1);
         }
     }
 
     /* case : 'is_modified' */
-    /* case : 'is_populated' */
+    /* case : 'is_generated' */
     if (SDL_AtomicGet(&self->atoms.is_modified) ||
-        SDL_AtomicGet(&self->atoms.is_populated)
+        SDL_AtomicGet(&self->atoms.is_generated)
     ) {
         /* refer-check */
         if (SDL_AtomicGet(&self->atoms.refer) == 0) {
@@ -116,11 +116,11 @@ extern int ft_chunk_update(struct chunk_s *self) {
             
             if (ready) {
                 SDL_AtomicSet(&self->atoms.is_modified, 0);
-                SDL_AtomicSet(&self->atoms.is_populated, 0);
+                SDL_AtomicSet(&self->atoms.is_generated, 0);
                 SDL_AtomicAdd(&self->atoms.refer, 1);
                 if (!ft_thpool_queue(pool, self, (thread_pool_func_t) ft_chunk_mesh_bake)) {
                     SDL_AtomicAdd(&self->atoms.refer, -1);
-                    SDL_AtomicSet(&self->atoms.is_populated, 1);
+                    SDL_AtomicSet(&self->atoms.is_generated, 1);
                 }
             }
         }
@@ -171,7 +171,7 @@ extern int ft_chunk_alloc(struct chunk_s *self) {
     if (!self) { return (0); }
 
     /* create 'blocks' */
-    u32 *blocks = (u32 *) calloc(FT_VOX_CHUNK_SIZE, sizeof(u32));
+    u64 *blocks = (u64 *) calloc(FT_VOX_CHUNK_SIZE, sizeof(u64));
     if (!blocks) {
         ft_chunk_delete(self);
         return (0);
@@ -203,13 +203,13 @@ extern int ft_chunk_clear(struct chunk_s *self) {
     /* clear 'atoms' */
     SDL_AtomicSet(&self->atoms.has_blocks,   0);
     SDL_AtomicSet(&self->atoms.is_created,   0);
-    SDL_AtomicSet(&self->atoms.is_populated, 0);
+    SDL_AtomicSet(&self->atoms.is_generated, 0);
     SDL_AtomicSet(&self->atoms.is_meshed,    0);
     SDL_AtomicSet(&self->atoms.is_uploaded,  0);
     SDL_AtomicSet(&self->atoms.is_modified,  0);
 
     /* clear 'blocks' */
-    u32 *blocks = self->blocks;
+    u64 *blocks = self->blocks;
     if (blocks) { memset(blocks, 0, FT_VOX_CHUNK_SIZE * sizeof(*blocks)); }
 
     /* clear 'mesh's 'count's */
@@ -236,7 +236,7 @@ extern int ft_chunk_free(struct chunk_s *self) {
     __ft_chunk_data_free(&self->data);
 
     /* release 'blocks' */
-    u32 *blocks = self->blocks;
+    u64 *blocks = self->blocks;
     if (blocks) {
         free(blocks);
     }
@@ -358,12 +358,12 @@ extern int ft_chunk_set_origin(struct chunk_s *self, int cx, int cy, int cz) {
 }
 
 
-extern int ft_chunk_populate(struct chunk_s *self) {
+extern int ft_chunk_generate(struct chunk_s *self) {
     /* null-check */
     if (!self) { return (0); }
 
     /* call func. */
-    int status = __ft_chunk_populate(self);
+    int status = __ft_chunk_generate(self);
 
     /* return 'status' */
     SDL_AtomicAdd(&self->atoms.refer, -1);
@@ -430,8 +430,12 @@ static int __ft_face_cube(u32 idx, int face, int x, int y, int z, u32 *v, u32 *i
     /* get 'block' */
     struct block_s block = BLOCKS[idx];
 
+    /* get 'texcoord' */
+    vec2 texcoord = { 0 };
+    block.texcoord(&block, &texcoord, face);
+
     /* get 'tex_index' */
-    u8 tex_index = block.metadata.tex_index[face]; 
+    u8 tex_index = texcoord.y * 32.0 + texcoord.x;
 
     /* vertices... */
     if (!v) { return (0); }
@@ -682,45 +686,28 @@ static int __ft_chunk_mesh_render_t(struct chunk_mesh_s *self, struct chunk_s *c
     glBindVertexArray(self->vao[1]);
 
     /* draw-call */
+    glDepthMask(GL_FALSE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glDrawElements(GL_TRIANGLES, self->count[1], GL_UNSIGNED_INT, (GLvoid *) (0));
+    glDisable(GL_BLEND);
+    glDepthMask(GL_TRUE);
 
     /* success */
     return (1);
 }
 
 
-static int __ft_chunk_populate(struct chunk_s *self) {
+static int __ft_chunk_generate(struct chunk_s *self) {
     /* null-check */
     if (!self) { return (0); }
 
-    /* iterate on every 'block' */
-    for (int y = 0; y < FT_VOX_CHUNK_SIZE_Y; y++) {
-    for (int x = 0; x < FT_VOX_CHUNK_SIZE_X; x++) {
-    for (int z = 0; z < FT_VOX_CHUNK_SIZE_Z; z++) {
-        double noise = perlin3d((self->offset.x + x) * 0.01,
-                                (self->offset.y + y) * 0.01,
-                                (self->offset.z + z) * 0.01,
-                                 self->parent->seed);
-
-        /* > 'noise' <= '0.0' : air
-         * > 'noise' >  '0.0' : no-air
-         * */
-        if (noise > 0.0) {
-            u32 idx = rand() % FT_BLOCK_COUNT;
-            if (idx == FT_BLOCK_AIR) { idx++; }
-
-            ft_chunk_set(self, x, y, z, idx);
-        }
-
-        /* set 'air' */
-        else {
-            ft_chunk_set(self, x, y, z, FT_BLOCK_AIR);
-        }
-    }}}
+    /* run 'generate' algorithm */
+    if (!ft_worldgen_generate(self->parent, self, self->offset.x, self->offset.y, self->offset.z)) { return (0); }
 
     /* success */
     SDL_AtomicSet(&self->atoms.has_blocks, 1);
-    SDL_AtomicSet(&self->atoms.is_populated, 1);
+    SDL_AtomicSet(&self->atoms.is_generated, 1);
     return (1);
 }
 
@@ -750,42 +737,14 @@ static int __ft_chunk_mesh_bake(struct chunk_data_s *self, struct chunk_s *chunk
 
         /* 'idx'-to-'block' match */
         struct block_s block = BLOCKS[idx];
-        switch (block.metadata.type) {
-            case (FT_BLOCK_TYPE_SOLID): {
-                /* iterate on every 'near' */
-                for (int face = 0; face < FT_FACE_COUNT; face++) {
-                    if (near[face] >= FT_BLOCK_COUNT) { continue; }
-
-                    /* 'near'-to-'block' match */
-                    struct block_s block = BLOCKS[near[face]];
-                    if (block.metadata.type != FT_BLOCK_TYPE_TRANS) { continue; }
-                
-                    /* get 'vertices' and 'indices' */
-                    u32 vertices[4] = { 0 },
-                         indices[6] = { 0 };
-                    __ft_face_cube(idx, face, x, y, z, vertices, indices, &s_off);
-
-                    /* push 'vertices' */
-                    __ft_push(&self->v_solid.arr,
-                              &self->v_solid.cnt,
-                              &self->v_solid.cap,
-                              vertices, countof(vertices));
-
-                    /* push 'indices' */
-                    __ft_push(&self->i_solid.arr,
-                              &self->i_solid.cnt,
-                              &self->i_solid.cap,
-                              indices, countof(indices));
-                }
-            } break;
-            
+        switch (block.type) {
             case (FT_BLOCK_TYPE_TRANS): {
                 /* iterate on every 'near' */
                 for (int face = 0; face < FT_FACE_COUNT; face++) {
                     /* 'near'-to-'block' match */
                     struct block_s block = BLOCKS[near[face]];
-                    if (block.metadata.type != FT_BLOCK_TYPE_SOLID) {
-                        if (block.id != 0) { continue; }
+                    if (block.id != FT_BLOCK_AIR) {
+                        continue;
                     }
                 
                     /* get 'vertices' and 'indices' */
@@ -806,6 +765,36 @@ static int __ft_chunk_mesh_bake(struct chunk_data_s *self, struct chunk_s *chunk
                               indices, countof(indices));
                 }
             } break;
+
+            case (FT_BLOCK_TYPE_SOLID): {
+                /* iterate on every 'near' */
+                for (int face = 0; face < FT_FACE_COUNT; face++) {
+                    if (near[face] >= FT_BLOCK_COUNT) { continue; }
+
+                    /* 'near'-to-'block' match */
+                    struct block_s block = BLOCKS[near[face]];
+                    if (block.type != FT_BLOCK_TYPE_TRANS) { continue; }
+                
+                    /* get 'vertices' and 'indices' */
+                    u32 vertices[4] = { 0 },
+                         indices[6] = { 0 };
+                    __ft_face_cube(idx, face, x, y, z, vertices, indices, &s_off);
+
+                    /* push 'vertices' */
+                    __ft_push(&self->v_solid.arr,
+                              &self->v_solid.cnt,
+                              &self->v_solid.cap,
+                              vertices, countof(vertices));
+
+                    /* push 'indices' */
+                    __ft_push(&self->i_solid.arr,
+                              &self->i_solid.cnt,
+                              &self->i_solid.cap,
+                              indices, countof(indices));
+                }
+            } break;
+            
+            default: { }
         }
     }}}
 

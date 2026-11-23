@@ -153,7 +153,7 @@ int main(void) {
 
     /* create blocks */
 
-    ft_blocks_create(8);
+    ft_blocks_create();
 
     /* create 'shader' */
 
@@ -180,6 +180,16 @@ int main(void) {
     struct
     sampler_s *sampler = 0;
     ft_sampler_create(&sampler, "res/atlas/atlas1.png");
+
+    /* set 'u_block_size' */
+    vec2 u_block_size = { .x = FT_VOX_BLOCK_SIZE_X,
+                          .y = FT_VOX_BLOCK_SIZE_Y };
+    ft_shader_uniform(shader, "u_block_size", FT_UNIFORM_FLOAT2D, &u_block_size);
+
+    /* set 'u_atlas_size' */
+    vec2 u_atlas_size = { .x = sampler->width,
+                          .y = sampler->height };
+    ft_shader_uniform(shader, "u_atlas_size", FT_UNIFORM_FLOAT2D, &u_atlas_size);
 
     /* create 'world' */
 
@@ -214,7 +224,7 @@ int main(void) {
         /* render */
 
         /* clear */
-        glClearColor(0.1, 0.1, 0.1, 1.0);
+        glClearColor(99.0 / 255.0, 149.0 / 255.0, 238.0 / 255.0, 1.0);
         glClear(GL_COLOR_BUFFER_BIT |
                 GL_DEPTH_BUFFER_BIT);
 
@@ -243,10 +253,6 @@ int main(void) {
 
     ft_sampler_delete(sampler);
     ft_shader_delete(shader);
-
-    /* unload blocks */
-
-    ft_blocks_delete();
 
     /* unload input objects */
     
