@@ -16,9 +16,9 @@ static int __ft_chunk_mesh_alloc(struct chunk_mesh_s *);
 
 static int __ft_chunk_mesh_free(struct chunk_mesh_s *);
 
-static int __ft_chunk_mesh_render_s(struct chunk_mesh_s *, struct chunk_s *, struct shader_s *);
+static int __ft_chunk_mesh_render_s(struct chunk_mesh_s *, struct chunk_s *);
 
-static int __ft_chunk_mesh_render_t(struct chunk_mesh_s *, struct chunk_s *, struct shader_s *);
+static int __ft_chunk_mesh_render_t(struct chunk_mesh_s *, struct chunk_s *);
 
 static int __ft_chunk_generate(struct chunk_s *);
 
@@ -140,7 +140,7 @@ extern int ft_chunk_update(struct chunk_s *self) {
 }
 
 
-extern int ft_chunk_render(struct chunk_s *self, struct shader_s *shader) {
+extern int ft_chunk_render(struct chunk_s *self) {
     /* null-check */
     if (!self) { return (0); }
 
@@ -152,12 +152,12 @@ extern int ft_chunk_render(struct chunk_s *self, struct shader_s *shader) {
         
         /* render 'solid' */
         if (mesh->count[0] > 0) {
-            __ft_chunk_mesh_render_s(mesh, self, shader);
+            __ft_chunk_mesh_render_s(mesh, self);
         }
 
         /* render 'trans' */
         if (mesh->count[1] > 0) {
-            __ft_chunk_mesh_render_t(mesh, self, shader);
+            __ft_chunk_mesh_render_t(mesh, self);
         }
     }
 
@@ -651,19 +651,19 @@ static int __ft_chunk_mesh_free(struct chunk_mesh_s *self) {
 }
 
 
-static int __ft_chunk_mesh_render_s(struct chunk_mesh_s *self, struct chunk_s *chunk, struct shader_s *shader) {
+static int __ft_chunk_mesh_render_s(struct chunk_mesh_s *self, struct chunk_s *chunk) {
     /* null-check */
-    if (!self)   { return (0); }
-    if (!chunk)  { return (0); }
-    if (!shader) { return (0); }
+    if (!self)  { return (0); }
+    if (!chunk) { return (0); }
     
     /* 'u_model' matrix */
     mat4 u_model = alg_mat4translate(chunk->offset);
 
-    /* set projection matrices */
-    ft_shader_uniform(shader, "u_proj", FT_UNIFORM_MATRIX4, &STATE.proj);
-    ft_shader_uniform(shader, "u_view", FT_UNIFORM_MATRIX4, &STATE.view);
-    ft_shader_uniform(shader, "u_model", FT_UNIFORM_MATRIX4, &u_model);
+    /* configure shader */
+    ft_shader_bind(STATE.gfx.trans);
+    ft_shader_uniform(STATE.gfx.trans, "u_proj", FT_UNIFORM_MATRIX4, &STATE.gfx.proj);
+    ft_shader_uniform(STATE.gfx.trans, "u_view", FT_UNIFORM_MATRIX4, &STATE.gfx.view);
+    ft_shader_uniform(STATE.gfx.trans, "u_model", FT_UNIFORM_MATRIX4, &u_model);
 
     /* bind 'vao' */
     glBindVertexArray(self->vao[0]);
@@ -676,19 +676,19 @@ static int __ft_chunk_mesh_render_s(struct chunk_mesh_s *self, struct chunk_s *c
 }
 
 
-static int __ft_chunk_mesh_render_t(struct chunk_mesh_s *self, struct chunk_s *chunk, struct shader_s *shader) {
+static int __ft_chunk_mesh_render_t(struct chunk_mesh_s *self, struct chunk_s *chunk) {
     /* null-check */
-    if (!self)   { return (0); }
-    if (!chunk)  { return (0); }
-    if (!shader) { return (0); }
+    if (!self)  { return (0); }
+    if (!chunk) { return (0); }
     
     /* 'u_model' matrix */
     mat4 u_model = alg_mat4translate(chunk->offset);
 
-    /* set projection matrices */
-    ft_shader_uniform(shader, "u_proj", FT_UNIFORM_MATRIX4, &STATE.proj);
-    ft_shader_uniform(shader, "u_view", FT_UNIFORM_MATRIX4, &STATE.view);
-    ft_shader_uniform(shader, "u_model", FT_UNIFORM_MATRIX4, &u_model);
+    /* configure shader */
+    ft_shader_bind(STATE.gfx.trans);
+    ft_shader_uniform(STATE.gfx.trans, "u_proj", FT_UNIFORM_MATRIX4, &STATE.gfx.proj);
+    ft_shader_uniform(STATE.gfx.trans, "u_view", FT_UNIFORM_MATRIX4, &STATE.gfx.view);
+    ft_shader_uniform(STATE.gfx.trans, "u_model", FT_UNIFORM_MATRIX4, &u_model);
 
     /* bind 'vao' */
     glBindVertexArray(self->vao[1]);

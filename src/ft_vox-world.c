@@ -118,7 +118,7 @@ extern int ft_world_update(struct world_s *self) {
     return (1);
 }
 
-extern int ft_world_render(struct world_s *self, struct shader_s *shader) {
+extern int ft_world_render(struct world_s *self) {
     /* null-check */
     if (!self) { return (0); }
     
@@ -126,7 +126,7 @@ extern int ft_world_render(struct world_s *self, struct shader_s *shader) {
     struct
     ecs_s *ecs = self->ecs;
     if (ecs) {
-        ft_ecs_render(ecs, shader);
+        ft_ecs_render(ecs);
     }
 
     /* iterate on every 'chunk' */
@@ -137,7 +137,7 @@ extern int ft_world_render(struct world_s *self, struct shader_s *shader) {
         chunk_s *chunk = self->chunks[FT_VOX_WORLD_3D_1D(x, y, z)];
         if (!chunk) { continue; }
 
-        ft_chunk_render(chunk, shader);
+        ft_chunk_render(chunk);
     }}}
 
     /* success */

@@ -81,10 +81,9 @@ extern int ft_ecs_update(struct ecs_s *self) {
 }
 
 
-extern int ft_ecs_render(struct ecs_s *self, struct shader_s *shader) {
+extern int ft_ecs_render(struct ecs_s *self) {
     /* null-check */
-    if (!self)   { return (0); }
-    if (!shader) { return (0); }
+    if (!self) { return (0); }
     
     /* iterate over every 'entity' */
     for (size_t i = 0; i < self->entities.count; i++) {
@@ -94,7 +93,7 @@ extern int ft_ecs_render(struct ecs_s *self, struct shader_s *shader) {
 
         /* run 'render' */
         if (entity->render) {
-            entity->render(entity, shader);
+            entity->render(entity);
         }
     }
 

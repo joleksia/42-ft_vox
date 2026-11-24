@@ -67,6 +67,7 @@ extern int ft_shader_create(struct shader_s **self) {
     return (1);
 }
 
+
 extern int ft_shader_delete(struct shader_s *self) {
     /* null-check */
     if (!self) { return (0); }
@@ -86,10 +87,23 @@ extern int ft_shader_delete(struct shader_s *self) {
     return (1);
 }
 
+
+extern int ft_shader_bind(struct shader_s *self) {
+    if (!self) {
+        glUseProgram(0);
+    } else {
+        glUseProgram(self->id);
+    }
+
+    /* success */
+    return (1);
+}
+
+
 extern int ft_shader_load(struct shader_s *self, FILE *file, enum shader_type_e type) {
     /* null-check */
     if (!self) { return (0); }
-    if (!file)   { return (0); }
+    if (!file) { return (0); }
 
     /* read 'file' */
     GLchar *code = 0;
@@ -138,6 +152,7 @@ extern int ft_shader_load(struct shader_s *self, FILE *file, enum shader_type_e 
     /* success */
     return (1);
 }
+
 
 extern int ft_shader_uniform(struct shader_s *self, const char *name, enum uniform_type_e type, const void *data) {
     /* null-check */

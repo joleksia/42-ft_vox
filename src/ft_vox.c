@@ -12,7 +12,7 @@ struct player_s {
     int (*create) (struct entity_s *);
     int (*delete) (struct entity_s *);
     int (*update) (struct entity_s *);
-    int (*render) (struct entity_s *, struct shader_s *);
+    int (*render) (struct entity_s *);
 
     /* 'player_s' specific */
 
@@ -132,7 +132,7 @@ static int ft_player_update(struct entity_s *self) {
 }
 
 
-static int ft_player_render(struct entity_s *self, struct shader_s *shader) {
+static int ft_player_render(struct entity_s *self) {
     /* null-check */
     if (!self) { return (0); }
 
@@ -145,9 +145,8 @@ static int ft_player_render(struct entity_s *self, struct shader_s *shader) {
     mat4 u_proj = alg_mat4(1.0),
          u_view = alg_mat4(1.0);
     ft_camera_matrix(&player->camera, &u_proj, &u_view);
-    STATE.proj = u_proj;
-    STATE.view = u_view;
-    (void) shader;
+    STATE.gfx.proj = u_proj;
+    STATE.gfx.view = u_view;
 
     /* success */
     return (1);
@@ -156,13 +155,16 @@ static int ft_player_render(struct entity_s *self, struct shader_s *shader) {
 
 int main(int ac, char **av) {
 
-    /* create OpenGL window */
+    /* create 'window' */
     
     ft_window_create(&STATE.window, "42warsaw - ft_vox", 800, 600);
-   
-    /* create input objects */
     
+    /* create 'time' */
+
     ft_time_create(&STATE.time);
+   
+    /* create 'input' objects */
+    
     ft_keyboard_create(&STATE.input.keyboard);
     ft_mouse_create(&STATE.input.mouse);
 
@@ -170,41 +172,42 @@ int main(int ac, char **av) {
 
     ft_blocks_create();
 
-    /* create 'shader' */
+    /* create 'shader's */
 
-    struct
-    shader_s *shader = 0;
-    ft_shader_create(&shader);
-
-    /* load 'vertex.glsl' */
-    FILE *fp_vertex_glsl = fopen("src/glsl/vertex.glsl", "rb");
-    if (fp_vertex_glsl) {
-        ft_shader_load(shader, fp_vertex_glsl, FT_SHADER_VERTEX);
+    if (ft_shader_create(&STATE.gfx.solid)) {
+        FILE *fp_vertex_glsl = fopen("src/glsl/vsolid.glsl", "rb");
+        ft_shader_load(STATE.gfx.solid, fp_vertex_glsl, FT_SHADER_VERTEX);
         fclose(fp_vertex_glsl);
+        
+        FILE *fp_fragment_glsl = fopen("src/glsl/fsolid.glsl", "rb");
+        ft_shader_load(STATE.gfx.solid, fp_fragment_glsl, FT_SHADER_FRAGMENT);
+        fclose(fp_fragment_glsl);
     }
 
-    /* load 'fragment.glsl' */
-    FILE *fp_fragment_glsl = fopen("src/glsl/fragment.glsl", "rb");
-    if (fp_fragment_glsl) {
-        ft_shader_load(shader, fp_fragment_glsl, FT_SHADER_FRAGMENT);
+    if (ft_shader_create(&STATE.gfx.trans)) {
+        FILE *fp_vertex_glsl = fopen("src/glsl/vtrans.glsl", "rb");
+        ft_shader_load(STATE.gfx.trans, fp_vertex_glsl, FT_SHADER_VERTEX);
+        fclose(fp_vertex_glsl);
+        
+        FILE *fp_fragment_glsl = fopen("src/glsl/ftrans.glsl", "rb");
+        ft_shader_load(STATE.gfx.trans, fp_fragment_glsl, FT_SHADER_FRAGMENT);
+        fclose(fp_fragment_glsl);
+    }
+
+    if (ft_shader_create(&STATE.gfx.water)) {
+        FILE *fp_vertex_glsl = fopen("src/glsl/vwater.glsl", "rb");
+        ft_shader_load(STATE.gfx.water, fp_vertex_glsl, FT_SHADER_VERTEX);
+        fclose(fp_vertex_glsl);
+        
+        FILE *fp_fragment_glsl = fopen("src/glsl/fwater.glsl", "rb");
+        ft_shader_load(STATE.gfx.water, fp_fragment_glsl, FT_SHADER_FRAGMENT);
         fclose(fp_fragment_glsl);
     }
 
     /* load 'atlas1.png' sampler */
    
-    struct
-    sampler_s *sampler = 0;
-    ft_sampler_create(&sampler, "res/atlas/atlas1.png");
-
-    /* set 'u_block_size' */
-    vec2 u_block_size = { .x = FT_VOX_BLOCK_SIZE_X,
-                          .y = FT_VOX_BLOCK_SIZE_Y };
-    ft_shader_uniform(shader, "u_block_size", FT_UNIFORM_FLOAT2D, &u_block_size);
-
-    /* set 'u_atlas_size' */
-    vec2 u_atlas_size = { .x = sampler->width,
-                          .y = sampler->height };
-    ft_shader_uniform(shader, "u_atlas_size", FT_UNIFORM_FLOAT2D, &u_atlas_size);
+    ft_sampler_create(&STATE.gfx.atlas1, "res/atlas/atlas1.png");
+    ft_sampler_bind(STATE.gfx.atlas1, 0);
 
     /* create 'world' */
 
@@ -242,17 +245,8 @@ int main(int ac, char **av) {
         glClear(GL_COLOR_BUFFER_BIT |
                 GL_DEPTH_BUFFER_BIT);
 
-        glUseProgram(shader->id);
-        glBindTextureUnit(0, sampler->id);
-
-        int slot = 0;
-        ft_shader_uniform(shader, "u_atlas", FT_UNIFORM_INT1D, &slot);
-        
         /* render 'world' */
-        ft_world_render(STATE.world, shader);
-        
-        glBindTextureUnit(0, 0);
-        glUseProgram(0);
+        ft_world_render(STATE.world);
 
         /* poll-events */
         ft_window_poll_events(STATE.window);
@@ -265,8 +259,10 @@ int main(int ac, char **av) {
 
     /* unload OpenGL */
 
-    ft_sampler_delete(sampler);
-    ft_shader_delete(shader);
+    ft_sampler_delete(STATE.gfx.atlas1);
+    ft_shader_delete(STATE.gfx.solid);
+    ft_shader_delete(STATE.gfx.trans);
+    ft_shader_delete(STATE.gfx.water);
 
     /* unload input objects */
     ft_mouse_delete(STATE.input.mouse);

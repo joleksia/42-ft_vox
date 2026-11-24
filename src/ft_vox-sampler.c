@@ -54,3 +54,15 @@ extern int ft_sampler_delete(struct sampler_s *self) {
     /* success */
     return (1);
 }
+
+
+extern int ft_sampler_bind(struct sampler_s *self, const u32 slot) {
+    /* null-check */
+    if (!self) { return (0); }
+
+    /* bind 'self' to a 'slot' */
+    glBindTextureUnit(slot, self->id);
+
+    /* success */
+    return (1);
+}

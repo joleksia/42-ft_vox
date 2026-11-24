@@ -91,14 +91,31 @@ struct state_s {
         mouse_s *mouse;
     } input;
 
+    /* 'gfx' : global graphics objects */
+    struct {
+        /* 'solid' : solid blocks shader */
+        struct
+        shader_s *solid;
+
+        /* 'trans' : transparent blocks shader */
+        struct
+        shader_s *trans;
+
+        /* 'water' : liquid blocks shader */
+        struct
+        shader_s *water;
+
+        /* 'atlas1' : 2D texture atlas of blocks */
+        struct
+        sampler_s *atlas1;
+
+        mat4 proj; /* 'proj' : projection matrix */
+        mat4 view; /* 'view' : view matrix */
+    } gfx;
+
     /* 'world' : current world */
     struct
     world_s *world;
-
-    /* projection matrices */
-
-    mat4 proj;
-    mat4 view;
 };
 
 
@@ -193,7 +210,7 @@ struct entity_s {
     int (*create) (struct entity_s *);
     int (*delete) (struct entity_s *);
     int (*update) (struct entity_s *);
-    int (*render) (struct entity_s *, struct shader_s *);
+    int (*render) (struct entity_s *);
 };
 
 
@@ -218,7 +235,7 @@ extern int ft_ecs_delete(struct ecs_s *);
 
 extern int ft_ecs_update(struct ecs_s *);
 
-extern int ft_ecs_render(struct ecs_s *, struct shader_s *);
+extern int ft_ecs_render(struct ecs_s *);
 
 extern int ft_ecs_insert(struct ecs_s *, struct entity_s *);
 
@@ -291,6 +308,8 @@ extern int ft_shader_create(struct shader_s **);
 
 extern int ft_shader_delete(struct shader_s *);
 
+extern int ft_shader_bind(struct shader_s *);
+
 extern int ft_shader_load(struct shader_s *, FILE *, enum shader_type_e);
 
 extern int ft_shader_uniform(struct shader_s *, const char *, enum uniform_type_e, const void *);
@@ -313,6 +332,8 @@ struct sampler_s {
 extern int ft_sampler_create(struct sampler_s **, const char *);
 
 extern int ft_sampler_delete(struct sampler_s *);
+
+extern int ft_sampler_bind(struct sampler_s *, const u32);
 
 
 /* ft_vox-camera.c */
@@ -576,7 +597,7 @@ extern int ft_chunk_delete(struct chunk_s *);
 
 extern int ft_chunk_update(struct chunk_s *);
 
-extern int ft_chunk_render(struct chunk_s *, struct shader_s *);
+extern int ft_chunk_render(struct chunk_s *);
 
 /* memory func. */
 
@@ -673,7 +694,7 @@ extern int ft_world_delete(struct world_s *);
 
 extern int ft_world_update(struct world_s *);
 
-extern int ft_world_render(struct world_s *, struct shader_s *);
+extern int ft_world_render(struct world_s *);
 
 /* getter/setter func. */
 
