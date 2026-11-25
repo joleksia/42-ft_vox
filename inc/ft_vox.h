@@ -447,7 +447,7 @@ enum face_e {
 enum block_type_e {
     FT_BLOCK_TYPE_TRANS = 0,
     FT_BLOCK_TYPE_SOLID = 1,
-    FT_BLOCK_TYPE_IMAGE = 2,
+    FT_BLOCK_TYPE_WATER = 2,
 
     /* ... */
 
@@ -517,28 +517,28 @@ extern int ft_blocks_create(void);
 # define FT_VOX_CHUNK_3D_1D(x, y, z) ((x) + \
                                       (y) * FT_VOX_CHUNK_SIZE_X + \
                                       (z) * FT_VOX_CHUNK_SIZE_X * FT_VOX_CHUNK_SIZE_Y)
+#
+# define FT_VOX_CHUNK_1D_3D(i, x, y, z) ((z) = ((i)) / (FT_VOX_CHUNK_SIZE_X * FT_VOX_CHUNK_SIZE_Y),\
+                                         (y) = ((i) / FT_VOX_CHUNK_SIZE_X) % (FT_VOX_CHUNK_SIZE_Y),\
+                                         (x) = ((i)) % (FT_VOX_CHUNK_SIZE_X))
 
 struct chunk_mesh_s {
-    /* chunk object's layout:
-     * - [0] : solid,
-     * - [1] : trans,
-     * */
-    GLuint vao[2],
-           vbo[2],
-           ibo[2],
-           count[2];
+    /* NOTE: must match 'enum block_type_e' */
+    GLuint vao[3],
+           vbo[3],
+           ibo[3],
+           count[3];
 };
 
 
 struct chunk_data_s {
+    /* NOTE: must match 'enum block_type_e' */
     struct {
         u32 *arr;
         u32  cnt,
              cap;
-    } v_solid, /* 'v_solid' : 'solid' vertices vector */
-      v_trans, /* 'v_trans' : 'trans' vertices vector */
-      i_solid, /* 'i_solid' : 'solid' indices vector */
-      i_trans; /* 'i_trans' : 'trans' indices vector */
+    } v[3],
+      i[3];
 };
 
 
@@ -548,27 +548,30 @@ struct chunk_s {
     world_s *parent;
 
     /* 'blocks' : array of blocks */
-    u64 *blocks;
+    u32 *blocks;
 
     /* 'atoms' : chunk atoms */
     struct {
-        /* 'is_created' : fresh chunk (run 'ft_chunk_generate()') */
-        SDL_atomic_t is_created;
+        /* 'is_created' : chunk is created */
+        SDL_atomic_t create;
+
+        /* 'delete' : chunk is queued for deletion */
+        SDL_atomic_t delete;
         
-        /* 'is_generated' : generated chunk (run 'ft_chunk_mesh_create()') */
-        SDL_atomic_t is_generated;
+        /* 'generate' : chunk is generated */
+        SDL_atomic_t generate;
         
-        /* 'is_meshed' : chunk mesh baked (run 'ft_chunk_mesh_upload()') */
-        SDL_atomic_t is_meshed;
+        /* 'meshed' : chunk is meshed */
+        SDL_atomic_t meshed;
 
-        /* 'is_uploaded' : chunk mesh uploaded to GPU (run 'ft_chunk_render()') */
-        SDL_atomic_t is_uploaded;
+        /* 'upload' : chunk is uploaded */
+        SDL_atomic_t upload;
 
-        /* 'is_modified' : chunk changed (run 'ft_chunk_mesh_create()') */
-        SDL_atomic_t is_modified;
+        /* 'dirty' : chunk changed */
+        SDL_atomic_t dirty;
 
-        /* 'has_blocks' : chunk has blocks */
-        SDL_atomic_t has_blocks;
+        /* 'populated' : chunk is populated by blocks */
+        SDL_atomic_t populated;
 
         /* 'refer' : chunk's reference count */
         SDL_atomic_t refer;
@@ -603,10 +606,6 @@ extern int ft_chunk_render(struct chunk_s *);
 
 extern int ft_chunk_alloc(struct chunk_s *);
 
-extern int ft_chunk_clear(struct chunk_s *);
-
-extern int ft_chunk_free(struct chunk_s *);
-
 /* getters/setters func. */
 
 extern int ft_chunk_get(struct chunk_s *, int, int, int, u32 *);
@@ -614,8 +613,6 @@ extern int ft_chunk_get(struct chunk_s *, int, int, int, u32 *);
 extern int ft_chunk_get_near(struct chunk_s *, int, int, int, u32 *);
 
 extern int ft_chunk_set(struct chunk_s *, int, int, int, int);
-
-extern int ft_chunk_set_origin(struct chunk_s *, int, int, int);
 
 /* pipeline func. */
 
@@ -655,6 +652,10 @@ extern int ft_chunk_mesh_upload(struct chunk_s *);
                                       (y) * FT_VOX_RENDER_DIAMETER_X + \
                                       (z) * FT_VOX_RENDER_DIAMETER_X * FT_VOX_RENDER_DIAMETER_Y)
 #
+# define FT_VOX_WORLD_1D_3D(i, x, y, z) ((z) = ((i)) / (FT_VOX_RENDER_DIAMETER_X * FT_VOX_RENDER_DIAMETER_Y),\
+                                         (y) = ((i) / FT_VOX_RENDER_DIAMETER_X) % (FT_VOX_RENDER_DIAMETER_Y),\
+                                         (x) = ((i)) % (FT_VOX_RENDER_DIAMETER_X))
+#
 # define FT_VOX_BLOCK_TO_CHUNK(x, y, z) (alg_vec3(floorf((x) / FT_VOX_CHUNK_SIZE_X), \
                                                   floorf((y) / FT_VOX_CHUNK_SIZE_Y), \
                                                   floorf((z) / FT_VOX_CHUNK_SIZE_Z)))
@@ -675,6 +676,10 @@ struct world_s {
     /* 'chunks' : array of chunk pointers */
     struct
     chunk_s **chunks;
+
+    /* 'delete' : array of chunks to be deleted */
+    struct
+    chunk_s **delete;
 
     /* 'center' : current world's center position (in chunks) */
     vec3 center;
@@ -702,14 +707,20 @@ extern int ft_world_get(struct world_s *, int, int, int, struct chunk_s **);
 
 extern int ft_world_get_near(struct world_s *, int, int, int, struct chunk_s **);
 
+/* other func. */
+
 extern int ft_world_center(struct world_s *, const vec3);
 
-/* other func. */
+extern int ft_world_flush_delete(struct world_s *);
 
 extern int ft_world_out_of_bounds(struct world_s *, int, int, int);
 
 
 /* ft_vox-worldgen.c */
+
+# if !defined (FT_VOX_WORLDGEN_SEA_LEVEL)
+#  define FT_VOX_WORLDGEN_SEA_LEVEL (0)
+# endif
 
 extern int ft_worldgen_generate(struct world_s *, struct chunk_s *, int, int, int);
 

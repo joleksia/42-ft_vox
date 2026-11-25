@@ -1,8 +1,26 @@
 #include "ft_vox.h"
 
+/* static API */
+
+static int __ft_worldgen_landscape(struct world_s *, struct chunk_s *, int, int, int);
+
 /* public API */
 
 extern int ft_worldgen_generate(struct world_s *world, struct chunk_s *chunk, int cx, int cy, int cz) {
+    /* null-check */
+    if (!world) { return (0); }
+    if (!chunk) { return (0); }
+
+    /* step 1.: generate landscape */
+    __ft_worldgen_landscape(world, chunk, cx, cy, cz);
+
+    /* success */
+    return (1);
+}
+
+/* static API */
+
+static int __ft_worldgen_landscape(struct world_s *world, struct chunk_s *chunk, int cx, int cy, int cz) {
     /* null-check */
     if (!world) { return (0); }
     if (!chunk) { return (0); }
@@ -11,31 +29,24 @@ extern int ft_worldgen_generate(struct world_s *world, struct chunk_s *chunk, in
     for (int x = 0; x < FT_VOX_CHUNK_SIZE_X; x++) {
     for (int z = 0; z < FT_VOX_CHUNK_SIZE_Z; z++) {
         /* 'height' : value on Y-axis representing the height of the final solid block */
-        double height = fbm2d((cx + x) * 0.64,
-                              (cz + z) * 0.64,
-                              0.5, 2.0, 8,
-                              world->seed);
+        int height = fbm2d((cx + x) * 0.08,
+                           (cz + z) * 0.08,
+                            0.64, 1.8, 8, world->seed);
 
         /* iterate on Y-axis in the 'chunk' */
         for (int y = 0; y < FT_VOX_CHUNK_SIZE_Y; y++) {
-            /* 'idx' : block ID to be placed */
-            u32 idx = FT_BLOCK_AIR;
+            /* 'y' offset by 'cy' */
+            int yoff = cy + y;
 
-            /* if below 'height', then place 'STONE' */
-            if (cy + y < height) {
-                idx = FT_BLOCK_STONE;
+            /* case : 'yoff' is at 'height' */
+            if (yoff <= height) {
+                ft_chunk_set(chunk, x, y, z, FT_BLOCK_STONE);
             }
 
-            /* otherwise... */
+            /* case : 'yoff' is above 'height' */
             else {
-                /* ...if on water level */
-                if (cy < 0) {
-                    // idx = FT_BLOCK_WATER;
-                }
+                ft_chunk_set(chunk, x, y, z, FT_BLOCK_AIR);
             }
-            
-            /* place 'idx' in 'chunk */
-            ft_chunk_set(chunk, x, y, z, idx);
         }
     }}
 

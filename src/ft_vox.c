@@ -108,7 +108,7 @@ static int ft_player_update(struct entity_s *self) {
 
     /* update 'camera' */
     if (mouse->locked) {
-        ft_camera_move(&player->camera, 8.0 * time->delta);
+        ft_camera_move(&player->camera, 16.0 * time->delta);
         ft_camera_rotate(&player->camera, 0.1);
     }
 
