@@ -359,9 +359,9 @@ struct camera_s {
     float fieldOfView;
 };
 
-extern int ft_camera_move(struct camera_s *, float);
+extern vec3 ft_camera_move(struct camera_s *, struct keyboard_s *, float);
 
-extern int ft_camera_rotate(struct camera_s *, float);
+extern vec3 ft_camera_rotate(struct camera_s *, struct mouse_s *, float);
 
 extern int ft_camera_matrix(struct camera_s *, mat4 *, mat4 *);
 

@@ -1,55 +1,63 @@
 #include "ft_vox.h"
 
-extern int ft_camera_move(struct camera_s *self, const float value) {
-    /* null-check */
-    if (!self) { return (0); }
+extern vec3 ft_camera_move(struct camera_s *self, struct keyboard_s *keyboard, const float value) {
+    /* get 'input' inputs */
+    u8 *key= keyboard->current;
 
-    if (STATE.input.keyboard->current[SDL_SCANCODE_D] ||
-        STATE.input.keyboard->current[SDL_SCANCODE_A]
+    /* move : 'left-right' */
+    vec3 lr = { 0 };
+    if (key[SDL_SCANCODE_D] ||
+        key[SDL_SCANCODE_A]
     ) {
-        int8_t input = STATE.input.keyboard->current[SDL_SCANCODE_D] -
-                       STATE.input.keyboard->current[SDL_SCANCODE_A];
-        vec3 norm = alg_vec3norm(alg_vec3cross(self->rotation, self->up));
-        self->position = alg_vec3add(self->position, alg_vec3mulf(norm, input * value));
+        i8 input = key[SDL_SCANCODE_D] -
+                   key[SDL_SCANCODE_A];
+        lr = alg_vec3cross(self->rotation, self->up);
+        lr = alg_vec3norm(lr);
+        lr = alg_vec3mulf(lr, input * value);
     }
     
-    if (STATE.input.keyboard->current[SDL_SCANCODE_SPACE] ||
-        STATE.input.keyboard->current[SDL_SCANCODE_LSHIFT]
+    /* move : 'top-down' */
+    vec3 td = { 0 };
+    if (key[SDL_SCANCODE_SPACE] ||
+        key[SDL_SCANCODE_LSHIFT]
     ) {
-        int8_t input = STATE.input.keyboard->current[SDL_SCANCODE_SPACE] -
-                       STATE.input.keyboard->current[SDL_SCANCODE_LSHIFT];
-        self->position = alg_vec3add(self->position, alg_vec3mulf(self->up, input * value));
+        i8 input = key[SDL_SCANCODE_SPACE] -
+                   key[SDL_SCANCODE_LSHIFT];
+        td = alg_vec3mulf(self->up, input * value);
     }
-    
-    if (STATE.input.keyboard->current[SDL_SCANCODE_W] ||
-        STATE.input.keyboard->current[SDL_SCANCODE_S]
+   
+    /* move : 'forward-backward' */
+    vec3 fb = { 0 };
+    if (key[SDL_SCANCODE_W] ||
+        key[SDL_SCANCODE_S]
     ) {
-        int8_t input = STATE.input.keyboard->current[SDL_SCANCODE_W] -
-                       STATE.input.keyboard->current[SDL_SCANCODE_S];
+        i8 input = key[SDL_SCANCODE_W] -
+                   key[SDL_SCANCODE_S];
 
         double sy = sin(alg_deg2rad(self->direction.z)),
                cy = cos(alg_deg2rad(self->direction.z));
-        vec3 forward = alg_vec3(cy, 0.0f, sy);
-        self->position = alg_vec3add(self->position, alg_vec3mulf(forward, input * value));
+        fb = alg_vec3(cy, 0.0f, sy);
+        fb = alg_vec3mulf(fb, input * value);
     }
 
     /* success */
-    return (1);
+    vec3 move = alg_vec3add(lr, td);
+         move = alg_vec3add(fb, move);
+    vec3 norm = alg_vec3norm(move);
+         norm = alg_vec3mulf(norm, value);
+    return (alg_vec3add(self->position, norm));
 }
 
 
-extern int ft_camera_rotate(struct camera_s *self, const float value) {
-    /* null-check */
-    if (!self) { return (0); }
-
+extern vec3 ft_camera_rotate(struct camera_s *self, struct mouse_s *mouse, const float value) {
     /* apply 'offset' to 'direction' */
-    self->direction.z += STATE.input.mouse->position.delta.x * value; /* yaw */
-    self->direction.y -= STATE.input.mouse->position.delta.y * value; /* pitch */
+    self->direction.z += mouse->position.delta.x * value; /* yaw */
+    self->direction.y -= mouse->position.delta.y * value; /* pitch */
     
-    /* clear 'STATE.input.mouse' 'delta' */
-    STATE.input.mouse->position.delta = alg_vec2(0.0, 0.0);
+    /* clear 'mouse's 'delta' */
+    mouse->position.delta = alg_vec2(0.0, 0.0);
 
-    /* clamp 'pitch' in [-89.0, 89.0] */
+    /* clamp 'pitch' in [-89.9, 89.9] */
     self->direction.y = alg_clamp(self->direction.y, -89.9, 89.9);
 
     /* apply 'direction' to 'rotation' */
@@ -57,10 +65,10 @@ extern int ft_camera_rotate(struct camera_s *self, const float value) {
            cp = cos(alg_deg2rad(self->direction.y)),
            sy = sin(alg_deg2rad(self->direction.z)),
            cy = cos(alg_deg2rad(self->direction.z));
-    self->rotation = alg_vec3norm(alg_vec3(cy * cp, sp, sy * cp));
+    vec3 rotation = alg_vec3(cy * cp, sp, sy * cp);
 
     /* success */
-    return (1);
+    return (alg_vec3norm(rotation));
 }
 
 
