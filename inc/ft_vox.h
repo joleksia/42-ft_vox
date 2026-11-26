@@ -466,18 +466,16 @@ enum block_e {
     FT_BLOCK_GRASS,
 
     FT_BLOCK_DIRT,
+    
+    FT_BLOCK_SAND,
+    
+    FT_BLOCK_GRAVEL,
 
     FT_BLOCK_WATER,
 
     /* ... */
 
     FT_BLOCK_COUNT,
-
-    /* ancillary blocks */
-
-    FT_BLOCK_DEBUG,
-
-    FT_BLOCK_OUT_OF_BOUNDS
 
 };
 

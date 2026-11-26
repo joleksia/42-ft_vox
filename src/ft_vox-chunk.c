@@ -262,7 +262,7 @@ extern int ft_chunk_get(struct chunk_s *self, int bx, int by, int bz, u32 *resul
         ft_world_get(self->parent, cx, cy, cz, &self);
         if (!self) {
             if (result) {
-                *result = FT_BLOCK_OUT_OF_BOUNDS;
+                *result = 0;
             }
 
             /* failure */
@@ -362,7 +362,7 @@ extern int ft_chunk_mesh_upload(struct chunk_s *self) {
 static u32 __ft_vertex(u8 x, u8 y, u8 z, u8 tex_index, u8 tex_corner, u8 face) {
     /* 'vertex' : 32-bit GPU-verticy representation of a single block:
      *  - position (18-bit)
-     *  - texture index (6-bit)
+     *  - texture index (8-bit)
      *  - texture corner (2-bit)
      *  - face (3-bit)
      * */
@@ -373,14 +373,14 @@ static u32 __ft_vertex(u8 x, u8 y, u8 z, u8 tex_index, u8 tex_corner, u8 face) {
               (y & 0x3fu) <<  6|
               (z & 0x3fu) << 12;
 
-    /* pack : tex-index (6-bit) */
-    vertex |= (tex_index & 0x3fu) << 18;
+    /* pack : tex-index (8-bit) */
+    vertex |= (tex_index & 0xffu) << 18;
 
     /* pack : 'tex-corner' (2-bit) */
-    vertex |= (tex_corner & 0x3u) << 24;
+    vertex |= (tex_corner & 0x3u) << 26;
 
-    /* pack : 'face' (3-bit) */
-    vertex |= (face & 0x7u) << 26;
+    /* pack : 'face' (4-bit) */
+    vertex |= (face & 0xfu) << 28;
 
     /* return 'vertex' */
     return (vertex);
@@ -396,7 +396,7 @@ static int __ft_face_cube(u32 id, int face, int x, int y, int z, u32 *v, u32 *i,
     if (block.texcoord) { block.texcoord(&block, &texcoord, face); }
 
     /* get 'tex_index' */
-    u8 tex_index = texcoord.y * 32.0 + texcoord.x;
+    u8 tex_index = texcoord.y * 16.0 + texcoord.x;
 
     /* vertices... */
     if (!v) { return (0); }
@@ -644,10 +644,15 @@ static int __ft_chunk_mesh_render_t(struct chunk_mesh_s *self, struct chunk_s *c
 
     /* configure OpenGL */
     glEnable(GL_DEPTH_TEST);
-    glDisable(GL_CULL_FACE);
     glDepthMask(GL_TRUE);
-    glDisable(GL_BLEND);
     
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CCW);
+    
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     /* 'u_model' matrix */
     mat4 u_model = alg_mat4trans(chunk->offset);
 
@@ -673,10 +678,12 @@ static int __ft_chunk_mesh_render_s(struct chunk_mesh_s *self, struct chunk_s *c
 
     /* configure OpenGL */
     glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);
+    
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
-    glDepthMask(GL_TRUE);
+    
     glDisable(GL_BLEND);
     
     /* 'u_model' matrix */
@@ -703,8 +710,15 @@ static int __ft_chunk_mesh_render_w(struct chunk_mesh_s *self, struct chunk_s *c
     if (!chunk) { return (0); }
 
     /* configure OpenGL */
-    glEnable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);
+    
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CCW);
+    
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
     /* 'u_model' matrix */
     mat4 u_model = alg_mat4trans(chunk->offset);
@@ -773,6 +787,8 @@ static int __ft_chunk_mesh_bake(struct chunk_data_s *self, struct chunk_s *chunk
             case (FT_BLOCK_TYPE_TRANS): {
                 for (enum face_e face = 0; face < FT_FACE_COUNT; face++) {
                     u32 nid = nids[face];
+
+                    /* skip the blocks with the same 'id' */
                     if (nid == id) { continue; }
                     
                     /* get 'vertices' and 'indices' */
@@ -798,7 +814,9 @@ static int __ft_chunk_mesh_bake(struct chunk_data_s *self, struct chunk_s *chunk
             case (FT_BLOCK_TYPE_SOLID): {
                 for (enum face_e face = 0; face < FT_FACE_COUNT; face++) {
                     u32 nid = nids[face];
-                    if (BLOCKS[nid].type != FT_BLOCK_TYPE_TRANS) { continue; }
+
+                    /* skip other 'solid' blocks */
+                    if (BLOCKS[nid].type == FT_BLOCK_TYPE_SOLID) { continue; }
                     
                     /* get 'vertices' and 'indices' */
                     u32 vertices[4] = { 0 },
@@ -823,6 +841,8 @@ static int __ft_chunk_mesh_bake(struct chunk_data_s *self, struct chunk_s *chunk
             case (FT_BLOCK_TYPE_WATER): {
                 for (enum face_e face = 0; face < FT_FACE_COUNT; face++) {
                     u32 nid = nids[face];
+
+                    /* skip if not 'air' */
                     if (nid != FT_BLOCK_AIR) { continue; }
                     
                     /* get 'vertices' and 'indices' */

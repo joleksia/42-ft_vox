@@ -4,11 +4,11 @@
 
 static int __ft_worldgen_gen_volume(struct world_s *, struct chunk_s *);
 
-static int __ft_worldgen_gen_shape(struct world_s *, struct chunk_s *);
-
-static int __ft_worldgen_gen_grass(struct world_s *, struct chunk_s *);
+static int __ft_worldgen_gen_stone(struct world_s *, struct chunk_s *);
 
 static int __ft_worldgen_gen_ocean(struct world_s *, struct chunk_s *);
+
+static int __ft_worldgen_gen_grass(struct world_s *, struct chunk_s *);
 
 /* public API */
 
@@ -20,14 +20,14 @@ extern int ft_worldgen_generate(struct world_s *world, struct chunk_s *chunk) {
     /* step 1.: generate volumes */
     __ft_worldgen_gen_volume(world, chunk);
 
-    /* step 2.: generate 'world's shape */
-    __ft_worldgen_gen_shape(world, chunk);
+    /* step 2.: generate 'world's stone layer */
+    __ft_worldgen_gen_stone(world, chunk);
 
-    /* step 3.: generate grass layer */
-    __ft_worldgen_gen_grass(world, chunk);
-
-    /* step 4.: generate ocean layer */
+    /* step 3.: generate 'world's ocean layer */
     __ft_worldgen_gen_ocean(world, chunk);
+
+    /* step 4.: generate 'world's grass layer */
+    __ft_worldgen_gen_grass(world, chunk);
 
     /* success */
     return (1);
@@ -50,8 +50,9 @@ static int __ft_worldgen_gen_volume(struct world_s *world, struct chunk_s *chunk
             nz = i / FT_UPSAMPLE_X;
         
         /* get 'volume' */
-        f32 volume = perlin2d((chunk->offset.x + nx * FT_UPSAMPLE_STEP) * 0.01,
-                              (chunk->offset.z + nz * FT_UPSAMPLE_STEP) * 0.01, world->seed);
+        f32 volume = fbm2d((chunk->offset.x + nx * FT_UPSAMPLE_STEP) * 0.01,
+                           (chunk->offset.z + nz * FT_UPSAMPLE_STEP) * 0.01,
+                           2.0, 0.5, 8, world->seed);
 
         /* return 'volume' */
         noise[nz * FT_UPSAMPLE_X + nx] = volume;
@@ -79,7 +80,7 @@ static int __ft_worldgen_gen_volume(struct world_s *world, struct chunk_s *chunk
 
         /* return 'volume' */
         chunk->volume[z * FT_CHUNK_SIZE_X + x] = alg_lerp(alg_lerp(a, b, t1),
-                                                          alg_lerp(c, d, t1), t2) * 32;
+                                                          alg_lerp(c, d, t1), t2) * 64;
     }
 
     /* success */
@@ -87,7 +88,7 @@ static int __ft_worldgen_gen_volume(struct world_s *world, struct chunk_s *chunk
 }
 
 
-static int __ft_worldgen_gen_shape(struct world_s *world, struct chunk_s *chunk) {
+static int __ft_worldgen_gen_stone(struct world_s *world, struct chunk_s *chunk) {
     /* null-check */
     if (!world) { return (0); }
     if (!chunk) { return (0); }
@@ -107,11 +108,50 @@ static int __ft_worldgen_gen_shape(struct world_s *world, struct chunk_s *chunk)
             int yoff = chunk->offset.y + y;
 
             /* case : 'yoff' is at 'volume' */
-            if (yoff <= volume) {
+            if (yoff < volume) {
                 chunk->blocks[FT_CHUNK_3D_1D(x, y, z)] = FT_BLOCK_STONE;
             }
 
             /* case : 'yoff' is above 'volume' */
+            else {
+                break;
+            }
+        }
+    }
+
+    /* success */
+    return (1);
+}
+
+
+static int __ft_worldgen_gen_ocean(struct world_s *world, struct chunk_s *chunk) {
+    /* null-check */
+    if (!world) { return (0); }
+    if (!chunk) { return (0); }
+
+    /* check if 'chunk' is above ocean level */
+    if (chunk->offset.y >= 0) { return (1); }
+    
+    /* iterate on X-axis and Z-axis of the 'chunk' */
+    for (int i = 0; i < FT_CHUNK_SIZE_X * FT_CHUNK_SIZE_Z; i++) {
+        /* get 'x' and 'z' indices */
+        int x = i % FT_CHUNK_SIZE_X,
+            z = i / FT_CHUNK_SIZE_X;
+
+        /* get 'volume' */
+        int volume = chunk->volume[i];
+        
+        /* iterate on Y-axis of the 'chunk' */
+        for (int y = FT_CHUNK_SIZE_Y - 1; y >= 0; y--) {
+            /* 'y' offset by 'cy' */
+            int yoff = chunk->offset.y + y;
+
+            /* case : 'yoff' is at-or-above 'volume' */
+            if (yoff >= volume) {
+                chunk->blocks[FT_CHUNK_3D_1D(x, y, z)] = FT_BLOCK_WATER;
+            }
+
+            /* case : 'yoff' is below 'volume' */
             else {
                 break;
             }
@@ -147,59 +187,30 @@ static int __ft_worldgen_gen_grass(struct world_s *world, struct chunk_s *chunk)
 
             /* case : 'yoff' is at 'volume' */
             else if (yoff == volume) {
-                chunk->blocks[FT_CHUNK_3D_1D(x, y, z)] = FT_BLOCK_GRASS;
+                if (yoff <= 0) {
+                    chunk->blocks[FT_CHUNK_3D_1D(x, y, z)] = FT_BLOCK_SAND;
+                }
+                else {
+                    chunk->blocks[FT_CHUNK_3D_1D(x, y, z)] = FT_BLOCK_GRASS;
+                }
             }
 
             /* case : 'yoff' is below 'volume' */
             else {
                 /* case : 'yoff' is above 'volume - 3' */
-                if (yoff > volume - 3) {
-                    chunk->blocks[FT_CHUNK_3D_1D(x, y, z)] = FT_BLOCK_DIRT;
+                if (yoff >= volume - 3) {
+                    if (yoff <= 0) {
+                        chunk->blocks[FT_CHUNK_3D_1D(x, y, z)] = FT_BLOCK_SAND;
+                    }
+                    else {
+                        chunk->blocks[FT_CHUNK_3D_1D(x, y, z)] = FT_BLOCK_DIRT;
+                    }
                 }
 
                 /* case : 'yoff' is below 'volume - 3' */
                 else {
                     break;
                 }
-            }
-        }
-    }
-
-    /* success */
-    return (1);
-}
-
-
-static int __ft_worldgen_gen_ocean(struct world_s *world, struct chunk_s *chunk) {
-    /* null-check */
-    if (!world) { return (0); }
-    if (!chunk) { return (0); }
-
-    /* check if 'chunk' is above ocean level */
-    if (chunk->offset.y >= 0) { return (1); }
-    
-    /* iterate on X-axis and Z-axis of the 'chunk' */
-    for (int i = 0; i < FT_CHUNK_SIZE_X * FT_CHUNK_SIZE_Z; i++) {
-        /* get 'x' and 'z' indices */
-        int x = i % FT_CHUNK_SIZE_X,
-            z = i / FT_CHUNK_SIZE_X;
-
-        /* get 'volume' */
-        int volume = chunk->volume[i];
-        
-        /* iterate on Y-axis of the 'chunk' */
-        for (int y = FT_CHUNK_SIZE_Y - 1; y >= 0; y--) {
-            /* 'y' offset by 'cy' */
-            int yoff = chunk->offset.y + y;
-
-            /* case : 'yoff' is above 'volume' */
-            if (yoff > volume) {
-                chunk->blocks[FT_CHUNK_3D_1D(x, y, z)] = FT_BLOCK_WATER;
-            }
-
-            /* case : 'yoff' is at-or-below 'volume' */
-            else {
-                break;
             }
         }
     }

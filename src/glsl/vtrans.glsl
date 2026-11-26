@@ -30,17 +30,23 @@ void main() {
          y = (a_vertex >>  6) & 0x3fu,
          z = (a_vertex >> 12) & 0x3fu;
 
-    /* unpack: 'tex_index' (6-bit) */
-    uint tex_index = (a_vertex >> 18) & 0x3fu;
+    /* unpack: 'tex_index' (8-bit) */
+    uint tex_index = (a_vertex >> 18) & 0xffu;
 
     /* unpack: 'tex_corner' (2-bit) */
-    uint tex_corner = (a_vertex >> 24) & 0x3u;
+    uint tex_corner = (a_vertex >> 26) & 0x3u;
     
     /* unpack: 'face' (3-bit)
      * NOTE:
      *  'face' must match 'enum face_e' values
      * */
-    uint face = (a_vertex >> 26) & 0x7u;
+    uint face = (a_vertex >> 28) & 0xfu;
+    
+    /* set 'gl_Position' */
+    gl_Position = u_proj  *
+                  u_view  *
+                  u_model *
+                  vec4(float(x), float(y), float(z), 1.0);
     
     /* set 'gl_Position' */
     gl_Position = u_proj  *

@@ -258,6 +258,8 @@ extern int ft_world_center(struct world_s *self, const vec3 block) {
         }
     }
 
+    /* TODO: maybe sort chunks back-to-front or front-to-back? */
+
     /* pass 2.: create empty chunks */
     for (int i = 0; i < FT_RENDER_DIAMETER; i++) {
         /* get 'chunk' from 'chunks' */
@@ -307,10 +309,10 @@ extern int ft_world_flush_delete(struct world_s *self) {
         SDL_AtomicAdd(&chunk->atoms.refer, -dropped);
 
         /* wait for all 'chunk's jobs to finish */
-        while (SDL_AtomicGet(&chunk->atoms.refer) > 0) { SDL_Delay(0); }
-
-        /* release 'delete[i]' */
-        ft_chunk_delete(delete[i]); delete[i] = 0;
+        if (SDL_AtomicGet(&chunk->atoms.refer) == 0) {
+            /* release 'delete[i]' */
+            ft_chunk_delete(delete[i]); delete[i] = 0;
+        }
     }
 
     /* success */

@@ -14,7 +14,7 @@ int ft_block_water(void) {
         /* members */
         
         .id = FT_BLOCK_WATER,
-        .type = FT_BLOCK_TYPE_TRANS,
+        .type = FT_BLOCK_TYPE_WATER,
 
         /* methods */
 
@@ -37,7 +37,7 @@ static int __ft_water_texcoord(struct block_s *self, vec2 *uv, enum face_e face)
 
     /* return 'uv' */
     if (uv) {
-        *uv = alg_vec2(0.0, 0.0);
+        *uv = alg_vec2(0.0, 15.0);
     }
 
     /* success */

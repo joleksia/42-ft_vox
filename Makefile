@@ -46,11 +46,13 @@ SRCS = $(MK_ROOT)src/deps.c				\
 	   $(MK_ROOT)src/ft_vox-worldgen.c	\
 	   $(MK_ROOT)src/ft_vox-block.c		\
 
-SRCS += $(MK_ROOT)src/blocks/ft_vox-air.c	\
-		$(MK_ROOT)src/blocks/ft_vox-stone.c	\
-		$(MK_ROOT)src/blocks/ft_vox-grass.c	\
-		$(MK_ROOT)src/blocks/ft_vox-dirt.c	\
-		$(MK_ROOT)src/blocks/ft_vox-water.c	\
+SRCS += $(MK_ROOT)src/blocks/ft_vox-air.c		\
+		$(MK_ROOT)src/blocks/ft_vox-stone.c		\
+		$(MK_ROOT)src/blocks/ft_vox-grass.c		\
+		$(MK_ROOT)src/blocks/ft_vox-dirt.c		\
+		$(MK_ROOT)src/blocks/ft_vox-sand.c		\
+		$(MK_ROOT)src/blocks/ft_vox-gravel.c	\
+		$(MK_ROOT)src/blocks/ft_vox-water.c		\
 
 # ========
 

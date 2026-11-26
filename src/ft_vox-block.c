@@ -25,6 +25,14 @@ extern int ft_blocks_create(void) {
     ft_block_dirt();
 
     /* create : 'FT_BLOCK_SAND' */
+    extern int ft_block_sand();
+    ft_block_sand();
+
+    /* create : 'FT_BLOCK_GRAVEL' */
+    extern int ft_block_gravel();
+    ft_block_gravel();
+
+    /* create : 'FT_BLOCK_WATER' */
     extern int ft_block_water();
     ft_block_water();
 
