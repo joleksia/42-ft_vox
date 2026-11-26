@@ -10,7 +10,11 @@ static int __ft_push(u32 **, u32 *, u32 *, u32 *, u32);
 
 static int __ft_chunk_blocks_alloc(u32 **);
 
-static int __ft_chunk_block_free(u32 *);
+static int __ft_chunk_blocks_free(u32 *);
+
+static int __ft_chunk_volume_alloc(f32 **);
+
+static int __ft_chunk_volume_free(f32 *);
 
 static int __ft_chunk_data_alloc(struct chunk_data_s *);
 
@@ -49,9 +53,9 @@ extern int ft_chunk_create(struct chunk_s **self, struct world_s *parent, int x,
     chunk->origin = alg_vec3(x, y, z);
 
     /* set 'offset' */
-    chunk->offset = alg_vec3(x * FT_VOX_CHUNK_SIZE_X,
-                             y * FT_VOX_CHUNK_SIZE_Y,
-                             z * FT_VOX_CHUNK_SIZE_Z);
+    chunk->offset = alg_vec3(x * FT_CHUNK_SIZE_X,
+                             y * FT_CHUNK_SIZE_Y,
+                             z * FT_CHUNK_SIZE_Z);
 
     /* set 'atoms' */
     SDL_AtomicSet(&chunk->atoms.create, 1);
@@ -74,8 +78,11 @@ extern int ft_chunk_delete(struct chunk_s *self) {
     /* release 'data' */
     __ft_chunk_data_free(&self->data);
 
+    /* release 'volume' */
+    __ft_chunk_volume_free(self->volume);
+
     /* release 'blocks' */
-    __ft_chunk_block_free(self->blocks);
+    __ft_chunk_blocks_free(self->blocks);
     
     /* release 'self' */
     free(self);
@@ -199,6 +206,12 @@ extern int ft_chunk_alloc(struct chunk_s *self) {
         return (0);
     }
 
+    /* create 'volume' */
+    if (!__ft_chunk_volume_alloc(&self->volume)) {
+        ft_chunk_delete(self);
+        return (0);
+    }
+
     /* create 'data' */
     if (!__ft_chunk_data_alloc(&self->data)) {
         ft_chunk_delete(self);
@@ -222,23 +235,23 @@ extern int ft_chunk_get(struct chunk_s *self, int bx, int by, int bz, u32 *resul
 
     int cx = (int) self->origin.x;
     if (bx < 0) {
-        cx--; bx += FT_VOX_CHUNK_SIZE_X;
-    } else if (bx >= FT_VOX_CHUNK_SIZE_X) {
-        cx++; bx -= FT_VOX_CHUNK_SIZE_X;
+        cx--; bx += FT_CHUNK_SIZE_X;
+    } else if (bx >= FT_CHUNK_SIZE_X) {
+        cx++; bx -= FT_CHUNK_SIZE_X;
     }
 
     int cy = (int) self->origin.y;
     if (by < 0) {
-        cy--; by += FT_VOX_CHUNK_SIZE_Y;
-    } else if (by >= FT_VOX_CHUNK_SIZE_Y) {
-        cy++; by -= FT_VOX_CHUNK_SIZE_Y;
+        cy--; by += FT_CHUNK_SIZE_Y;
+    } else if (by >= FT_CHUNK_SIZE_Y) {
+        cy++; by -= FT_CHUNK_SIZE_Y;
     }
 
     int cz = (int) self->origin.z;
     if (bz < 0) {
-        cz--; bz += FT_VOX_CHUNK_SIZE_Z;
-    } else if (bz >= FT_VOX_CHUNK_SIZE_Z) {
-        cz++; bz -= FT_VOX_CHUNK_SIZE_Z;
+        cz--; bz += FT_CHUNK_SIZE_Z;
+    } else if (bz >= FT_CHUNK_SIZE_Z) {
+        cz++; bz -= FT_CHUNK_SIZE_Z;
     }
 
     /* get actual 'self' (bound-check) */
@@ -259,7 +272,7 @@ extern int ft_chunk_get(struct chunk_s *self, int bx, int by, int bz, u32 *resul
    
     /* get 'block' */
     u32 block = 0;
-    if (self->blocks) { block = self->blocks[FT_VOX_CHUNK_3D_1D(bx, by, bz)]; }
+    if (self->blocks) { block = self->blocks[FT_CHUNK_3D_1D(bx, by, bz)]; }
 
     /* return 'result' */
     if (result) { *result = block; }
@@ -294,12 +307,12 @@ extern int ft_chunk_set(struct chunk_s *self, int bx, int by, int bz, int id) {
     /* null-check */
     if (!self) { return (0); }
 
-    bx = alg_clamp(bx, 0, FT_VOX_CHUNK_SIZE_X - 1),
-    by = alg_clamp(by, 0, FT_VOX_CHUNK_SIZE_Y - 1),
-    bz = alg_clamp(bz, 0, FT_VOX_CHUNK_SIZE_Z - 1);
+    bx = alg_clamp(bx, 0, FT_CHUNK_SIZE_X - 1),
+    by = alg_clamp(by, 0, FT_CHUNK_SIZE_Y - 1),
+    bz = alg_clamp(bz, 0, FT_CHUNK_SIZE_Z - 1);
 
     /* set 'id' */
-    if (self->blocks) { self->blocks[FT_VOX_CHUNK_3D_1D(bx, by, bz)] = id; }
+    if (self->blocks) { self->blocks[FT_CHUNK_3D_1D(bx, by, bz)] = id; }
 
     /* success */
     return (1);
@@ -481,7 +494,7 @@ static int __ft_chunk_blocks_alloc(u32 **self) {
     if (!self) { return (0); }
 
     /* alloc. 'blocks' */
-    u32 *blocks = (u32 *) calloc(FT_VOX_CHUNK_SIZE, sizeof(u32));
+    u32 *blocks = (u32 *) calloc(FT_CHUNK_SIZE, sizeof(u32));
     if (!blocks) { return (0); }
 
     /* return 'self' */
@@ -492,7 +505,33 @@ static int __ft_chunk_blocks_alloc(u32 **self) {
 }
 
 
-static int __ft_chunk_block_free(u32 *self) {
+static int __ft_chunk_blocks_free(u32 *self) {
+    if (!self) { return (0); }
+
+    /* release 'self' */
+    free(self);
+
+    /* success */
+    return (1);
+}
+
+
+static int __ft_chunk_volume_alloc(f32 **self) {
+    if (!self) { return (0); }
+
+    /* alloc. 'volume' */
+    f32 *volume = (f32 *) calloc(FT_CHUNK_SIZE_X * FT_CHUNK_SIZE_Z, sizeof(f32));
+    if (!volume) { return (0); }
+
+    /* return 'self' */
+    *self = volume;
+
+    /* success */
+    return (1);
+}
+
+
+static int __ft_chunk_volume_free(f32 *self) {
     if (!self) { return (0); }
 
     /* release 'self' */
@@ -610,7 +649,7 @@ static int __ft_chunk_mesh_render_t(struct chunk_mesh_s *self, struct chunk_s *c
     glDisable(GL_BLEND);
     
     /* 'u_model' matrix */
-    mat4 u_model = alg_mat4translate(chunk->offset);
+    mat4 u_model = alg_mat4trans(chunk->offset);
 
     /* configure shader */
     ft_shader_bind(STATE.gfx.trans);
@@ -641,7 +680,7 @@ static int __ft_chunk_mesh_render_s(struct chunk_mesh_s *self, struct chunk_s *c
     glDisable(GL_BLEND);
     
     /* 'u_model' matrix */
-    mat4 u_model = alg_mat4translate(chunk->offset);
+    mat4 u_model = alg_mat4trans(chunk->offset);
 
     /* configure shader */
     ft_shader_bind(STATE.gfx.solid);
@@ -668,7 +707,7 @@ static int __ft_chunk_mesh_render_w(struct chunk_mesh_s *self, struct chunk_s *c
     glDepthMask(GL_TRUE);
     
     /* 'u_model' matrix */
-    mat4 u_model = alg_mat4translate(chunk->offset);
+    mat4 u_model = alg_mat4trans(chunk->offset);
 
     /* configure shader */
     ft_shader_bind(STATE.gfx.water);
@@ -690,7 +729,7 @@ static int __ft_chunk_generate(struct chunk_s *self) {
     if (!self) { return (0); }
 
     /* run 'generate' algorithm */
-    if (!ft_worldgen_generate(self->parent, self, self->offset.x, self->offset.y, self->offset.z)) { return (0); }
+    if (!ft_worldgen_generate(self->parent, self)) { return (0); }
 
     /* success */
     SDL_AtomicSet(&self->atoms.populated, 1);
@@ -710,12 +749,12 @@ static int __ft_chunk_mesh_bake(struct chunk_data_s *self, struct chunk_s *chunk
     self->v[2].cnt = self->i[2].cnt = 0;
     
     /* iterate on every 'block' */
-    for (int i = 0; i < FT_VOX_CHUNK_SIZE; i++) {
+    for (int i = 0; i < FT_CHUNK_SIZE; i++) {
         /* get 'x', 'y', and 'z' */
         int x = 0,
             y = 0,
             z = 0;
-        FT_VOX_CHUNK_1D_3D(i, x, y, z);
+        FT_CHUNK_1D_3D(i, x, y, z);
 
         /* get block ID */
         u32 id = 0;

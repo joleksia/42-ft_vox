@@ -60,8 +60,6 @@ static int ft_player_delete(struct entity_s *self) {
     player_s *player = (struct player_s *) self;
     if (!player) { return (0); }
 
-    /* ... */ (void) player;
-
     /* success */
     return (1);
 }
@@ -110,7 +108,11 @@ static int ft_player_update(struct entity_s *self) {
     if (mouse->locked) {
         struct
         camera_s *camera = &player->camera;
+
+        /* change 'position' */
         camera->position = ft_camera_move(camera, keyboard, 16.0 * time->delta);
+
+        /* change 'rotation' */
         camera->rotation = ft_camera_rotate(camera, mouse, 0.1);
     }
 
@@ -118,9 +120,9 @@ static int ft_player_update(struct entity_s *self) {
     vec3 position = player->position = player->camera.position;
 
     /* 'player' position to 'block' position */
-    vec3 block = FT_VOX_FLOAT_TO_BLOCK(position.x,
-                                       position.y,
-                                       position.z);
+    vec3 block = FT_FLOAT_TO_BLOCK(position.x,
+                                   position.y,
+                                   position.z);
 
     /* update 'player's positions */
     player->block = block;

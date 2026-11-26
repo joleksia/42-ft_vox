@@ -61,23 +61,23 @@ void main() {
     /* set 'v_normal' and 'v_shading' */
     switch (face) {
         /* face : NORTH */
-        case (0): { v_shading = 0.90; 
+        case (0): { v_shading = 0.80; 
                     v_normal = vec3(0.0, 0.0, -1.0); } break;
         
         /* face : SOUTH */
-        case (1): { v_shading = 0.90; 
+        case (1): { v_shading = 0.80; 
                     v_normal = vec3(0.0, 0.0, 1.0); } break;
         
         /* face : WEST */
-        case (2): { v_shading = 0.80; 
+        case (2): { v_shading = 0.60; 
                     v_normal = vec3(-1.0, 0.0, 0.0); } break;
         
         /* face : EAST */
-        case (3): { v_shading = 0.80; 
+        case (3): { v_shading = 0.60; 
                     v_normal = vec3(1.0, 0.0, 0.0); } break;
         
         /* face : DOWN */
-        case (4): { v_shading = 0.70; 
+        case (4): { v_shading = 0.40; 
                     v_normal = vec3(0.0, -1.0, 0.0); } break;
         
         /* face : TOP */

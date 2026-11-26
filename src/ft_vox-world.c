@@ -19,11 +19,11 @@ extern int ft_world_create(struct world_s **self, const int seed) {
     if (!ft_thpool_create(&world->pool)) { ft_world_delete(world); return (0); }
 
     /* alloc. 'chunks' */
-    world->chunks = (struct chunk_s **) calloc(FT_VOX_RENDER_DIAMETER, sizeof(struct chunk_s *)); 
+    world->chunks = (struct chunk_s **) calloc(FT_RENDER_DIAMETER, sizeof(struct chunk_s *)); 
     if (!world->chunks) { ft_world_delete(world); return (0); }
 
     /* alloc. 'deleted' */
-    world->delete = (struct chunk_s **) calloc(FT_VOX_RENDER_DIAMETER, sizeof(struct chunk_s *)); 
+    world->delete = (struct chunk_s **) calloc(FT_RENDER_DIAMETER, sizeof(struct chunk_s *)); 
     if (!world->delete) { ft_world_delete(world); return (0); }
 
     /* store 'seed' */
@@ -56,15 +56,15 @@ extern int ft_world_delete(struct world_s *self) {
     chunk_s **chunks = self->chunks;
     if (chunks) {
         /* iterate on every 'chunk' */
-        for (int i = 0; i < FT_VOX_RENDER_DIAMETER; i++) {
+        for (int i = 0; i < FT_RENDER_DIAMETER; i++) {
             /* get 'x', 'y' and 'z' */
             int x = 0,
                 y = 0,
                 z = 0;
-            FT_VOX_WORLD_1D_3D(i, x, y, z);
+            FT_WORLD_1D_3D(i, x, y, z);
             
             /* release 'chunk' */
-            struct chunk_s *chunk = chunks[FT_VOX_WORLD_3D_1D(x, y, z)];
+            struct chunk_s *chunk = chunks[FT_WORLD_3D_1D(x, y, z)];
             if (chunk) {
                 ft_chunk_delete(chunk);
             }
@@ -78,7 +78,7 @@ extern int ft_world_delete(struct world_s *self) {
     chunk_s **delete = self->delete;
     if (delete) {
         /* iterate on every 'delete' */
-        for (int i = 0; i < FT_VOX_RENDER_DIAMETER; i++) {
+        for (int i = 0; i < FT_RENDER_DIAMETER; i++) {
             /* release 'chunk' */
             struct chunk_s *chunk = delete[i];
             if (chunk) {
@@ -109,7 +109,7 @@ extern int ft_world_update(struct world_s *self) {
     }
     
     /* iterate on every 'chunk' */
-    for (int i = 0; i < FT_VOX_RENDER_DIAMETER; i++) {
+    for (int i = 0; i < FT_RENDER_DIAMETER; i++) {
         struct
         chunk_s *chunk = self->chunks[i];
         if (!chunk) { continue; }
@@ -133,7 +133,7 @@ extern int ft_world_render(struct world_s *self) {
     }
 
     /* iterate on every 'chunk' */
-    for (int i = 0; i < FT_VOX_RENDER_DIAMETER; i++) {
+    for (int i = 0; i < FT_RENDER_DIAMETER; i++) {
         struct
         chunk_s *chunk = self->chunks[i];
         if (!chunk) { continue; }
@@ -158,15 +158,15 @@ extern int ft_world_get(struct world_s *self, int cx, int cy, int cz, struct chu
     cz -= (int) origin.z;
     
     /* check if 'chunk' is out-of-bounds */
-    if ((u32) cx >= FT_VOX_RENDER_DIAMETER_X ||
-        (u32) cy >= FT_VOX_RENDER_DIAMETER_Y ||
-        (u32) cz >= FT_VOX_RENDER_DIAMETER_Z
+    if ((u32) cx >= FT_RENDER_DIAMETER_X ||
+        (u32) cy >= FT_RENDER_DIAMETER_Y ||
+        (u32) cz >= FT_RENDER_DIAMETER_Z
     ) {
         *result = 0; return (0);
     }
 
     /* return 'result' */
-    if (result) { *result = self->chunks[FT_VOX_WORLD_3D_1D(cx, cy, cz)]; }
+    if (result) { *result = self->chunks[FT_WORLD_3D_1D(cx, cy, cz)]; }
 
     /* success */
     return (1);
@@ -200,12 +200,12 @@ extern int ft_world_center(struct world_s *self, const vec3 block) {
     /* null-check */
     if (!self) { return (0); }
 
-    vec3 center = FT_VOX_BLOCK_TO_CHUNK(block.x,
-                                        block.y,
-                                        block.z);
-    vec3 origin = alg_vec3(center.x - FT_VOX_RENDER_DISTANCE_X,
-                           center.y - FT_VOX_RENDER_DISTANCE_Y,
-                           center.z - FT_VOX_RENDER_DISTANCE_Z);
+    vec3 center = FT_BLOCK_TO_CHUNK(block.x,
+                                    block.y,
+                                    block.z);
+    vec3 origin = alg_vec3(center.x - FT_RENDER_DISTANCE_X,
+                           center.y - FT_RENDER_DISTANCE_Y,
+                           center.z - FT_RENDER_DISTANCE_Z);
 
     /* check if 'origin' changed */
     if (alg_vec3eq(origin, self->origin)) {
@@ -215,20 +215,20 @@ extern int ft_world_center(struct world_s *self, const vec3 block) {
 
     /* 'tmp' chunks, 'self->chunks' back-up */
     struct
-    chunk_s **tmp = (struct chunk_s **) calloc(FT_VOX_RENDER_DIAMETER, sizeof(struct chunk_s *));
+    chunk_s **tmp = (struct chunk_s **) calloc(FT_RENDER_DIAMETER, sizeof(struct chunk_s *));
     if (!tmp) {
         return (0);
     }
 
-    memcpy(tmp, self->chunks, FT_VOX_RENDER_DIAMETER * sizeof(struct chunk_s *));
-    memset(self->chunks, 0, FT_VOX_RENDER_DIAMETER * sizeof(struct chunk_s *));
+    memcpy(tmp, self->chunks, FT_RENDER_DIAMETER * sizeof(struct chunk_s *));
+    memset(self->chunks, 0, FT_RENDER_DIAMETER * sizeof(struct chunk_s *));
 
     /* re-center 'self' */
     self->center = center;
     self->origin = origin;
 
     /* pass 1.: check out-of-bounds */
-    for (int i = 0; i < FT_VOX_RENDER_DIAMETER; i++) {
+    for (int i = 0; i < FT_RENDER_DIAMETER; i++) {
         /* get 'chunk' from 'tmp' */
         struct
         chunk_s *chunk = tmp[i];
@@ -242,7 +242,7 @@ extern int ft_world_center(struct world_s *self, const vec3 block) {
         /* case : 'chunk' out-of-bounds */
         if (ft_world_out_of_bounds(self, cx, cy, cz)) {
             /* add 'chunk' to 'delete' array */
-            for (int j = 0; j < FT_VOX_RENDER_DIAMETER; j++) {
+            for (int j = 0; j < FT_RENDER_DIAMETER; j++) {
                 if (!self->delete[j]) {
                     SDL_AtomicSet(&chunk->atoms.delete, 1);
                     self->delete[j] = chunk;
@@ -252,14 +252,14 @@ extern int ft_world_center(struct world_s *self, const vec3 block) {
         }
         /* case : 'chunk' in-bound */
         else {
-            self->chunks[FT_VOX_WORLD_3D_1D(cx - (int) origin.x,
-                                            cy - (int) origin.y,
-                                            cz - (int) origin.z)] = chunk;
+            self->chunks[FT_WORLD_3D_1D(cx - (int) origin.x,
+                                        cy - (int) origin.y,
+                                        cz - (int) origin.z)] = chunk;
         }
     }
 
     /* pass 2.: create empty chunks */
-    for (int i = 0; i < FT_VOX_RENDER_DIAMETER; i++) {
+    for (int i = 0; i < FT_RENDER_DIAMETER; i++) {
         /* get 'chunk' from 'chunks' */
         struct
         chunk_s *chunk = self->chunks[i];
@@ -269,14 +269,14 @@ extern int ft_world_center(struct world_s *self, const vec3 block) {
         int x = 0,
             y = 0,
             z = 0;
-        FT_VOX_WORLD_1D_3D(i, x, y, z);
+        FT_WORLD_1D_3D(i, x, y, z);
         ft_chunk_create(&chunk, self, x + (int) origin.x,
                                       y + (int) origin.y,
                                       z + (int) origin.z);
         ft_chunk_alloc(chunk);
 
         /* store 'chunk' in 'self->loaded' */
-        self->chunks[FT_VOX_WORLD_3D_1D(x, y, z)] = chunk;
+        self->chunks[FT_WORLD_3D_1D(x, y, z)] = chunk;
     }
 
     /* release 'tmp' */
@@ -296,7 +296,7 @@ extern int ft_world_flush_delete(struct world_s *self) {
     chunk_s **delete = self->delete;
     if (!delete) { return (0); }
 
-    for (int i = 0; i < FT_VOX_RENDER_DIAMETER; i++) {
+    for (int i = 0; i < FT_RENDER_DIAMETER; i++) {
         /* get 'chunk' */
         struct
         chunk_s *chunk = delete[i];
@@ -326,9 +326,9 @@ extern int ft_world_out_of_bounds(struct world_s *self, int cx, int cy, int cz) 
     cx -= self->origin.x;
     cy -= self->origin.y;
     cz -= self->origin.z;
-    int status = (u32) cx >= FT_VOX_RENDER_DIAMETER_X ||
-                 (u32) cy >= FT_VOX_RENDER_DIAMETER_Y ||
-                 (u32) cz >= FT_VOX_RENDER_DIAMETER_Z;
+    int status = (u32) cx >= FT_RENDER_DIAMETER_X ||
+                 (u32) cy >= FT_RENDER_DIAMETER_Y ||
+                 (u32) cz >= FT_RENDER_DIAMETER_Z;
 
     /* return 'status' */
     return (status);

@@ -45,6 +45,9 @@ typedef uint64_t u64;
 
 typedef int64_t i64;
 
+typedef float f32;
+
+typedef double f64;
 
 /* Forward-Declare */
 
@@ -421,12 +424,12 @@ extern int ft_thpool_dequeue(struct thpool_s *, void *);
 
 /* ft_vox-block.c */
 
-# if !defined (FT_VOX_BLOCK_SIZE_X)
-#  define FT_VOX_BLOCK_SIZE_X 16 /* block X-axis size in pixels */
+# if !defined (FT_BLOCK_SIZE_X)
+#  define FT_BLOCK_SIZE_X 16 /* block X-axis size in pixels */
 # endif
 # 
-# if !defined (FT_VOX_BLOCK_SIZE_Y)
-#  define FT_VOX_BLOCK_SIZE_Y 16 /* block Y-axis size in pixels */
+# if !defined (FT_BLOCK_SIZE_Y)
+#  define FT_BLOCK_SIZE_Y 16 /* block Y-axis size in pixels */
 # endif
 
 enum face_e {
@@ -498,29 +501,35 @@ extern int ft_blocks_create(void);
 
 /* ft_vox-chunk.c */
 
-# if !defined (FT_VOX_CHUNK_SIZE_X)
-#  define FT_VOX_CHUNK_SIZE_X 32 /* chunk X-axis size in blocks */
+# if !defined (FT_CHUNK_SIZE_X)
+#  define FT_CHUNK_SIZE_X 32 /* chunk X-axis size in blocks */
 # endif
 # 
-# if !defined (FT_VOX_CHUNK_SIZE_Y)
-#  define FT_VOX_CHUNK_SIZE_Y 32 /* chunk Y-axis size in blocks */
+# if !defined (FT_CHUNK_SIZE_Y)
+#  define FT_CHUNK_SIZE_Y 32 /* chunk Y-axis size in blocks */
 # endif
 # 
-# if !defined (FT_VOX_CHUNK_SIZE_Z)
-#  define FT_VOX_CHUNK_SIZE_Z 32 /* chunk Z-axis size in blocks */
+# if !defined (FT_CHUNK_SIZE_Z)
+#  define FT_CHUNK_SIZE_Z 32 /* chunk Z-axis size in blocks */
 # endif
 #
-# define FT_VOX_CHUNK_SIZE (FT_VOX_CHUNK_SIZE_X * \
-                            FT_VOX_CHUNK_SIZE_Y * \
-                            FT_VOX_CHUNK_SIZE_Z)
+# define FT_CHUNK_SIZE (FT_CHUNK_SIZE_X * \
+                        FT_CHUNK_SIZE_Y * \
+                        FT_CHUNK_SIZE_Z)
 #
-# define FT_VOX_CHUNK_3D_1D(x, y, z) ((x) + \
-                                      (y) * FT_VOX_CHUNK_SIZE_X + \
-                                      (z) * FT_VOX_CHUNK_SIZE_X * FT_VOX_CHUNK_SIZE_Y)
+# define FT_CHUNK_2D_1D(x, y) ((x) + \
+                               (y) * FT_CHUNK_SIZE_X)
 #
-# define FT_VOX_CHUNK_1D_3D(i, x, y, z) ((z) = ((i)) / (FT_VOX_CHUNK_SIZE_X * FT_VOX_CHUNK_SIZE_Y),\
-                                         (y) = ((i) / FT_VOX_CHUNK_SIZE_X) % (FT_VOX_CHUNK_SIZE_Y),\
-                                         (x) = ((i)) % (FT_VOX_CHUNK_SIZE_X))
+# define FT_CHUNK_3D_1D(x, y, z) ((x) + \
+                                  (y) * FT_CHUNK_SIZE_X + \
+                                  (z) * FT_CHUNK_SIZE_X * FT_CHUNK_SIZE_Y)
+#
+# define FT_CHUNK_1D_2D(i, x, y) ((y) = ((i)) / (FT_CHUNK_SIZE_X),\
+                                  (x) = ((i)) % (FT_CHUNK_SIZE_X))
+#
+# define FT_CHUNK_1D_3D(i, x, y, z) ((z) = ((i)) / (FT_CHUNK_SIZE_X * FT_CHUNK_SIZE_Y),\
+                                     (y) = ((i) / FT_CHUNK_SIZE_X) % (FT_CHUNK_SIZE_Y),\
+                                     (x) = ((i)) % (FT_CHUNK_SIZE_X))
 
 struct chunk_mesh_s {
     /* NOTE: must match 'enum block_type_e' */
@@ -549,6 +558,9 @@ struct chunk_s {
 
     /* 'blocks' : array of blocks */
     u32 *blocks;
+
+    /* 'volume' : array of [-1.0, 1.0] values */
+    f32 *volume;
 
     /* 'atoms' : chunk atoms */
     struct {
@@ -625,44 +637,44 @@ extern int ft_chunk_mesh_upload(struct chunk_s *);
 
 /* ft_vox-world.c */
 
-# if !defined (FT_VOX_RENDER_DISTANCE_X)
-#  define FT_VOX_RENDER_DISTANCE_X 8 /* world X-axis render distance */
-#  define FT_VOX_RENDER_DIAMETER_X (FT_VOX_RENDER_DISTANCE_X * 2)
+# if !defined (FT_RENDER_DISTANCE_X)
+#  define FT_RENDER_DISTANCE_X 8 /* world X-axis render distance */
+#  define FT_RENDER_DIAMETER_X (FT_RENDER_DISTANCE_X * 2)
 # endif
 #
-# if !defined (FT_VOX_RENDER_DISTANCE_Y)
-#  define FT_VOX_RENDER_DISTANCE_Y 8 /* world Y-axis render distance */
-#  define FT_VOX_RENDER_DIAMETER_Y (FT_VOX_RENDER_DISTANCE_Y * 2)
+# if !defined (FT_RENDER_DISTANCE_Y)
+#  define FT_RENDER_DISTANCE_Y 8 /* world Y-axis render distance */
+#  define FT_RENDER_DIAMETER_Y (FT_RENDER_DISTANCE_Y * 2)
 # endif
 #
-# if !defined (FT_VOX_RENDER_DISTANCE_Z)
-#  define FT_VOX_RENDER_DISTANCE_Z 8 /* world Z-axis render distance */
-#  define FT_VOX_RENDER_DIAMETER_Z (FT_VOX_RENDER_DISTANCE_Z * 2)
+# if !defined (FT_RENDER_DISTANCE_Z)
+#  define FT_RENDER_DISTANCE_Z 8 /* world Z-axis render distance */
+#  define FT_RENDER_DIAMETER_Z (FT_RENDER_DISTANCE_Z * 2)
 # endif
 #
-# define FT_VOX_RENDER_DISTANCE (FT_VOX_RENDER_DISTANCE_X * \
-                                 FT_VOX_RENDER_DISTANCE_Y * \
-                                 FT_VOX_RENDER_DISTANCE_Z)
+# define FT_RENDER_DISTANCE (FT_RENDER_DISTANCE_X * \
+                                 FT_RENDER_DISTANCE_Y * \
+                                 FT_RENDER_DISTANCE_Z)
 #
-# define FT_VOX_RENDER_DIAMETER (FT_VOX_RENDER_DIAMETER_X * \
-                                 FT_VOX_RENDER_DIAMETER_Y * \
-                                 FT_VOX_RENDER_DIAMETER_Z)
+# define FT_RENDER_DIAMETER (FT_RENDER_DIAMETER_X * \
+                                 FT_RENDER_DIAMETER_Y * \
+                                 FT_RENDER_DIAMETER_Z)
 #
-# define FT_VOX_WORLD_3D_1D(x, y, z) ((x) + \
-                                      (y) * FT_VOX_RENDER_DIAMETER_X + \
-                                      (z) * FT_VOX_RENDER_DIAMETER_X * FT_VOX_RENDER_DIAMETER_Y)
+# define FT_WORLD_3D_1D(x, y, z) ((x) + \
+                                  (y) * FT_RENDER_DIAMETER_X + \
+                                  (z) * FT_RENDER_DIAMETER_X * FT_RENDER_DIAMETER_Y)
 #
-# define FT_VOX_WORLD_1D_3D(i, x, y, z) ((z) = ((i)) / (FT_VOX_RENDER_DIAMETER_X * FT_VOX_RENDER_DIAMETER_Y),\
-                                         (y) = ((i) / FT_VOX_RENDER_DIAMETER_X) % (FT_VOX_RENDER_DIAMETER_Y),\
-                                         (x) = ((i)) % (FT_VOX_RENDER_DIAMETER_X))
+# define FT_WORLD_1D_3D(i, x, y, z) ((z) = ((i)) / (FT_RENDER_DIAMETER_X * FT_RENDER_DIAMETER_Y),\
+                                     (y) = ((i) / FT_RENDER_DIAMETER_X) % (FT_RENDER_DIAMETER_Y),\
+                                     (x) = ((i)) % (FT_RENDER_DIAMETER_X))
 #
-# define FT_VOX_BLOCK_TO_CHUNK(x, y, z) (alg_vec3(floorf((x) / FT_VOX_CHUNK_SIZE_X), \
-                                                  floorf((y) / FT_VOX_CHUNK_SIZE_Y), \
-                                                  floorf((z) / FT_VOX_CHUNK_SIZE_Z)))
+# define FT_BLOCK_TO_CHUNK(x, y, z) (alg_vec3(floorf((x) / FT_CHUNK_SIZE_X), \
+                                              floorf((y) / FT_CHUNK_SIZE_Y), \
+                                              floorf((z) / FT_CHUNK_SIZE_Z)))
 #
-# define FT_VOX_FLOAT_TO_BLOCK(x, y, z) (alg_vec3(floorf((x)), \
-                                                  floorf((y)), \
-                                                  floorf((z))))
+# define FT_FLOAT_TO_BLOCK(x, y, z) (alg_vec3(floorf((x)), \
+                                              floorf((y)), \
+                                              floorf((z))))
 
 struct world_s {
     /* 'ecs' : 'ecs_s' object */
@@ -718,11 +730,15 @@ extern int ft_world_out_of_bounds(struct world_s *, int, int, int);
 
 /* ft_vox-worldgen.c */
 
-# if !defined (FT_VOX_WORLDGEN_SEA_LEVEL)
-#  define FT_VOX_WORLDGEN_SEA_LEVEL (0)
+# if !defined (FT_UPSAMPLE_STEP)
+#  define FT_UPSAMPLE_STEP 4
 # endif
+#
+# /* NOTE: adding '+1' for, let's say, "next chunk" noise value (simulated) */
+# define FT_UPSAMPLE_X ((FT_CHUNK_SIZE_X / FT_UPSAMPLE_STEP) + 1)
+# define FT_UPSAMPLE_Z ((FT_CHUNK_SIZE_Z / FT_UPSAMPLE_STEP) + 1)
 
-extern int ft_worldgen_generate(struct world_s *, struct chunk_s *, int, int, int);
+extern int ft_worldgen_generate(struct world_s *, struct chunk_s *);
 
 /* ... */
 
