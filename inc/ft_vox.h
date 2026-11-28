@@ -596,10 +596,10 @@ struct chunk_s {
     chunk_data_s data;
 
     /* 'origin' : 'parent' position (in chunks) */
-    vec3 origin;
+    ivec3 origin;
 
     /* 'position' : 'parent' position (in blocks) */
-    vec3 offset;
+    ivec3 offset;
 };
 
 /* basic func. */
@@ -637,17 +637,17 @@ extern int ft_chunk_mesh_upload(struct chunk_s *);
 
 # if !defined (FT_RENDER_DISTANCE_X)
 #  define FT_RENDER_DISTANCE_X 8 /* world X-axis render distance */
-#  define FT_RENDER_DIAMETER_X (FT_RENDER_DISTANCE_X * 2)
+#  define FT_RENDER_DIAMETER_X (FT_RENDER_DISTANCE_X * 2 + 1)
 # endif
 #
 # if !defined (FT_RENDER_DISTANCE_Y)
 #  define FT_RENDER_DISTANCE_Y 8 /* world Y-axis render distance */
-#  define FT_RENDER_DIAMETER_Y (FT_RENDER_DISTANCE_Y * 2)
+#  define FT_RENDER_DIAMETER_Y (FT_RENDER_DISTANCE_Y * 2 + 1)
 # endif
 #
 # if !defined (FT_RENDER_DISTANCE_Z)
 #  define FT_RENDER_DISTANCE_Z 8 /* world Z-axis render distance */
-#  define FT_RENDER_DIAMETER_Z (FT_RENDER_DISTANCE_Z * 2)
+#  define FT_RENDER_DIAMETER_Z (FT_RENDER_DISTANCE_Z * 2 + 1)
 # endif
 #
 # define FT_RENDER_DISTANCE (FT_RENDER_DISTANCE_X * \
@@ -665,14 +665,6 @@ extern int ft_chunk_mesh_upload(struct chunk_s *);
 # define FT_WORLD_1D_3D(i, x, y, z) ((z) = ((i)) / (FT_RENDER_DIAMETER_X * FT_RENDER_DIAMETER_Y),\
                                      (y) = ((i) / FT_RENDER_DIAMETER_X) % (FT_RENDER_DIAMETER_Y),\
                                      (x) = ((i)) % (FT_RENDER_DIAMETER_X))
-#
-# define FT_BLOCK_TO_CHUNK(x, y, z) (alg_vec3(floorf((x) / FT_CHUNK_SIZE_X), \
-                                              floorf((y) / FT_CHUNK_SIZE_Y), \
-                                              floorf((z) / FT_CHUNK_SIZE_Z)))
-#
-# define FT_FLOAT_TO_BLOCK(x, y, z) (alg_vec3(floorf((x)), \
-                                              floorf((y)), \
-                                              floorf((z))))
 
 struct world_s {
     /* 'ecs' : 'ecs_s' object */
@@ -692,10 +684,10 @@ struct world_s {
     chunk_s **delete;
 
     /* 'center' : current world's center position (in chunks) */
-    vec3 center;
+    ivec3 center;
 
     /* 'origin' : current world's origin position (in chunks) */
-    vec3 origin;
+    ivec3 origin;
 
     /* 'seed' : 32-bit seed of the world */
     u32 seed;
@@ -719,7 +711,7 @@ extern int ft_world_get_near(struct world_s *, int, int, int, struct chunk_s **)
 
 /* other func. */
 
-extern int ft_world_center(struct world_s *, const vec3);
+extern int ft_world_center(struct world_s *, const ivec3);
 
 extern int ft_world_flush_delete(struct world_s *);
 

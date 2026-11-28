@@ -125,6 +125,11 @@ extern int ft_shader_load(struct shader_s *self, FILE *file, enum shader_type_e 
 
         /* print 'log' */
         printf("compile: %s\n", log);
+
+        /* release 'code' */
+        free(code);
+
+        /* failure */
         return (0);
     }
 
@@ -143,6 +148,11 @@ extern int ft_shader_load(struct shader_s *self, FILE *file, enum shader_type_e 
 
         /* print 'log' */
         printf("link: %s\n", log);
+
+        /* release 'code' */
+        free(code);
+
+        /* failure */
         return (0);
     }
 

@@ -24,7 +24,7 @@ struct player_s {
     vec3 position;
 
     /* 'block' : 3D position (block-specific) */
-    vec3 block;
+    ivec3 block;
 };
 
 
@@ -120,9 +120,9 @@ static int ft_player_update(struct entity_s *self) {
     vec3 position = player->position = player->camera.position;
 
     /* 'player' position to 'block' position */
-    vec3 block = FT_FLOAT_TO_BLOCK(position.x,
-                                   position.y,
-                                   position.z);
+    ivec3 block = alg_ivec3(position.x,
+                            position.y,
+                            position.z);
 
     /* update 'player's positions */
     player->block = block;

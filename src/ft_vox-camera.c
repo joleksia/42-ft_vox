@@ -13,7 +13,7 @@ extern vec3 ft_camera_move(struct camera_s *self, struct keyboard_s *keyboard, c
                    key[SDL_SCANCODE_A];
         lr = alg_vec3cross(self->rotation, self->up);
         lr = alg_vec3norm(lr);
-        lr = alg_vec3mulf(lr, input * value);
+        lr = alg_vec3muls(lr, input * value);
     }
     
     /* move : 'top-down' */
@@ -23,7 +23,8 @@ extern vec3 ft_camera_move(struct camera_s *self, struct keyboard_s *keyboard, c
     ) {
         i8 input = key[SDL_SCANCODE_SPACE] -
                    key[SDL_SCANCODE_LSHIFT];
-        td = alg_vec3mulf(self->up, input * value);
+        td = self->up;
+        td = alg_vec3muls(td, input * value);
     }
    
     /* move : 'forward-backward' */
@@ -37,14 +38,14 @@ extern vec3 ft_camera_move(struct camera_s *self, struct keyboard_s *keyboard, c
         double sy = sin(alg_deg2rad(self->direction.z)),
                cy = cos(alg_deg2rad(self->direction.z));
         fb = alg_vec3(cy, 0.0f, sy);
-        fb = alg_vec3mulf(fb, input * value);
+        fb = alg_vec3muls(fb, input * value);
     }
 
     /* success */
     vec3 move = alg_vec3add(lr, td);
          move = alg_vec3add(fb, move);
     vec3 norm = alg_vec3norm(move);
-         norm = alg_vec3mulf(norm, value);
+         norm = alg_vec3muls(norm, value);
     return (alg_vec3add(self->position, norm));
 }
 

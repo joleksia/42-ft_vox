@@ -33,7 +33,7 @@ extern int ft_world_create(struct world_s **self, const int seed) {
     *self = world;
 
     /* re-center the world at [0, 0, 0] */
-    return (ft_world_center(*self, alg_vec3(0.0, 0.0, 0.0)));
+    return (ft_world_center(*self, alg_ivec3(0.0, 0.0, 0.0)));
 }
 
 
@@ -152,10 +152,10 @@ extern int ft_world_get(struct world_s *self, int cx, int cy, int cz, struct chu
     if (!self)  { return (0); }
     
     /* read 'origin' */
-    vec3 origin = self->origin;
-    cx -= (int) origin.x;
-    cy -= (int) origin.y;
-    cz -= (int) origin.z;
+    ivec3 origin = self->origin;
+    cx -= origin.x;
+    cy -= origin.y;
+    cz -= origin.z;
     
     /* check if 'chunk' is out-of-bounds */
     if ((u32) cx >= FT_RENDER_DIAMETER_X ||
@@ -196,19 +196,22 @@ extern int ft_world_get_near(struct world_s *self, int x, int y, int z, struct c
 
 /* other func. */
 
-extern int ft_world_center(struct world_s *self, const vec3 block) {
+extern int ft_world_center(struct world_s *self, const ivec3 block) {
     /* null-check */
     if (!self) { return (0); }
 
-    vec3 center = FT_BLOCK_TO_CHUNK(block.x,
-                                    block.y,
-                                    block.z);
-    vec3 origin = alg_vec3(center.x - FT_RENDER_DISTANCE_X,
-                           center.y - FT_RENDER_DISTANCE_Y,
-                           center.z - FT_RENDER_DISTANCE_Z);
+    /* new 'center' chunk? */
+    ivec3 center = alg_ivec3(block.x / FT_CHUNK_SIZE_X,
+                             block.y / FT_CHUNK_SIZE_Y,
+                             block.z / FT_CHUNK_SIZE_Z);
+
+    /* left-down 'origin' of 'center' */
+    ivec3 origin = alg_ivec3(center.x - FT_RENDER_DISTANCE_X,
+                             center.y - FT_RENDER_DISTANCE_Y,
+                             center.z - FT_RENDER_DISTANCE_Z);
 
     /* check if 'origin' changed */
-    if (alg_vec3eq(origin, self->origin)) {
+    if (alg_ivec3eq(origin, self->origin)) {
         /* success (early) */
         return (1);
     }
@@ -216,9 +219,7 @@ extern int ft_world_center(struct world_s *self, const vec3 block) {
     /* 'tmp' chunks, 'self->chunks' back-up */
     struct
     chunk_s **tmp = (struct chunk_s **) calloc(FT_RENDER_DIAMETER, sizeof(struct chunk_s *));
-    if (!tmp) {
-        return (0);
-    }
+    if (!tmp) { return (0); }
 
     memcpy(tmp, self->chunks, FT_RENDER_DIAMETER * sizeof(struct chunk_s *));
     memset(self->chunks, 0, FT_RENDER_DIAMETER * sizeof(struct chunk_s *));
@@ -235,9 +236,9 @@ extern int ft_world_center(struct world_s *self, const vec3 block) {
         if (!chunk) { continue; }
 
         /* get 'chunk's current position as integers */ 
-        int cx = (int) chunk->origin.x,
-            cy = (int) chunk->origin.y,
-            cz = (int) chunk->origin.z;
+        int cx = chunk->origin.x,
+            cy = chunk->origin.y,
+            cz = chunk->origin.z;
 
         /* case : 'chunk' out-of-bounds */
         if (ft_world_out_of_bounds(self, cx, cy, cz)) {
@@ -252,9 +253,9 @@ extern int ft_world_center(struct world_s *self, const vec3 block) {
         }
         /* case : 'chunk' in-bound */
         else {
-            self->chunks[FT_WORLD_3D_1D(cx - (int) origin.x,
-                                        cy - (int) origin.y,
-                                        cz - (int) origin.z)] = chunk;
+            self->chunks[FT_WORLD_3D_1D(cx - origin.x,
+                                        cy - origin.y,
+                                        cz - origin.z)] = chunk;
         }
     }
 
@@ -272,9 +273,9 @@ extern int ft_world_center(struct world_s *self, const vec3 block) {
             y = 0,
             z = 0;
         FT_WORLD_1D_3D(i, x, y, z);
-        ft_chunk_create(&chunk, self, x + (int) origin.x,
-                                      y + (int) origin.y,
-                                      z + (int) origin.z);
+        ft_chunk_create(&chunk, self, x + origin.x,
+                                      y + origin.y,
+                                      z + origin.z);
         ft_chunk_alloc(chunk);
 
         /* store 'chunk' in 'self->loaded' */

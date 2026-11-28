@@ -15,6 +15,8 @@ out vec4 f_color;
 layout (binding=0)
 uniform sampler2D u_atlas;
 
+uniform vec4 u_tint;
+
 void main() {
     vec4 sampler = texture(u_atlas, v_texcoord);
     if (sampler.a < 0.1) {
@@ -22,5 +24,5 @@ void main() {
     }
 
     /* set 'f_color' */
-    f_color = vec4(sampler.rgb * v_shading, sampler.a);
+    f_color = vec4(sampler.rgb * v_shading, sampler.a) * u_tint;
 }

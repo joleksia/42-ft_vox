@@ -50,12 +50,12 @@ extern int ft_chunk_create(struct chunk_s **self, struct world_s *parent, int x,
     chunk->parent = parent;
 
     /* set 'origin' */
-    chunk->origin = alg_vec3(x, y, z);
+    chunk->origin = alg_ivec3(x, y, z);
 
     /* set 'offset' */
-    chunk->offset = alg_vec3(x * FT_CHUNK_SIZE_X,
-                             y * FT_CHUNK_SIZE_Y,
-                             z * FT_CHUNK_SIZE_Z);
+    chunk->offset = alg_ivec3(x * FT_CHUNK_SIZE_X,
+                              y * FT_CHUNK_SIZE_Y,
+                              z * FT_CHUNK_SIZE_Z);
 
     /* set 'atoms' */
     SDL_AtomicSet(&chunk->atoms.create, 1);
@@ -233,21 +233,21 @@ extern int ft_chunk_get(struct chunk_s *self, int bx, int by, int bz, u32 *resul
     /* null-check */
     if (!self) { return (0); }
 
-    int cx = (int) self->origin.x;
+    int cx = self->origin.x;
     if (bx < 0) {
         cx--; bx += FT_CHUNK_SIZE_X;
     } else if (bx >= FT_CHUNK_SIZE_X) {
         cx++; bx -= FT_CHUNK_SIZE_X;
     }
 
-    int cy = (int) self->origin.y;
+    int cy = self->origin.y;
     if (by < 0) {
         cy--; by += FT_CHUNK_SIZE_Y;
     } else if (by >= FT_CHUNK_SIZE_Y) {
         cy++; by -= FT_CHUNK_SIZE_Y;
     }
 
-    int cz = (int) self->origin.z;
+    int cz = self->origin.z;
     if (bz < 0) {
         cz--; bz += FT_CHUNK_SIZE_Z;
     } else if (bz >= FT_CHUNK_SIZE_Z) {
@@ -255,9 +255,9 @@ extern int ft_chunk_get(struct chunk_s *self, int bx, int by, int bz, u32 *resul
     }
 
     /* get actual 'self' (bound-check) */
-    if (cx != (int) self->origin.x ||
-        cy != (int) self->origin.y ||
-        cz != (int) self->origin.z
+    if (cx != self->origin.x ||
+        cy != self->origin.y ||
+        cz != self->origin.z
     ) {
         ft_world_get(self->parent, cx, cy, cz, &self);
         if (!self) {
@@ -654,7 +654,10 @@ static int __ft_chunk_mesh_render_t(struct chunk_mesh_s *self, struct chunk_s *c
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     /* 'u_model' matrix */
-    mat4 u_model = alg_mat4trans(chunk->offset);
+    vec3 trans = alg_vec3(chunk->offset.x,
+                          chunk->offset.y,
+                          chunk->offset.z);
+    mat4 u_model = alg_mat4trans(trans);
 
     /* configure shader */
     ft_shader_bind(STATE.gfx.trans);
@@ -687,7 +690,10 @@ static int __ft_chunk_mesh_render_s(struct chunk_mesh_s *self, struct chunk_s *c
     glDisable(GL_BLEND);
     
     /* 'u_model' matrix */
-    mat4 u_model = alg_mat4trans(chunk->offset);
+    vec3 trans = alg_vec3(chunk->offset.x,
+                          chunk->offset.y,
+                          chunk->offset.z);
+    mat4 u_model = alg_mat4trans(trans);
 
     /* configure shader */
     ft_shader_bind(STATE.gfx.solid);
@@ -721,13 +727,23 @@ static int __ft_chunk_mesh_render_w(struct chunk_mesh_s *self, struct chunk_s *c
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
     /* 'u_model' matrix */
-    mat4 u_model = alg_mat4trans(chunk->offset);
+    vec3 trans = alg_vec3(chunk->offset.x,
+                          chunk->offset.y,
+                          chunk->offset.z);
+    mat4 u_model = alg_mat4trans(trans);
+
+    /* 'u_tint' color */
+    vec4 u_tint = alg_vec4(0.247,
+                           0.463,
+                           0.894,
+                           1.000);
 
     /* configure shader */
     ft_shader_bind(STATE.gfx.water);
     ft_shader_uniform(STATE.gfx.water, "u_proj", FT_UNIFORM_MATRIX4, &STATE.gfx.proj);
     ft_shader_uniform(STATE.gfx.water, "u_view", FT_UNIFORM_MATRIX4, &STATE.gfx.view);
     ft_shader_uniform(STATE.gfx.water, "u_model", FT_UNIFORM_MATRIX4, &u_model);
+    ft_shader_uniform(STATE.gfx.water, "u_tint", FT_UNIFORM_FLOAT4D, &u_tint);
 
     /* draw-call */
     glBindVertexArray(self->vao[FT_BLOCK_TYPE_WATER]);
